@@ -41,12 +41,7 @@ SRC_URI:append:summitsom = " \
     file://0065-PENDING-mmc-sdhci_am654-Allow-defaults-for-DLL-prope.patch \
     file://0066-PENDING-mmc-sdhci_am654-Add-SDHCI_QUIRK_CAP_CLOCK_BA.patch \
     file://dts \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'file://disable_framebuffer_console.cfg', '', d)} \
     "
-
-KERNEL_CONFIG_FRAGMENTS:append:summitsom = " \
-   ${WORKDIR}/disable_framebuffer_console.cfg \
-   "
 
 KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if d.getVar('KERNEL_DEVICETREE').find('.dtbo') else ''}"
 

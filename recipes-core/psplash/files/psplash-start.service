@@ -9,7 +9,7 @@ ConditionPathExists=/dev/fb0
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/psplash
+ExecStart=/usr/bin/psplash -n
 RemainAfterExit=yes
 
 [Install]

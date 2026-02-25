@@ -13,7 +13,6 @@ SRC_URI:append:summitsom = " \
     file://0019-dm-verity-partition-wait-fix.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'file://disable_framebuffer_console.cfg', '', d)} \
     "
 
 SRC_URI:append:imx8mp-summitsom = " \

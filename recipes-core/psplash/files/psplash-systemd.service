@@ -3,6 +3,7 @@ Description=Start psplash-systemd progress communication helper
 DefaultDependencies=no
 After=psplash-start.service
 RequiresMountsFor=/run
+ConditionPathExists=/usr/bin/psplash-systemd
 ConditionPathExists=/run/psplash_fifo
 
 [Service]

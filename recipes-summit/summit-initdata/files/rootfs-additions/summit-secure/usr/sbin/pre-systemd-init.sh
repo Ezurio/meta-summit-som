@@ -24,8 +24,8 @@ if ${STANDALONE}; then
 fi
 
 if [ -x /usr/bin/psplash ] && [ -e /dev/fb0 ]; then
-	mount /run || true
-	/usr/bin/psplash &
+	mount /run 2> /dev/null || mount -t tmpfs tmpfs /run -o mode=0755,nodev,nosuid
+	/usr/bin/psplash -n &
 fi
 
 PERM_DEVICE=/dev/$(getPart perm)
