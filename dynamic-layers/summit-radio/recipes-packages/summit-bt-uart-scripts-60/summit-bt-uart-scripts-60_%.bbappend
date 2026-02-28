@@ -1,0 +1,7 @@
+BT_SERIAL_PORT:imx8mm-generic-bsp = "/dev/ttymxc0"
+BT_SERIAL_PORT:imx8mp-generic-bsp = "/dev/ttymxc3"
+BT_SERIAL_PORT:imx93-generic-bsp = "/dev/ttyLP7"
+BT_SERIAL_PORT:imx95-generic-bsp = "/dev/ttyLP7"
+BT_SERIAL_PORT:imx8mp-summitsom = "/dev/ttymxc2"
+BT_SERIAL_PORT:am62xx:summitsom = "/dev/ttyS3"
+BT_SERIAL_PORT:j722s:summitsom = "/dev/ttyS5"
