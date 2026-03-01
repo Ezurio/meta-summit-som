@@ -77,10 +77,10 @@ create_gadget() {
 			cat /etc/wifi_mac > strings/0x409/serialnumber
 		elif [ -e /sys/devices/soc0/soc_uid ]; then
 			cat /sys/devices/soc0/soc_uid > strings/0x409/serialnumber
-		elif [ -f /sys/class/net/end1/address ]; then
-			sed 's/://g' /sys/class/net/end1/address > strings/0x409/serialnumber
-		elif [ -f /sys/class/net/end0/address ]; then
-			sed 's/://g' /sys/class/net/end0/address > strings/0x409/serialnumber
+		elif [ -f /sys/class/net/eth1/address ]; then
+			sed 's/://g' /sys/class/net/eth1/address > strings/0x409/serialnumber
+		elif [ -f /sys/class/net/eth0/address ]; then
+			sed 's/://g' /sys/class/net/eth0/address > strings/0x409/serialnumber
 		else
 			echo "deadbeefdeadbeef" > strings/0x409/serialnumber
 		fi
