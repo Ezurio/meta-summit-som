@@ -23,7 +23,15 @@ SRC_URI:append:imx8mp-summitsom = " \
 
 S = "${WORKDIR}"
 
-FILES:${PN} += "${sbindir} ${libdir} ${nonarch_libdir} ${systemd_system_unitdir} ${sysconfdir} ${datadir} /perm /data"
+FILES:${PN} += " \
+    ${sbindir} \
+    ${libdir} \
+    ${nonarch_libdir} \
+    ${systemd_system_unitdir} \
+    ${sysconfdir} \
+    ${datadir} \
+    /perm /data \
+    "
 
 RDEPENDS:${PN} = "\
     libubootenv-bin \
@@ -51,6 +59,9 @@ do_install () {
     find "${D}" -type f -name .empty -delete
     find "${D}${libdir}/NetworkManager/system-connections" -type f \
         -exec chmod 600 {} \;
+    install -d "${D}${sysconfdir}/systemd/system"
+    ln -sf /dev/null \
+        "${D}${sysconfdir}/systemd/system/systemd-machine-id-commit.service"
 }
 
 SYSTEMD_SERVICE:${PN} = "mount_boot.service fw_env.service"
