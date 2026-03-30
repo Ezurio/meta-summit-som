@@ -30,7 +30,7 @@ FIT_PAD_ALG = "pss"
 FIT_HASH_ALG = "sha512"
 FIT_SIGN_ALG = "rsa4096"
 
-UBOOT_SIGN_KEYDIR = "${SUMMIT_SOM_KEYS_DIR}/carbon"
+UBOOT_SIGN_KEYDIR ?= "${SUMMIT_SOM_KEYS_DIR}/carbon"
 UBOOT_SIGN_KEYNAME = "dev"
 
 # Do not set these for k3r5

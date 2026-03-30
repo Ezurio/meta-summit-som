@@ -6,7 +6,8 @@ LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
 inherit allarch systemd
 
-KEY_LOCATION_VALUE ?= ""
+KEY_LOCATION_VALUE = "${UBOOT_SIGN_KEYDIR}/update_signing.key"
+SWUPDATE_SIGNING_CERT = "${UBOOT_SIGN_KEYDIR}/update_signing.crt"
 
 SRC_URI = " \
     file://LICENSE.ezurio \
@@ -51,8 +52,16 @@ do_install () {
     fi
 
     if [ -n "${KEY_LOCATION_VALUE}" ]; then
-	    echo "SWUPDATE_ARGS=\"\${SWUPDATE_ARGS} -k ${KEY_LOCATION_VALUE}\"" > \
+        if [ ! -f "${KEY_LOCATION_VALUE}" ]; then
+            bbfatal "swupdate signing key not found: ${KEY_LOCATION_VALUE}"
+        fi
+        echo "SWUPDATE_ARGS=\"\${SWUPDATE_ARGS} -k /etc/swupdate/dev.crt\"" > \
             "${D}${sysconfdir}/swupdate/conf.d/11-signing.conf"
+
+        if [ ! -f "${SWUPDATE_SIGNING_CERT}" ]; then
+            bbfatal "swupdate signing certificate not found: ${SWUPDATE_SIGNING_CERT}"
+        fi
+        install -D -m 0644 "${SWUPDATE_SIGNING_CERT}" "${D}${sysconfdir}/swupdate/dev.crt"
     fi
 
     if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then

@@ -22,3 +22,8 @@ do_create_archive:prepend() {
     install -D -m 0755 -t "${DEPLOY_DIR_IMAGE}" \
         "${STAGING_BINDIR_NATIVE}/mksdcard.sh"
 }
+
+SWUPDATE_SIGNING:summit-secure ?= "CMS"
+SWUPDATE_PRIVATE_KEY:summit-secure = "${UBOOT_SIGN_KEYDIR}/update_signing.key"
+SWUPDATE_CMS_KEY:summit-secure = "${UBOOT_SIGN_KEYDIR}/update_signing.key"
+SWUPDATE_CMS_CERT:summit-secure = "${UBOOT_SIGN_KEYDIR}/update_signing.crt"
