@@ -30,7 +30,8 @@ FIT_PAD_ALG = "pss"
 FIT_HASH_ALG = "sha512"
 FIT_SIGN_ALG = "rsa4096"
 
-UBOOT_SIGN_KEYDIR ?= "${SUMMIT_SOM_KEYS_DIR}/carbon"
+CUSTOM_KEYS_DIR ?= ""
+UBOOT_SIGN_KEYDIR = "${@oe.utils.conditional('CUSTOM_KEYS_DIR', '', '${SUMMIT_SOM_KEYS_DIR}/carbon', '${CUSTOM_KEYS_DIR}', d)}"
 UBOOT_SIGN_KEYNAME = "dev"
 
 # Do not set these for k3r5
