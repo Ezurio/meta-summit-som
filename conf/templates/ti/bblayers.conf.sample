@@ -26,6 +26,7 @@ BBLAYERS = " \
   \
   ${BSPDIR}/sources/meta-swupdate \
   ${BSPDIR}/sources/meta-timesys \
+  ${BSPDIR}/sources/meta-aws \
   \
   ${BSPDIR}/sources/meta-summit-radio/meta-summit-radio \
 "

@@ -1,0 +1,7 @@
+{
+  "slots": [
+    {
+      "kms_key_arn": "@@KMS_KEY_ARN@@"
+    }
+  ]
+}
