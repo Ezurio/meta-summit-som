@@ -39,7 +39,7 @@ ROOTFS_POSTPROCESS_COMMAND += "rootfs_os_release; "
 rootfs_os_release() {
     ver=${IMAGE_VERSION_SUFFIX}
     ver=${ver#-}
-    sed -i -e "s,ID=.*,ID=${IMAGE_BASENAME},g" "${IMAGE_ROOTFS}${libdir}/os-release"
+    sed -i -e "s,^ID=.*,ID=${IMAGE_BASENAME},g" "${IMAGE_ROOTFS}${libdir}/os-release"
     sed -i -e "s,0.0.0.0,${ver},g" "${IMAGE_ROOTFS}${libdir}/os-release"
     printf 'Summit SOM %s %s %s \\n \l\n' "${MACHINE}" "${IMAGE_BASENAME}" "${ver}" > "${IMAGE_ROOTFS}${sysconfdir}/issue"
     echo "Summit SOM ${MACHINE} ${IMAGE_BASENAME} ${ver} %h" > "${IMAGE_ROOTFS}${sysconfdir}/issue.net"
