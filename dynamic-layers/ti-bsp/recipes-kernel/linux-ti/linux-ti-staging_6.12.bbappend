@@ -41,6 +41,7 @@ SRC_URI:append:summitsom = " \
     file://0065-PENDING-mmc-sdhci_am654-Allow-defaults-for-DLL-prope.patch \
     file://0066-PENDING-mmc-sdhci_am654-Add-SDHCI_QUIRK_CAP_CLOCK_BA.patch \
     file://0067-can-m_can-m_can_get_berr_counter-dont-wake-up.patch \
+    file://0068-pinctrl-mcp23s08-add-wakeup-support.patch \
     file://dts \
     "
 
