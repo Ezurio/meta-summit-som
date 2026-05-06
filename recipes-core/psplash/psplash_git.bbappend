@@ -8,3 +8,5 @@ SRC_URI:append:summitsom = " \
     file://0003-psplash-18bpp.patch \
     file://0004-drm-panel-orientation.patch \
     "
+DEPENDS:append:summitsom = " libdrm"
+
