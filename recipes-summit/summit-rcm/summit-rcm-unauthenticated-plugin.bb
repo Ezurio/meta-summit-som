@@ -19,5 +19,6 @@ PACKAGECONFIG[legacy_routes] = "summit_rcm_unauthenticated/rest_api/legacy"
 export SUMMIT_RCM_UNAUTHENTICATED_PLUGIN_EXTRA_PACKAGES = "\
     summit_rcm_unauthenticated \
     summit_rcm_unauthenticated/services \
+    summit_rcm_unauthenticated/middleware \
     ${PACKAGECONFIG_CONFARGS} \
     "
