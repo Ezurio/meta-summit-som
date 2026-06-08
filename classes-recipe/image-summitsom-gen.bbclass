@@ -34,6 +34,8 @@ IMAGE_FEATURES:append:summit-secure = "\
     read-only-rootfs \
     "
 
+IMAGE_INSTALL += "os-release"
+
 ROOTFS_POSTPROCESS_COMMAND += "rootfs_os_release; "
 
 rootfs_os_release() {
