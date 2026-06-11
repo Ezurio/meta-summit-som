@@ -3,8 +3,6 @@ DEPENDS += "aws-kms-pkcs11-native"
 
 KEY_PATH = "${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/dev_pkcs11.pem"
 
-EXTRA_OEMAKE += "KEY_PATH=${KEY_PATH}"
-
 do_compile[network] = "1"
 do_uboot_assemble_fitimage[network] = "1"
 

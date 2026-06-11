@@ -21,4 +21,6 @@ require ${ENV_INCLUDE}
 
 inherit ${@'uboot-aws-sign' if d.getVar('AWS_KMS_KEY_ARN') else ''}
 
+EXTRA_OEMAKE += "KEY_PATH='${KEY_PATH}'"
+
 COMPATIBLE_MACHINE = "(ti-soc)"
