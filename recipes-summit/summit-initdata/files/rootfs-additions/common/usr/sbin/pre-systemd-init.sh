@@ -23,10 +23,7 @@ die() {
 if [ "${1}" != "restart" ]; then
 	mount /run 2> /dev/null || mount -t tmpfs tmpfs /run -o mode=0755,nodev,nosuid
 
-	FIPS_ENABLED=$(/usr/sbin/sysctl -en crypto.fips_enabled || true)
-
 	overlay=false
-	#shellcheck disable=SC2154
 	for i in  ${inittype} none; do
 		case "${i}" in
 			overlay)
@@ -43,16 +40,18 @@ if [ "${1}" != "restart" ]; then
 		esac
 	fi
 
-	if [ "${FIPS_ENABLED:-0}" -eq 1 ] && [ -x /usr/sbin/init-fips.sh ]; then
-		# shellcheck source=/dev/null
-		. /usr/sbin/init-fips.sh
-	fi
-
-	if ${overlay} && [ -x /usr/sbin/init-overlay.sh ]; then
+	if ${overlay} && [ -x /usr/bin/init-overlay.sh ]; then
 		# shellcheck source=/dev/null
 		. /usr/sbin/init-overlay.sh
 		exit 0
 	fi
+fi
+
+FIPS_ENABLED=$(/usr/sbin/sysctl -en crypto.fips_enabled || true)
+
+if [ "${FIPS_ENABLED:-0}" -eq 1 ] && [ -x /usr/bin/init-fips.sh ]; then
+	# shellcheck source=/dev/null
+	. /usr/sbin/init-fips.sh
 fi
 
 if [ -x /usr/bin/psplash ] && [ -e /dev/fb0 ]; then
@@ -69,17 +68,18 @@ PERM_DEVICE=/dev/$(getPart perm)
 /usr/bin/mount -t "${mountFsType:?}" -o "${PERM_MOUNT_OPTS}" "${PERM_DEVICE}" ${PERM_MOUNT} ||
 	die "Failed to mount ${PERM_DEVICE} on ${PERM_MOUNT}"
 
-if [ -f "/etc/machine-id" ]; then
-# Make sure there is at least an empty machine-id file
-# (Referenced from symlink on the rootfs)
-if [ ! -f "${PERM_MOUNT}/etc/machine-id" ]; then
-	mkdir -p "${PERM_MOUNT}/etc"
-	/usr/bin/hexdump -n 16 -e '1/1 "%02x"' /dev/urandom > "${PERM_MOUNT}/etc/machine-id"
+if [ -f /etc/machine-id ]; then 
+	# Make sure there is at least an empty machine-id file
+	# (Referenced from symlink on the rootfs)
+	if [ ! -f "${PERM_MOUNT}/etc/machine-id" ]; then
+		mkdir -p "${PERM_MOUNT}/etc"
+		od -An -t x1 -N 16 /dev/urandom | tr -d ' \n' > "${PERM_MOUNT}/etc/machine-id"
+	fi
 fi
 
-mount --bind ${PERM_MOUNT}/etc/machine-id /etc/machine-id
-fi
+/usr/bin/mount --bind "${PERM_MOUNT}/etc/machine-id" /etc/machine-id
 
-mkdir -p ${PERM_MOUNT}/log/journal
+[ ! -e /lib/systemd/systemd ] ||
+	mkdir -p "${PERM_MOUNT}/log/journal"
 
 exec /usr/sbin/init
