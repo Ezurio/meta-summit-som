@@ -2,13 +2,14 @@ SUMMARY = "Summit Provisioning Service"
 
 LICENSE = "Ezurio"
 NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
-LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
+LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=11ef601ae07d69cfcd7387a33b764027"
 
-inherit allarch systemd deploy
+inherit allarch systemd deploy update-rc.d
 
 SRC_URI = " \
     file://LICENSE.ezurio \
     file://summit-prov.service \
+    file://summit-prov.init \
     file://summit-prov.sh \
     file://gen_core_x509_cert.sh \
     "
@@ -17,8 +18,12 @@ S = "${UNPACKDIR}"
 
 FILES:${PN} += "\
     ${systemd_system_unitdir} \
+    ${sysconfdir}/init.d \
     ${sbindir} \
     "
+
+INITSCRIPT_NAME = "summit-prov"
+INITSCRIPT_PARAMS = "defaults 90 10"
 
 RDEPENDS:${PN} = "\
     openssl \
@@ -44,6 +49,8 @@ do_install:append () {
     install -D -m 0755 -t "${D}${sbindir}" \
         "${S}/summit-prov.sh"
 
+    install -D -m 0755 "${S}/summit-prov.init" "${D}${sysconfdir}/init.d/${INITSCRIPT_NAME}"
+
     if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then
         install -D -m 644 -t "${D}${systemd_system_unitdir}" "${S}/summit-prov.service"
     fi
@@ -57,7 +64,7 @@ do_install:append:summit-secure () {
         "${D}${systemd_system_unitdir}/summit-prov.service"
 }
 
-do_install:append:k3 () {
+do_install:append () {
     # Assume SMEK and SMPK are in the keys directory
     smek_path="${UBOOT_SIGN_KEYDIR}/smek.key"
     [ -f "${smek_path}" ] || \

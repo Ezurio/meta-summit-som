@@ -1,6 +1,6 @@
 #! /bin/sh
 # SPDX-License-Identifier: LicenseRef-Ezurio-Clause
-# Copyright (C) 2026 Ezurio
+# Copyright (C) 2025 Ezurio
 
 # This script provisions keys and certificates into the OP-TEE secure storage using
 # the pkcs11-tool utility and also copies provisioning data files to /data/prov directory.
@@ -136,13 +136,13 @@ if [ -n "${DECRYPT_KEY}" ]; then
     use_ti_sci=0
 
     # Import decryption key to kernel keyring
-    printf %s "${DECRYPT_KEY}" | keyctl padd -x user summit_prov_decrypt_key @s > /dev/null || {
+    printf "%s" "${DECRYPT_KEY}" | keyctl padd -x user summit_prov_decrypt_key @s > /dev/null || {
         echo "Failed to add decryption key to kernel keyring!"
         exit 1
     }
 
     # Import decryption IV to kernel keyring
-    printf %s "${DECRYPT_IV}" | keyctl padd -x user summit_prov_decrypt_iv @s > /dev/null || {
+    printf "%s" "${DECRYPT_IV}" | keyctl padd -x user summit_prov_decrypt_iv @s > /dev/null || {
         echo "Failed to add decryption IV to kernel keyring!"
         exit 1
     }
