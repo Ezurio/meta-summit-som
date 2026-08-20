@@ -23,11 +23,9 @@ RDEPENDS:${PN} = " \
     "
 
 RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
-    isp-imx \
     kernel-module-isp-vvcam \
     "
 
-ISP_PKGS:mx95-nxp-bsp = " \
-    ${LIBCAMERA_PKGS} \
+RDEPENDS:mx95-nxp-bsp = " \
     neo-ipa-uguzzi \
-"
+    "
