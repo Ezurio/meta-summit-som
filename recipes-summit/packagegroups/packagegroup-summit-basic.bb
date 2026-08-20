@@ -38,7 +38,7 @@ RDEPENDS:${PN}:append:summit-secure = " \
 
 RDEPENDS:${PN}:append:k3 = " \
     iproute2-devlink \
-    summit-prov \
+    summit-prov-ti \
     "
 
 RDEPENDS:${PN}:remove:summitsom-mfg = " \
@@ -49,5 +49,5 @@ RDEPENDS:${PN}:remove:summitsom-mfg = " \
     gptfdisk \
     pkcs11-provider \
     pkcs11-optee-openssl \
-    summit-prov \
+    summit-prov-ti \
     "
