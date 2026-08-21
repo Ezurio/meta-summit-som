@@ -15,6 +15,11 @@ SRC_URI = " \
 
 S = "${UNPACKDIR}"
 
+FILES:${PN} += " \
+    ${systemd_system_unitdir} \
+    ${libdir}/NetworkManager/system-connections \
+    "
+
 RDEPENDS:${PN} = " \
     libgpiod-tools \
     summit-networkmanager-wwan \
