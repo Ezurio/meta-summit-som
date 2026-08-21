@@ -26,6 +26,6 @@ RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
     kernel-module-isp-vvcam \
     "
 
-RDEPENDS:mx95-nxp-bsp = " \
+RDEPENDS:${PN}:append:mx95-nxp-bsp = " \
     neo-ipa-uguzzi \
     "
