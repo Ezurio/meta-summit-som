@@ -21,6 +21,7 @@ RDEPENDS:${PN} = " \
     libgpiod-tools \
     util-linux-hwclock \
     pkcs11-provider \
+    pkcs11-optee-openssl \
     summit-automount \
     summit-initdata \
     summit-update \
@@ -47,5 +48,6 @@ RDEPENDS:${PN}:remove:summitsom-mfg = " \
     chronyc \
     gptfdisk \
     pkcs11-provider \
+    pkcs11-optee-openssl \
     summit-prov \
     "

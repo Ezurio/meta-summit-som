@@ -5,7 +5,11 @@
 AWS_KMS_FIT_KEY_ARN ?= "${AWS_KMS_KEY_ARN}"
 AWS_KMS_CERT_DAYS ?= "3650"
 
-DEPENDS += "aws-kms-pkcs11-native aws-kms-pkcs11-config-native"
+DEPENDS += "\
+    aws-kms-pkcs11-native \
+    aws-kms-pkcs11-config-native \
+    pkcs11-provider-native \
+    "
 
 KMS_SIG_STAGING = "${UNPACKDIR}/kms-sig-data"
 KMS_SIGN_KEYDIR_ORIG := "${UBOOT_SIGN_KEYDIR}"
@@ -26,26 +30,16 @@ def aws_kms_token_label(arn):
 def aws_kms_key_label(arn):
     return (arn or '').rsplit('/', 1)[-1]
 
-# Create per-recipe OpenSSL config and export KMS environment variables.
+# Export KMS environment variables.
 # Designed to be called at the top of do_compile:prepend() in subclasses.
+# OPENSSL_CONF points at the default native config (extended via openssl.cnf.d
+# by the openssl bbappend + aws-kms-pkcs11's drop-in) - no custom cnf is built.
+# CST's OPENSSL_CONF-gated config load and U-Boot's rsa-sign patch both need
+# this exported explicitly since neither goes through the openssl wrapper script.
 uboot_aws_kms_setup_env() {
-    OPENSSL_CNF="${UNPACKDIR}/kms-openssl.cnf"
-    if [ ! -f "$OPENSSL_CNF" ]; then
-        cp "${STAGING_DIR_NATIVE}/usr/lib/ssl-3/openssl.cnf" "$OPENSSL_CNF"
-        sed -i '/^default = default_sect$/a pkcs11 = pkcs11_sect' "$OPENSSL_CNF"
-        sed -i 's/^# activate = 1$/activate = 1/' "$OPENSSL_CNF"
-        cat >> "$OPENSSL_CNF" <<OPENSSL_CONF_EOF
-
-[pkcs11_sect]
-module = ${STAGING_LIBDIR_NATIVE}/ossl-modules/pkcs11.so
-pkcs11-module-path = ${STAGING_LIBDIR_NATIVE}/pkcs11/aws_kms_pkcs11.so
-activate = 1
-OPENSSL_CONF_EOF
-    fi
-
     export AWS_KMS_PKCS11_CONFIG="${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
     export LD_LIBRARY_PATH="${STAGING_LIBDIR_NATIVE}:${LD_LIBRARY_PATH}"
-    export OPENSSL_CONF="$OPENSSL_CNF"
+    export OPENSSL_CONF="${STAGING_DIR_NATIVE}${sysconfdir}/ssl/openssl.cnf"
 }
 
 # Generate a PKCS#11 PEM wrapper for a KMS key via uri2pem.py.
@@ -72,5 +66,5 @@ uboot_aws_kms_gen_cert() {
 do_uboot_assemble_fitimage:prepend() {
     export AWS_KMS_PKCS11_CONFIG="${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
     export LD_LIBRARY_PATH="${STAGING_LIBDIR_NATIVE}:${LD_LIBRARY_PATH}"
-    export OPENSSL_CONF="${UNPACKDIR}/kms-openssl.cnf"
+    export OPENSSL_CONF="${STAGING_DIR_NATIVE}${sysconfdir}/ssl/openssl.cnf"
 }
