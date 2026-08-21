@@ -1,36 +1,26 @@
 SUMMARY = "Summit SOM Rescue SD Card Boot Image"
 DESCRIPTION = "Summit SOM Rescue Manufacturing Provisioning SD Card Boot Image"
 
+inherit image-summitsom-gen image-summitsom-sd-gen image-summitsom-swu-gen
 REQUIRED_DISTRO_FEATURES += "summitsom-rescue"
 
-inherit image-summitsom-gen image-summitsom-sd-gen image-summitsom-swu-gen
 
 IMAGE_FEATURES = "\
     allow-empty-password \
     allow-root-login \
     empty-root-password \
+    serial-autologin-root \
     "
 
+# Minimal base packages
 IMAGE_INSTALL += "\
+    kernel-modules \
     ca-certificates \
     iproute2 \
     optee-client \
+    dhcpcd \
     summit-update \
-    summit-initdata \
     summit-usbgadget \
-    ${VIRTUAL-RUNTIME_base-utils-syslog} \
+    busybox-syslog \
+    summit-initdata \
     "
-
-# Customization for provisioning init and serial auto-login
-ROOTFS_POSTPROCESS_COMMAND:append = " enable_serial_autologin; cleanup_rootfs;"
-
-enable_serial_autologin() {
-    sed -i \
-        -e 's,/usr/sbin/getty -L 115200.*,/bin/login -f root,g' \
-        -e 's,/agetty ,/agetty -a root ,g' \
-        "${IMAGE_ROOTFS}/etc/inittab"
-}
-
-cleanup_rootfs() {
-    chmod -x "${IMAGE_ROOTFS}/etc/init.d/populate-volatile.sh"
-}

@@ -1,0 +1,19 @@
+#!/bin/sh
+
+case "$1" in
+start)
+    mkdir -p /var/lib/bluetooth
+    mount -o bind /data/secret/bluetooth /var/lib/bluetooth
+    ;;
+stop)
+    umount /var/lib/bluetooth
+    ;;
+restart)
+    "$0" stop
+    "$0" start
+    ;;
+*)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+    ;;
+esac

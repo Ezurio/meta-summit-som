@@ -14,8 +14,7 @@ RDEPENDS:${PN} = " \
     "
 
 RDEPENDS:${PN}:append:imx8mp-summitsom = " \
-    summit-networkmanager-wwan \
-    qfirehose \
+    imx8mp-summitsom-dvk-support \
     "
 
 RDEPENDS:${PN}:append:imx91-nitrogen-osm-s = " \

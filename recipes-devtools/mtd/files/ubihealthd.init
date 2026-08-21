@@ -1,0 +1,47 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          ubihealthd
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: UBI health daemon
+### END INIT INFO
+
+DAEMON=/usr/sbin/ubihealthd
+PIDFILE=/var/run/ubihealthd.pid
+
+start_service() {
+    [ -x "$DAEMON" ] || return 0
+    [ -d /sys/class/ubi/ubi0 ] || return 0
+
+    start-stop-daemon --start --quiet --background \
+        --make-pidfile --pidfile "$PIDFILE" \
+        --exec "$DAEMON" -- -f
+}
+
+stop_service() {
+    start-stop-daemon --stop --quiet --pidfile "$PIDFILE" --retry TERM/5/KILL/2
+    status=$?
+    rm -f "$PIDFILE"
+    return "$status"
+}
+
+case "$1" in
+    start)
+        start_service
+        ;;
+    stop)
+        stop_service
+        ;;
+    restart|reload)
+        stop_service || true
+        start_service
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

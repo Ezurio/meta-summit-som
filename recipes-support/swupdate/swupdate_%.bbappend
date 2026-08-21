@@ -21,6 +21,8 @@ SRC_URI:append:summitsom = "\
         file://1024-support-legacy-raw-file-path.patch \
         file://1025-disable-emmc-boot-change-on-failure.patch \
         file://1026-fix-progress-cr-when-redirected.patch \
+        file://1027-syslog-detach-console.patch;patchdir=.. \
+        file://1028-register-syslog-notifier-early.patch \
         ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', ' file://systemd.cfg', '', d)} \
         ${@bb.utils.contains('MACHINE_FEATURES', 'nand', ' file://flash.cfg', ' file://emmc.cfg', d)} \
         "

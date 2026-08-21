@@ -25,13 +25,27 @@ RDEPENDS:${PN} = " \
     summit-initdata \
     summit-update \
     summit-usbgadget \
-    packagegroup-summit-radio-stack-som \
+    ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-som', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-alsamixer alsa-utils-aplay', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'less systemd-extra-utils', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'nand', 'mtd-utils mtd-utils-ubifs', '', d)} \
     "
 
+RDEPENDS:${PN}:append:summit-secure = " \
+    summit-initdata-secure \
+    "
+
 RDEPENDS:${PN}:append:k3 = " \
     iproute2-devlink \
+    summit-prov \
+    "
+
+RDEPENDS:${PN}:remove:summitsom-mfg = " \
+    tzdata-core \
+    tzdata-posix \
+    chrony \
+    chronyc \
+    gptfdisk \
+    pkcs11-provider \
     summit-prov \
     "

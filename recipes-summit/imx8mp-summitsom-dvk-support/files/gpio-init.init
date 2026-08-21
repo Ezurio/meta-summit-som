@@ -1,0 +1,21 @@
+#!/bin/sh
+
+GPIOSET=/usr/bin/gpioset
+GPIO_VALUES="bt_nautorun=0 bt_reset=0 ser_rs485_hd=1 ser_nrs232=0 ser_term=0 ser_nreset=1 lte_power=0 lte_on=0 lte_reset=0 lte_airplane=0 lte_wakeup=0"
+
+case "$1" in
+    start)
+        "$GPIOSET" -t0 $GPIO_VALUES
+        ;;
+    stop)
+        ;;
+    restart)
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

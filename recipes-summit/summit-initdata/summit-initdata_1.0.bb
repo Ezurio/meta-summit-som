@@ -3,73 +3,70 @@ SUMMARY = "Summit Init Configurations"
 LICENSE = "Ezurio-Clause"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
-inherit allarch systemd
-
-do_fetch[cleandirs] += "${S}/rootfs-additions"
+inherit allarch systemd update-rc.d
 
 SRC_URI = " \
     file://LICENSE.ezurio \
     file://rootfs-additions/common/ \
     "
 
-SRC_URI:append:summit-secure = " \
-    file://rootfs-additions/summit-secure/ \
-    "
-
-SRC_URI:append:imx8mp-summitsom = " \
-    file://rootfs-additions/imx8mp-summitsom/ \
-    "
-
 S = "${UNPACKDIR}"
 
 FILES:${PN} += " \
-    ${sbindir} \
-    ${libdir} \
-    ${nonarch_libdir} \
     ${systemd_system_unitdir} \
-    ${sysconfdir} \
-    ${datadir} \
-    /perm /data \
+    ${libdir}/NetworkManager/system-connections \
+    ${libdir}/tmpfiles.d \
+    ${datadir}/colourbars.jpg \
+    /perm \
     "
+
+PACKAGES =+ "${PN}-mountboot ${PN}-fwenv"
+FILES:${PN}-mountboot = " \
+    ${sysconfdir}/init.d/mountboot \
+    ${systemd_system_unitdir}/mount_boot.service \
+    "
+FILES:${PN}-fwenv = " \
+    ${sysconfdir}/init.d/fwenv \
+    ${systemd_system_unitdir}/fw_env.service \
+    "
+
+SYSTEMD_PACKAGES = "${PN} ${PN}-mountboot ${PN}-fwenv"
+SYSTEMD_SERVICE:${PN}-mountboot = "mount_boot.service"
+SYSTEMD_SERVICE:${PN}-fwenv = "fw_env.service"
+
+INITSCRIPT_PACKAGES = "${PN}-mountboot ${PN}-fwenv"
+INITSCRIPT_NAME:${PN}-mountboot = "mountboot"
+INITSCRIPT_PARAMS:${PN}-mountboot = "defaults 14"
+INITSCRIPT_NAME:${PN}-fwenv = "fwenv"
+INITSCRIPT_PARAMS:${PN}-fwenv = "defaults 15"
 
 RDEPENDS:${PN} = "\
     libubootenv-bin \
     util-linux-blkid \
     util-linux-lsblk \
     iptables \
+    iptables-modules \
+    u-boot-dumpimage \
     ${PREFERRED_PROVIDER_virtual/bootloader}-env \
     "
 
-RDEPENDS:${PN}:append:summit-secure = "\
-    keyutils \
-    fscryptctl \
-    libdevmapper \
-    e2fsprogs-mke2fs \
-    "
+RDEPENDS:${PN} += "${PN}-mountboot ${PN}-fwenv"
 
-RDEPENDS:${PN}:append:imx8mp-summitsom:summit-secure = " keyctl-caam"
-RDEPENDS:${PN}:append:imx8mp-summitsom = " libgpiod-tools"
-
-CUSTOM_DIRS = "${S}/rootfs-additions/common/*"
-CUSTOM_DIRS:append:summit-secure = " ${S}/rootfs-additions/summit-secure/*"
-CUSTOM_DIRS:append:imx8mp-summitsom = " ${S}/rootfs-additions/imx8mp-summitsom/*"
+do_fetch[cleandirs] += "${S}/rootfs-additions"
 
 do_install () {
-    cp -r --preserve=links,timestamps -t "${D}" ${CUSTOM_DIRS}
+    cp -r --preserve=links,timestamps -t "${D}" ${S}/rootfs-additions/common/*
     find "${D}" -type f -name .empty -delete
     find "${D}${libdir}/NetworkManager/system-connections" -type f \
         -exec chmod 600 {} \;
-    install -d "${D}${sysconfdir}/systemd/system"
-    ln -sf /dev/null \
-        "${D}${sysconfdir}/systemd/system/systemd-machine-id-commit.service"
+
+    if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then
+        install -d "${D}${sysconfdir}/systemd/system"
+        ln -sf /dev/null \
+            "${D}${sysconfdir}/systemd/system/systemd-machine-id-commit.service"
+    else
+        rm -rf ${D}${sysconfdir}/systemd ${D}${libdir}/systemd ${D}${libdir}/tmpfiles.d
+    fi
 }
 
-SYSTEMD_SERVICE:${PN} = "mount_boot.service fw_env.service"
-SYSTEMD_SERVICE:${PN}:append:imx8mp-summitsom = " gpio-init.service"
 SYSTEMD_AUTO_ENABLE = "enable"
-
-SYSTEMD_SERVICE:${PN}:append:summit-secure = "\
-    mount_data.service \
-    var-lib-bluetooth.mount \
-    var-log-journal.mount \
-    "
