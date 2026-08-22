@@ -40,6 +40,7 @@ SRC_URI:append:summitsom = " \
     file://0077-rtc-rv3028-skip-eeprom-update-if-value-unchanged.patch \
     file://0078-rtc-rv3028-add-backup-switchover-dsm-dt-property.patch \
     file://0079-fs_crypt-accept-trusted-keys-via-key_id.patch \
+    file://0080-media-nxp-dwc-mipi-csi2-fix-clock-lane-stopstate.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
