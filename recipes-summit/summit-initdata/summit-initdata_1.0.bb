@@ -33,6 +33,7 @@ FILES:${PN}-fwenv = " \
 SYSTEMD_PACKAGES = "${PN} ${PN}-mountboot ${PN}-fwenv"
 SYSTEMD_SERVICE:${PN}-mountboot = "mount_boot.service"
 SYSTEMD_SERVICE:${PN}-fwenv = "fw_env.service"
+SYSTEMD_SERVICE:${PN} = "var-log-journal.mount"
 
 INITSCRIPT_PACKAGES = "${PN}-mountboot ${PN}-fwenv"
 INITSCRIPT_NAME:${PN}-mountboot = "mountboot"

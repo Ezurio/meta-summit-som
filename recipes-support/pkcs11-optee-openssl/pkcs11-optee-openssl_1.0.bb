@@ -6,13 +6,15 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 SRC_URI = "file://pkcs11-optee.cnf"
 
+S = "${UNPACKDIR}"
+
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 
 do_install() {
     install -d "${D}${sysconfdir}/ssl/openssl.cnf.d"
     sed -e "s|@LIBDIR@|${libdir}|g" \
-        "${UNPACKDIR}/pkcs11-optee.cnf" > "${D}${sysconfdir}/ssl/openssl.cnf.d/pkcs11-optee.cnf"
+        "${S}/pkcs11-optee.cnf" > "${D}${sysconfdir}/ssl/openssl.cnf.d/pkcs11-optee.cnf"
 }
 
 FILES:${PN} = "${sysconfdir}/ssl/openssl.cnf.d/pkcs11-optee.cnf"

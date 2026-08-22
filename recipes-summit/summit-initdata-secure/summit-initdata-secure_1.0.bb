@@ -42,9 +42,6 @@ RDEPENDS:${PN}:append:imx8mp-summitsom = " \
 SYSTEMD_PACKAGES = "${PN} ${PN}-mount-data ${PN}-bluetooth"
 SYSTEMD_SERVICE:${PN}-mount-data = "mount_data.service"
 SYSTEMD_SERVICE:${PN}-bluetooth = "var-lib-bluetooth.mount"
-SYSTEMD_SERVICE:${PN} = " \
-    var-log-journal.mount \
-    "
 SYSTEMD_AUTO_ENABLE = "enable"
 
 INITSCRIPT_PACKAGES = "${PN}-mount-data ${PN}-bluetooth"
