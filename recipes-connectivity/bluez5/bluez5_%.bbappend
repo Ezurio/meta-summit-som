@@ -3,6 +3,7 @@ FILESEXTRAPATHS:prepend:summitsom := "${THISDIR}/${PN}:"
 
 SRC_URI:append:summitsom = "\
     file://1001-bluetooth-get_conn_info-auto_connect-disconnect_reason.patch \
+    file://1002-btattach-Use-cfsetspeed-instead-of-c_cflag-baud-OR.patch \
     "
 
 do_install:append:summitsom () {
