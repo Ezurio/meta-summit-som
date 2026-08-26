@@ -1,9 +1,4 @@
-# SPSDK family name mapping for AHAB devices
-SPSDK_FAMILY:mx8ulp-generic-bsp = "mimx8ulp"
-SPSDK_FAMILY:mx8qm-generic-bsp = "mimx8qm"
-SPSDK_FAMILY:mx91-generic-bsp = "mimx9131"
-SPSDK_FAMILY:mx93-generic-bsp = "mimx9352"
-SPSDK_FAMILY:mx95-generic-bsp = "mimx9596"
+require conf/machine/include/summit-spsdk-family.inc
 
 SRC_URI:append:mx95-generic-bsp = " \
     file://0001-imx8image-Set-signature-block-version-1-for-AHAB-V2.patch \

@@ -41,6 +41,10 @@ RDEPENDS:${PN}:append:k3 = " \
     summit-prov-ti \
     "
 
+RDEPENDS:${PN}:append:mx93-generic-bsp:summit-secure = " \
+    summit-prov-imx \
+    "
+
 RDEPENDS:${PN}:remove:summitsom-mfg = " \
     tzdata-core \
     tzdata-posix \
@@ -50,4 +54,5 @@ RDEPENDS:${PN}:remove:summitsom-mfg = " \
     pkcs11-provider \
     pkcs11-optee-openssl \
     summit-prov-ti \
+    summit-prov-imx \
     "
