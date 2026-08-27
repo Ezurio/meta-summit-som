@@ -1,0 +1,33 @@
+From: Chris Trowbridge <chris.trowbridge@ezurio.com>
+Date: Wed, 27 Aug 2026 00:00:00 +0000
+Subject: [PATCH] setup.cfg: exclude the test suite from the installed packages
+
+setup.cfg declares "packages = find:" with no exclude list, and tests/
+contains an __init__.py, so find: treats it as a shippable package and
+installs it to site-packages/tests.
+
+That name is not namespaced, so it collides with any other distribution
+doing the same thing when both are installed into a shared prefix.
+
+The test suite is only useful from a source checkout, so exclude it.
+
+Upstream-Status: Inappropriate [Yocto native integration adjustments]
+Signed-off-by: Chris Trowbridge <chris.trowbridge@ezurio.com>
+---
+ setup.cfg | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -26,6 +26,11 @@
+ 	importlib_metadata; python_version < "3.8"
+ 	t61codec >= 1.0.1, <2.0
+ 
++[options.packages.find]
++exclude =
++    tests
++    tests.*
++
+ [options.extras_require]
+ dev = 
+ 	Pygments

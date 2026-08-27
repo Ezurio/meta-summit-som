@@ -9,6 +9,8 @@ PYPI_PACKAGE = "x690"
 
 SRC_URI[sha256sum] = "3a2a8a4e479079188aa6e847814981286b8f1c19569898fa3fe573ee0ce05349"
 
+SRC_URI += "file://0001-setup.cfg-exclude-the-test-suite-from-the-installed-.patch"
+
 inherit pypi python_setuptools_build_meta
 
 RDEPENDS:${PN} += "${PYTHON_PN}-t61codec"
