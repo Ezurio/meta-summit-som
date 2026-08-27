@@ -18,8 +18,15 @@ DEPENDS:append = " \
     python3-spsdk-native \
     "
 
+UBOOT_AHAB_AUTO_LOCK ?= "0"
+
 do_configure:append() {
     echo "CONFIG_AHAB_BOOT=y" >> "${B}/.config"
+    echo "CONFIG_SUMMIT_AHAB_AUTO_CLOSE=y" >> "${B}/.config"
+
+    if [ "${UBOOT_AHAB_AUTO_LOCK}" = "1" ]; then
+        echo "CONFIG_SUMMIT_AHAB_AUTO_LOCK=y" >> "${B}/.config"
+    fi
 }
 
 # Signs the imx-boot flash.bin via nxpimage for AHAB platforms (mx9/mx8ulp/mx8qm).
