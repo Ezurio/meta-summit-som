@@ -67,3 +67,27 @@ do_assemble_fitimage_initramfs:prepend() {
 do_compile:prepend() {
     _fitimage_aws_kms_setup
 }
+
+do_prepare_fitimage_aws_kms() {
+    _fitimage_aws_kms_setup
+}
+do_prepare_fitimage_aws_kms[network] = "1"
+do_prepare_fitimage_aws_kms[depends] += "\
+    aws-kms-pkcs11-native:do_populate_sysroot \
+    aws-kms-pkcs11-config-native:do_populate_sysroot \
+    pkcs11-provider-native:do_populate_sysroot \
+    "
+addtask prepare_fitimage_aws_kms after do_unpack before do_compile_fit
+
+python fitimage_aws_kms_setup_compile_fit_env() {
+    os.environ['AWS_KMS_PKCS11_CONFIG'] = os.path.join(
+        d.getVar('STAGING_DATADIR_NATIVE'),
+        'aws-kms-pkcs11/aws-kms-pkcs11-config.json')
+    os.environ['OPENSSL_CONF'] = os.path.join(
+        d.getVar('STAGING_DIR_NATIVE'),
+        d.getVar('sysconfdir').lstrip('/'), 'ssl/openssl.cnf')
+    os.environ['LD_LIBRARY_PATH'] = ':'.join(filter(None, (
+        d.getVar('STAGING_LIBDIR_NATIVE'), os.environ.get('LD_LIBRARY_PATH'))))
+}
+do_compile_fit[prefuncs] += "fitimage_aws_kms_setup_compile_fit_env"
+do_compile_fit[network] = "1"

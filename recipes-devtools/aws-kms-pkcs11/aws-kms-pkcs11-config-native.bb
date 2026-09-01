@@ -9,6 +9,13 @@ inherit native
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
+do_install[vardeps] += "\
+    AWS_KMS_KEY_ARN \
+    AWS_KMS_CSF_KEY_ARN \
+    AWS_KMS_IMG_KEY_ARN \
+    AWS_KMS_FIT_KEY_ARN \
+    AWS_KMS_AHAB_KEY_ARN \
+    "
 
 python do_install() {
     import json

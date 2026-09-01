@@ -18,6 +18,7 @@
 # below) needs the real file and runs before do_image_complete would ever
 # publish it.
 inherit linux-kernel-base kernel-arch kernel-artifact-names uboot-config
+inherit ${@'fitimage-aws-sign' if any(d.getVar(v) for v in ('AWS_KMS_KEY_ARN', 'AWS_KMS_FIT_KEY_ARN')) else ''}
 
 # Real, PN-unique filenames so multiple images sharing a MACHINE don't
 # overwrite each other's fitImage. do_deploy_fit also maintains plain

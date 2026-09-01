@@ -6,6 +6,15 @@ activate = 1
 [provider_sect]
 aws_kms_pkcs11 = pkcs11_sect
 
+[openssl_init]
+alg_section = aws_kms_evp_properties
+
+[aws_kms_evp_properties]
+# Prefer the default provider for unconstrained operations such as the AWS
+# SDK's TLS certificate verification. Operations bound to a PKCS#11 key still
+# use the PKCS#11 provider.
+default_properties = ?provider=default
+
 # When activating a custom provider, the default provider must also be activated explicitly.
 [default_sect]
 activate = 1
