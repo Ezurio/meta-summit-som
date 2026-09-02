@@ -31,6 +31,7 @@ def main() -> None:
     parser.add_argument("--work-dir", required=True, type=Path)
     parser.add_argument("--family", required=True)
     parser.add_argument("--issue-date", required=True)
+    parser.add_argument("--signer")
     args = parser.parse_args()
 
     sig_data_path = args.sig_data_path.resolve()
@@ -51,8 +52,8 @@ def main() -> None:
     with (sig_data_path / "spsdk_ahab.yaml").open(encoding="utf-8") as stream:
         ahab = yaml.safe_load(stream)
 
-    signer = str(ahab["signer"])
-    if not signer.startswith("type="):
+    signer = args.signer or str(ahab["signer"])
+    if not args.signer and not signer.startswith("type="):
         signer = f"type=file;file_path={absolute_input(signer, sig_data_path / 'keys')}"
         password_file = sig_data_path / "keys" / "key_pass.txt"
         if password_file.is_file():

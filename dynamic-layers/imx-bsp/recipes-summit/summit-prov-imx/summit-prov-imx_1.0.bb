@@ -5,7 +5,8 @@ LICENSE = "Ezurio"
 NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
-DEPENDS = "imx-secure-enclave openssl-native python3-cryptography-native python3-pyyaml-native python3-spsdk-native"
+DEPENDS = "file-native imx-secure-enclave openssl-native python3-cryptography-native python3-pyyaml-native python3-spsdk-native"
+export MAGIC = "${STAGING_DIR_NATIVE}${datadir}/misc/magic.mgc"
 RDEPENDS:${PN} = " \
     busybox \
     coreutils \
@@ -22,6 +23,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 COMPATIBLE_MACHINE = "(mx93-generic-bsp)"
 
 inherit python3native systemd
+inherit ${@'nxp-provisioning-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
 
 require conf/machine/include/summit-spsdk-family.inc
 
@@ -42,6 +44,7 @@ S = "${UNPACKDIR}"
 SUMMIT_PROV_IMX_DATADIR = "${datadir}/summit-prov-imx"
 # Avoid SPSDK's host-clock default so signed-message output is reproducible.
 SUMMIT_PROV_IMX_ISSUE_DATE = "2026-08"
+SUMMIT_PROV_IMX_SIGNER ?= ""
 
 SYSTEMD_SERVICE:${PN} = "summit-prov-imx.service"
 SYSTEMD_AUTO_ENABLE = "enable"
@@ -116,7 +119,8 @@ do_install () {
         --output-dir "${B}/generated-ele" \
         --work-dir "${B}/ele-generation-work" \
         --family "${SPSDK_FAMILY}" \
-        --issue-date "${SUMMIT_PROV_IMX_ISSUE_DATE}"
+        --issue-date "${SUMMIT_PROV_IMX_ISSUE_DATE}" \
+        ${@bb.utils.contains('SUMMIT_PROV_IMX_SIGNER', d.getVar('SUMMIT_PROV_IMX_SIGNER'), '--signer "${SUMMIT_PROV_IMX_SIGNER}"', '', d)}
     rmdir "${B}/ele-generation-work"
 
     [ "$(stat -c %s "${B}/generated-ele/key-exchange.bin")" -eq 576 ] || \

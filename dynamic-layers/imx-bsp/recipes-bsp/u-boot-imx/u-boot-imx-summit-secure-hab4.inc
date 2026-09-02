@@ -2,10 +2,10 @@ DEPENDS:append = " \
     cst-native \
     "
 
-SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if any(d.getVar(v) for v in ('AWS_KMS_KEY_ARN','AWS_KMS_CSF_KEY_ARN','AWS_KMS_IMG_KEY_ARN','AWS_KMS_FIT_KEY_ARN')) else ''}"
+SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if d.getVar('CLOUD_HSM_BACKEND') else ''}"
 
 # HAB4 (imx8m): CSF/IMG key wrappers + FIT signing via CST/binman
-inherit ${@'nxp-hab4-uboot-aws-sign' if any(d.getVar(v) for v in ('AWS_KMS_KEY_ARN','AWS_KMS_CSF_KEY_ARN','AWS_KMS_IMG_KEY_ARN','AWS_KMS_FIT_KEY_ARN')) else ''}
+inherit ${@'nxp-hab4-uboot-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
 
 # binman's nxp-imx8mcst node (active when CONFIG_IMX_HAB is set) reads these
 # from the environment to locate the HAB SRK table and CSF/IMG certificates for

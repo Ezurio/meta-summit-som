@@ -4,10 +4,10 @@ SRC_URI:append:mx95-generic-bsp = " \
     file://0001-imx8image-Set-signature-block-version-1-for-AHAB-V2.patch \
     "
 
-SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if any(d.getVar(v) for v in ('AWS_KMS_KEY_ARN','AWS_KMS_IMG_KEY_ARN','AWS_KMS_FIT_KEY_ARN','AWS_KMS_AHAB_KEY_ARN')) else ''}"
+SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if d.getVar('CLOUD_HSM_BACKEND') else ''}"
 
 # AHAB (imx9x): SPSDK PKCS#11 signer + FIT signing via nxpimage
-inherit ${@'nxp-ahab-uboot-aws-sign' if d.getVar('AWS_KMS_AHAB_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN') else ''}
+inherit ${@'nxp-ahab-uboot-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
 
 DEPENDS:append = " \
     python3-spsdk-native \
@@ -24,14 +24,15 @@ do_configure:append() {
     fi
 }
 
-# Signs the imx-boot flash.bin via nxpimage for AHAB platforms (mx9/mx8ulp/mx8qm).
+# Signs the imx-boot flash.bin locally via nxpimage for AHAB platforms
+# (mx9/mx8ulp/mx8qm).
 # mx8m (HAB) images are signed by binman/cst at build time instead.
 #
 # The signer line in spsdk_ahab.yaml is rewritten to a SPSDK SignatureProvider
 # config string (type=file;file_path=...;password=...) so nxpimage resolves the
-# key through SPSDK's plugin system.  The KMS bbclass overrides this function
-# with a type=pkcs11 config string for remote signing.
-do_sign_boot_image() {
+# key through SPSDK's plugin system. The key-provider class calls this helper
+# when its backend does not supply the AHAB role.
+do_sign_boot_image_local() {
     if [ ! -e "${SIG_DATA_PATH}/spsdk_ahab.yaml" ]; then
         bbfatal "SPSDK config not found at '${SIG_DATA_PATH}/spsdk_ahab.yaml'. " \
                 "Ensure SIG_DATA_PATH is set and points at a PKI tree containing spsdk_ahab.yaml."
@@ -74,6 +75,14 @@ do_sign_boot_image() {
     rm -f "${AHAB_SIGN_YAML}"
 
     _deploy_signed_flash_bin
+}
+
+do_sign_boot_image() {
+    if [ -n "${HSM_AHAB_KEY_ID}" ]; then
+        do_sign_boot_image_key_provider
+    else
+        do_sign_boot_image_local
+    fi
 }
 
 # Shared helper: deploy signed-flash.bin, rename original, and create tagged file.

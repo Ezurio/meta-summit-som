@@ -19,7 +19,7 @@ ENV_INCLUDE:k3 = "recipes-bsp/u-boot-summit/u-boot-summit-env.inc"
 
 require ${ENV_INCLUDE}
 
-inherit ${@'ti-uboot-aws-sign' if any(d.getVar(v) for v in ('AWS_KMS_KEY_ARN','AWS_KMS_FIT_KEY_ARN')) else ''}
+inherit ${@'ti-uboot-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
 
 do_deploy:append:k3r5() {
     if [ "${SECURE_BOOT}" = "1" ]; then

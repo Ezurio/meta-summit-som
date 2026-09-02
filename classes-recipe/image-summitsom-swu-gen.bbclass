@@ -17,6 +17,15 @@ ARCHIVE_WILDCARD += "${SWUDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.swu \
 do_create_archive[depends] += "${PN}:do_swuimage"
 
 SWUPDATE_SIGNING:summit-secure ?= "CMS"
-SWUPDATE_PRIVATE_KEY:summit-secure = "${UBOOT_SIGN_KEYDIR}/update_signing.key"
-SWUPDATE_CMS_KEY:summit-secure = "${UBOOT_SIGN_KEYDIR}/update_signing.key"
-SWUPDATE_CMS_CERT:summit-secure = "${UBOOT_SIGN_KEYDIR}/update_signing.crt"
+SWUPDATE_PRIVATE_KEY:summit-secure = "${@bb.utils.contains( \
+    'HSM_FIT_KEY_ID', d.getVar('HSM_FIT_KEY_ID'), \
+    '${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.key', \
+    '${UBOOT_SIGN_KEYDIR}/update_signing.key', d)}"
+SWUPDATE_CMS_KEY:summit-secure = "${@bb.utils.contains( \
+    'HSM_FIT_KEY_ID', d.getVar('HSM_FIT_KEY_ID'), \
+    '${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.key', \
+    '${UBOOT_SIGN_KEYDIR}/update_signing.key', d)}"
+SWUPDATE_CMS_CERT:summit-secure = "${@bb.utils.contains( \
+    'HSM_FIT_KEY_ID', d.getVar('HSM_FIT_KEY_ID'), \
+    '${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.crt', \
+    '${UBOOT_SIGN_KEYDIR}/update_signing.crt', d)}"

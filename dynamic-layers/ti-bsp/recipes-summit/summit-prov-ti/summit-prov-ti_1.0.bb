@@ -5,6 +5,7 @@ NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=11ef601ae07d69cfcd7387a33b764027"
 
 inherit allarch systemd deploy update-rc.d
+inherit ${@'ti-provisioning-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') and 'k3' in (d.getVar('MACHINEOVERRIDES') or '').split(':') else ''}
 
 SRC_URI = " \
     file://LICENSE.ezurio \
