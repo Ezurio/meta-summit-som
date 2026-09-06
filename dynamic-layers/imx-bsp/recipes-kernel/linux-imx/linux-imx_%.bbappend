@@ -11,9 +11,9 @@ SRC_URI:append:summitsom = " \
     file://0011-fsl-sai.patch \
     file://0012-fsl-easrc.patch \
     file://0013-lcdifv3.patch \
+    file://0014-fsl-easrc-distinguish-debugfs-components.patch \
     file://0015-imx8mp-hdmi-pavi.patch \
     file://0019-dm-verity-partition-wait-fix.patch \
-    file://0021-sn65dsi83-nxp-bridge-compat.patch \
     file://0022-dw_mipi_dsi-imx-eprobe-defer.patch \
     file://0048-media-ov5640-digient-rc-delay-compensation.patch \
     file://0054-rtc-rv3028-fix-eeprom-device-tree-support.patch \
@@ -41,6 +41,9 @@ SRC_URI:append:summitsom = " \
     file://0078-rtc-rv3028-add-backup-switchover-dsm-dt-property.patch \
     file://0079-fs_crypt-accept-trusted-keys-via-key_id.patch \
     file://0080-media-nxp-dwc-mipi-csi2-fix-clock-lane-stopstate.patch \
+    file://0081-Lontium-LT9611C-UXD-UXE-LT2611UXD-UXE.patch \
+    file://0082-drm-imx-dw_mipi_dsi-defer-component_add-to-host-a.patch \
+    file://0085-drm-imx-sec_mipi_dsim-defer-component_add-to-host-a.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "

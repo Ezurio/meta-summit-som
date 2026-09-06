@@ -5,22 +5,18 @@ SRC_URI:append:summitsom = " \
     file://0002-ts3a227-irq.patch \
     file://0004-simple_card_ts3a227.patch \
     file://0006-dp83867.patch \
-    file://0007-gpio-pca953x-pullup.patch \
     file://0008-hwmon-ina2xx-add-support-for-ina232.patch \
     file://0009-dt-bindings-hwmon-ina2xx-add-ina232.patch \
     file://0011-lvds-codec-output-bridge.patch \
     file://0012-lvds-codec-frequency-limit.patch \
     file://0019-dm-verity-partition-wait-fix.patch \
     file://0021-tps6287x-regulator.patch \
-    file://0023-am67-add-peripherals.patch \
     file://0026-dp83867-irq.patch \
     file://0027-davinci-mdio-missing-cpu.patch \
-    file://0030-tps65219-trap.patch \
     file://0046-gpio-keys-resume-error.patch \
     file://0048-media-ov5640-digient-rc-delay-compensation.patch \
     file://0052-goodix-fix-lost-irqs.patch \
     file://0054-rv3028-fix-eeprom-device-tree-support.patch \
-    file://0055-rtc-rv3028-fix-name-collisions.patch \
     file://0056-mcp23s08-allow-edge-trigger.patch \
     file://0056-media-i2c-ov5645-Report-streams-using-frame-descript.patch \
     file://0057-cpsw-probe.patch \
@@ -31,6 +27,8 @@ SRC_URI:append:summitsom = " \
     file://0070-rtc-rv3028-add-backup-switchover-dsm-dt-property.patch \
     file://0071-fs_crypt-accept-trusted-keys-via-key_id.patch \
     file://0072-fs_crypt-dm_crypt-Restored-use-of-crypto-engines.patch \
+    file://0073-Lontium-LT9611C-UXD-UXE-LT2611UXD-UXE.patch \
+    file://0074-cpsw-keep-ale-in-nuss-module.patch \
     file://dts \
     "
 

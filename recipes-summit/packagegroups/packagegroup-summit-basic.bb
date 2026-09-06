@@ -51,3 +51,5 @@ RDEPENDS:${PN}:remove:summitsom-mfg = " \
     pkcs11-optee-openssl \
     summit-prov \
     "
+
+RDEPENDS:${PN}:append:summitsom = " lontium-firmware"
