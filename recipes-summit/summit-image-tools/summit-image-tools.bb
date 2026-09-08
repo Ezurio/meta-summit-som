@@ -9,6 +9,8 @@ SRC_URI = " \
     file://imx-rescue.uuu \
     file://imx8mm-rescue.uuu \
     file://imx95-rescue.uuu \
+    file://ti-rescue.sh \
+    file://70-ezurio-am6xx-dfu.rules \
     "
 
 S = "${UNPACKDIR}"
@@ -37,4 +39,9 @@ do_deploy:imx-generic-bsp:summitsom-rescue-initramfs () {
 
 do_deploy:imx-generic-bsp:summitsom-mfg-initramfs () {
     sed 's/rescue/mfg/g' "${UUU_FILE}" > "${DEPLOYDIR}/imx-mfg.uuu"
+}
+
+do_deploy:ti-soc:summitsom-rescue-initramfs () {
+    install -D -m 0755 -t "${DEPLOYDIR}" "${S}/ti-rescue.sh"
+    install -D -m 0644 -t "${DEPLOYDIR}" "${S}/70-ezurio-am6xx-dfu.rules"
 }

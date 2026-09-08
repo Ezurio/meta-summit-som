@@ -12,6 +12,14 @@ SRC_URI:append:k3r5:summitsom-usb-boot = " \
     file://uboot-usb_r5.cfg \
 "
 
+SRC_URI:append:k3:summitsom-rescue = " \
+    file://uboot-rescue_a53.cfg \
+"
+
+SRC_URI:append:k3r5:summitsom-rescue = " \
+    file://uboot-rescue_r5.cfg \
+"
+
 SRC_URI:append:summitsom-usb-boot:am62lxx = " \
     file://uboot-mfg.cfg \
 "

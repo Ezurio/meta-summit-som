@@ -39,6 +39,13 @@ SRC_URI:append:summitsom = " \
     file://dts \
     "
 
+SRC_URI:append:summitsom-rescue-initramfs = " \
+    file://kernel-initramfs.cfg \
+    "
+KERNEL_CONFIG_FRAGMENTS:append:summitsom-rescue-initramfs = " \
+    ${UNPACKDIR}/kernel-initramfs.cfg \
+    "
+
 KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if d.getVar('KERNEL_DEVICETREE').find('.dtbo') else ''}"
 
 KERNEL_CONFIG_SUMMIT:am62xx = "k3-am625-carbon_defconfig"
