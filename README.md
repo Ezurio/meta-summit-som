@@ -86,9 +86,11 @@ In addition to the standard Yocto Project system requirements, the [`repo`](http
     image-summitsom-cmd-imx8mp-summitsom-20220324205149.swu
     ```
 
-6. There are a number of ways to flash the onboard eMMC of the Summit SOM:
+6. There are a number of ways to flash the onboard eMMC of the SOM:
 
-    * HTTP/FTP Server
+    The standard Summit SOM DVK image utilizes an A/B update scheme when running from onboard eMMC which allows for built-in fallback support in the event of an update failure. To perform an image update, use one of the methods below once you have created a new `.swu` update file.
+
+    * HTTP/FTP Server (Pull style)
 
         Start a HTTP or FTP server on a development machine that is connected to a network which can be accessed by the Summit SOM.
 
@@ -120,28 +122,30 @@ In addition to the standard Yocto Project system requirements, the [`repo`](http
         poweroff
         ```
 
-	Change the boot mode select DIP switch positions from 0011 to 0010 to switch to internal eMMC and cycle power. The board should now boot from the Summit SOM' onboard eMMC.
+    * Raw USB with direct cable using fastboot (Push style)
+        ```
+        fastboot flash update /path/to/update.swu
+        ```
+
+    * Raw USB with direct cable using dfu (Push style)
+        ```
+        sudo dfu-util -D /path/to/update.swu
+        ```
+
+    * Raw Network using fastboot (Push style)
+        ```
+        fastboot -s tcp:<moudule ip> flash update /path/to/update.swu
+        ```
+
+    * Raw Network using netcat (Push style)
+        ```
+        nc -N -W 5 "<module ip>" 9000 < "/path/to/update.swu"
+        ```
 
 ## Updating the Image While Running From eMMC
-The standard Summit SOM DVK image utilizes an A/B update scheme when running from onboard eMMC which allows for built-in fallback support in the event of an update failure. To perform an image update, use one of the methods below once you have created a new `.swu` update file.
 
-* HTTP/FTP Server
+    See item 6 above.
 
-    Start a HTTP or FTP server on a development machine that is connected to a network which can be accessed by the Summit SOM DVK.
-
-    Boot the Summit SOM DVK from internal eMMC and use the `fw_update` script (built around `swupdate`) to flash the image. The script will automatically determine where flash the new image (i.e., side 'b' if running from side 'a' or side 'a' if running from side 'b'), toggle the proper environment variable to boot from the new bootside and reboot the board:
-    ```
-    fw_update <url>
-    ```
-
-* USB Flash Drive
-
-    Copy the `.swu` file onto a USB flash drive.
-
-    Boot the Summit SOM DVK from internal eMMC and use the `fw_update` script (built around `swupdate`) to flash the image. The script will automatically determine where flash the new image (i.e., side 'b' if running from side 'a' or side 'a' if running from side 'b'), toggle the proper environment variable to boot from the new bootside and reboot the board:
-    ```
-    fw_update /media/.../update.swu
-    ```
 ## Next Steps/Customizing the Image
 See the links below from the Yocto Project documentation site for further information and in depth guides to customize your image and integrate the Summit SOM into your custom design:
 
@@ -167,4 +171,14 @@ Overlay adds following options:
 To enable overlay execute command as following:
 ```
 set-mode lvds-d-hdmi
+```
+
+Building Regulatory Test and Manufacturing Test support images:
+
+These images require regulatory tools packages that needs to be obtained 
+from Ezurio and not available from public sites for direct download.
+Packages will need to be placesd into "release" folder.
+
+```
+MACHINE=xxxx DISTRO=summit-mfg bitbake image-summitsom-mfg
 ```
