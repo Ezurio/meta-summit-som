@@ -14,6 +14,10 @@ SRC_URI:append:summitsom-rescue-initramfs = " \
     file://uboot-initramfs.cfg \
 "
 
+SRC_URI:append:summitsom-mfg = " \
+    file://uboot-delay.cfg \
+"
+
 B = "${UNPACKDIR}/build"
 
 PROVIDES += "u-boot"
