@@ -11,11 +11,12 @@ SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/u-boot-som.git;${SUMMIT_EXTERNAL_GIT_SUFFI
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-u-boot-som60.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"
 
 SRC_URI:append:summitsom-rescue-initramfs = " \
-    file://uboot-initramfs.cfg \
+    file://uboot-usb.cfg \
+    file://uboot-mfg.cfg \
 "
 
 SRC_URI:append:summitsom-mfg = " \
-    file://uboot-delay.cfg \
+    file://uboot-mfg.cfg \
 "
 
 B = "${UNPACKDIR}/build"
