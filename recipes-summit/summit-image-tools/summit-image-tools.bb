@@ -13,7 +13,9 @@ SRC_URI = " \
 
 S = "${UNPACKDIR}"
 
-inherit allarch deploy
+PACKAGE_ARCH = "${MACHINE_ARCH}"
+
+inherit deploy
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
