@@ -14,6 +14,7 @@ IMAGE_FEATURES = "\
 # Minimal base packages
 IMAGE_INSTALL += "\
     packagegroup-summit-basic \
+    packagegroup-summit-diag \
     summit-set-mode \
     busybox-syslog \
     ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-mfg', '', d)} \
