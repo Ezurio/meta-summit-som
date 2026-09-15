@@ -9,6 +9,8 @@ MACHINEOVERRIDES =. "summitsom:"
 # for better sstate cache reuse
 DEFAULTTUNE = "armv8a-crc-crypto"
 
+TFA_BOARD = "lite"
+
 require conf/machine/include/u-boot-summit.inc
 include ${@bb.utils.contains('BBFILE_COLLECTIONS', 'summit-radio', 'conf/machine/include/radio-stack.inc', '', d)}
 

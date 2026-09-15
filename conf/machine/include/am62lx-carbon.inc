@@ -1,13 +1,15 @@
 #@TYPE: Machine
-#@NAME: Carbon AM6xx
-#@SOC: AM62x, AM62Lx, AM67x
-#@DESCRIPTION: Machine configuration for Carbon AM6xx
+#@NAME: Carbon AM62Lx
+#@SOC: AM62Lx
+#@DESCRIPTION: Machine configuration for Carbon AM62Lx
 #@MAINTAINER: Boris Krasnovskiy <Boris.Krasnovskiy@ezurio.com>
 
 MACHINEOVERRIDES =. "summitsom:"
 
 # for better sstate cache reuse
 DEFAULTTUNE = "armv8a-crc-crypto"
+
+TFA_BOARD = "am62lx"
 
 require conf/machine/include/u-boot-summit.inc
 include ${@bb.utils.contains('BBFILE_COLLECTIONS', 'summit-radio', 'conf/machine/include/radio-stack.inc', '', d)}
@@ -52,3 +54,5 @@ EMMC_SPL_OFFSET = "524288"
 EMMC_BOOT_OFFSET = "2621440"
 EMMC_DEVICE = "0"
 SD_DEVICE = "1"
+
+BT_SERIAL_PORT = "/dev/ttyS5"
