@@ -6,7 +6,7 @@ HOMEPAGE = "https://github.com/nxp-mcuxpresso/spsdk"
 LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=863e3c0c79e2589ac9d16c3918e115d1"
 
-SRC_URI[sha256sum] = "a2c402544bc9fb943b574df2a478165518847034fff8da70c2e8d84c8f21f98c"
+SRC_URI[sha256sum] = "3a601381ad6ac0195d5174b526840f749f8a56a4c6b8b64593e9092d58106023"
 SRC_URI += " \
     file://0001-normalize-pyproject-for-yocto-native-builds.patch \
     file://0002-ignore-import-errors.patch \
@@ -22,7 +22,7 @@ inherit pypi python_setuptools_build_meta native
 # Runtime dependencies (libusbsio and libuuu are provided as stubs via patches;
 # ruamel.yaml.clib is an optional C-accelerator omitted as ruamel.yaml falls back
 # to its pure-Python implementation automatically;
-# rich is listed in requirements.txt but is not imported anywhere in spsdk 3.7.0).
+# rich is listed in requirements.txt but is not imported anywhere in spsdk 3.11.0).
 RDEPENDS:${PN} += "\
     python3-asn1crypto-native \
     python3-bincopy-native \
