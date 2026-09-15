@@ -8,10 +8,9 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=f68bda54505b4002e6ec86e08125ef79"
 
 PYPI_PACKAGE = "python_pkcs11"
 
-SRC_URI[sha256sum] = "f9e11df146ce2e6359aeb81fa84c2dd7ab9719f707cdae06ceae22d9e6a10818"
-SRC_URI += "file://0001-pyproject-lower-build-requirements-for-yocto.patch"
+SRC_URI[sha256sum] = "8f49bcb072bca3d74837547dd77145e065ed333e5e8642e539f8b1aca7ce1725"
 
-DEPENDS += "python3-cython python3-setuptools-scm"
+DEPENDS += "python3-cython-native python3-setuptools-scm-native"
 
 RDEPENDS:${PN} += "python3-asn1crypto"
 
