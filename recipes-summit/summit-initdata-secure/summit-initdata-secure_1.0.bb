@@ -20,6 +20,7 @@ FILES:${PN} += " \
     /data \
     "
 FILES:${PN}-mount-data = " \
+    ${sbindir}/mount-data.sh \
     ${sysconfdir}/init.d/mount-data \
     ${systemd_system_unitdir}/mount_data.service \
     "
@@ -33,6 +34,8 @@ RDEPENDS:${PN} = " \
     fscryptctl \
     libdevmapper \
     e2fsprogs-mke2fs \
+    ${PN}-mount-data \
+    ${@bb.utils.contains('COMBINED_FEATURES', 'bluetooth', '${PN}-bluetooth', '', d)} \
     "
 
 RDEPENDS:${PN}:append:imx8mp-summitsom = " \
