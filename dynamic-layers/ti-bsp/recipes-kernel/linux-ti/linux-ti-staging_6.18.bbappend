@@ -29,6 +29,11 @@ SRC_URI:append:summitsom = " \
     file://0072-fs_crypt-dm_crypt-Restored-use-of-crypto-engines.patch \
     file://0073-Lontium-LT9611C-UXD-UXE-LT2611UXD-UXE.patch \
     file://0074-cpsw-keep-ale-in-nuss-module.patch \
+    file://0075-usb-conn-gpio-fix-resume-reconnect-race.patch \
+    file://0076-dwc3-am62-fix-host-mode-linestate-wake-race.patch \
+    file://0077-usb-dwc3-run-gadget-disconnect-from-sleepable-suspen.patch \
+    file://0078-usb-dwc3-gadget-Fix-use-after-free-in-dwc3_gadget_fr.patch \
+    file://0079-usb-dwc3-clear-forceRM-when-issuing-EndTransfer.patch \
     file://dts \
     "
 
