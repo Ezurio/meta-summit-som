@@ -5,6 +5,7 @@ HSM_CSF_KEY_ID = "${@d.getVar('AWS_KMS_CSF_KEY_ARN') or d.getVar('AWS_KMS_KEY_AR
 HSM_IMG_KEY_ID = "${@d.getVar('AWS_KMS_IMG_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
 HSM_FIT_KEY_ID = "${@d.getVar('AWS_KMS_FIT_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
 HSM_AHAB_KEY_ID = "${@d.getVar('AWS_KMS_AHAB_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
+HSM_UPDATE_KEY_ID = "${@d.getVar('AWS_KMS_UPDATE_KEY_ARN') or ''}"
 
 SUMMIT_KEY_PROVIDER_DEPENDS = "\
     aws-kms-pkcs11-native \

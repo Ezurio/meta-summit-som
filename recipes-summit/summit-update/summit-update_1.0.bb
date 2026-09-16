@@ -5,9 +5,14 @@ LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
 inherit allarch systemd
 
+DEPENDS += "file-native"
+export MAGIC = "${STAGING_DIR_NATIVE}${datadir}/misc/magic.mgc"
+inherit ${@'swupdate-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+
+
 SWUPDATE_SIGNING_CERT ?= "${@bb.utils.contains( \
-    'HSM_FIT_KEY_ID', d.getVar('HSM_FIT_KEY_ID'), \
-    '${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.crt', \
+    'HSM_UPDATE_KEY_ID', d.getVar('HSM_UPDATE_KEY_ID'), \
+    '${SWUPDATE_UPDATE_SIGNING_CERT}', \
     '${UBOOT_SIGN_KEYDIR}/update_signing.crt', d)}"
 
 SRC_URI = " \

@@ -15,6 +15,7 @@ do_install[vardeps] += "\
     AWS_KMS_IMG_KEY_ARN \
     AWS_KMS_FIT_KEY_ARN \
     AWS_KMS_AHAB_KEY_ARN \
+    AWS_KMS_UPDATE_KEY_ARN \
     "
 
 python do_install() {
@@ -26,6 +27,7 @@ python do_install() {
         'AWS_KMS_IMG_KEY_ARN',
         'AWS_KMS_FIT_KEY_ARN',
         'AWS_KMS_AHAB_KEY_ARN',
+        'AWS_KMS_UPDATE_KEY_ARN',
     )
     arns = sorted(set(filter(None, (d.getVar(v) or '' for v in arn_vars))))
     if not arns:
