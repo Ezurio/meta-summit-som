@@ -1,11 +1,10 @@
 Upstream-Status: Inappropriate [Yocto native integration adjustments]
----
---- a/spsdk/uboot/spsdk_uuu.py	2026-01-30 08:17:19.000000000 -0500
-+++ b/spsdk/uboot/spsdk_uuu.py	2026-03-26 15:55:31.183800089 -0400
-@@ -19,8 +19,11 @@
- from typing import Any, Callable, Optional, no_type_check
+--- a/spsdk/uboot/spsdk_uuu.py
++++ b/spsdk/uboot/spsdk_uuu.py
+@@ -18,8 +18,11 @@
+ from types import TracebackType
+ from typing import Any, no_type_check
  
- import click
 -from libuuu import LibUUU, UUUNotifyCallback, UUUState
 -from libuuu.libuuu import UUUNotifyStruct, UUUNotifyType, _default_notify_callback
 +try:
@@ -14,9 +13,9 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
 +except ImportError:
 +    pass
  
+ from spsdk import get_logger
  from spsdk.exceptions import SPSDKError, SPSDKValueError
- from spsdk.utils.database import DatabaseManager, UsbId
-@@ -43,8 +46,7 @@
+@@ -44,8 +47,7 @@
  )
  
  
@@ -26,7 +25,7 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
      """Default callback function that stores UUU response in class variable.
  
      This callback processes UUU notifications and updates the internal state. For command info
-@@ -61,7 +63,7 @@
+@@ -62,7 +64,7 @@
      return 1 if SPSDKUUU._state.error else 0
  
  
@@ -35,20 +34,20 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
      """SPSDK UUU State Manager.
  
      This class extends UUUState to provide enhanced state management for UUU operations
-@@ -112,7 +114,7 @@
-             # Enable cursor again
-             click.echo("\033[?25h", nl=False)
+@@ -87,7 +89,7 @@
+         # so that trace() calls work correctly.
+         self.logger = get_logger(__name__)
  
 -    def update(self, struct: UUUNotifyStruct) -> None:
 +    def update(self, struct) -> None:
          """Update the state with a notification from uuu.
  
          This method processes different types of notifications from the uuu tool and updates
---- a/spsdk/utils/devicedescription.py	2026-01-30 08:17:19.000000000 -0500
-+++ b/spsdk/utils/devicedescription.py	2026-03-26 15:47:00.502849229 -0400
-@@ -15,7 +15,10 @@
+--- a/spsdk/utils/devicedescription.py
++++ b/spsdk/utils/devicedescription.py
+@@ -13,7 +13,10 @@
+ 
  from abc import ABC, abstractmethod
- from typing import Optional, Union
  
 -from libusbsio.libusbsio import LIBUSBSIO
 +try:
@@ -58,11 +57,11 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
  
  from spsdk.mboot.interfaces.usb import MbootUSBInterface
  from spsdk.sdp.interfaces.usb import SdpUSBInterface
---- a/spsdk/utils/interfaces/device/usb_device.py	2026-01-30 08:17:19.000000000 -0500
-+++ b/spsdk/utils/interfaces/device/usb_device.py	2026-03-26 15:47:00.503849240 -0400
-@@ -14,7 +14,10 @@
+--- a/spsdk/utils/interfaces/device/usb_device.py
++++ b/spsdk/utils/interfaces/device/usb_device.py
+@@ -12,7 +12,10 @@
+ 
  import logging
- from typing import Optional
  
 -import libusbsio
 +try:
@@ -71,12 +70,12 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
 +    pass
  from typing_extensions import Self
  
- from spsdk.exceptions import SPSDKConnectionError, SPSDKError
---- a/spsdk/utils/interfaces/device/usbsio_device.py	2026-01-30 08:17:19.000000000 -0500
-+++ b/spsdk/utils/interfaces/device/usbsio_device.py	2026-03-26 15:47:00.503849240 -0400
-@@ -17,8 +17,11 @@
+ from spsdk import get_logger
+--- a/spsdk/utils/interfaces/device/usbsio_device.py
++++ b/spsdk/utils/interfaces/device/usbsio_device.py
+@@ -15,8 +15,11 @@
+ import re
  from dataclasses import dataclass
- from typing import Optional, Union
  
 -import libusbsio
 -from libusbsio.libusbsio import LIBUSBSIO
@@ -87,8 +86,8 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
 +    pass
  from typing_extensions import Self
  
- from spsdk.exceptions import SPSDKConnectionError, SPSDKError, SPSDKValueError
-@@ -396,7 +399,7 @@
+ from spsdk import get_logger
+@@ -395,7 +398,7 @@
          return (args, kwargs)
  
      @staticmethod
@@ -97,7 +96,7 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
          """Get USBSIO library instance with SPSDK error handling.
  
          Wraps the libusbsio library initialization to provide consistent SPSDK error handling
-@@ -426,7 +429,7 @@
+@@ -425,7 +428,7 @@
          :return: List of port indexes of found USBSIO devices
          """
  
@@ -106,11 +105,11 @@ Upstream-Status: Inappropriate [Yocto native integration adjustments]
              """Filter LIBUSBSIO devices based on provided criteria.
  
              Filters the list of available LIBUSBSIO ports using the specified filter string which can
---- a/spsdk/utils/nxpdevscan.py	2026-01-30 08:17:19.000000000 -0500
-+++ b/spsdk/utils/nxpdevscan.py	2026-03-26 15:47:00.503849240 -0400
-@@ -19,7 +19,10 @@
+--- a/spsdk/utils/nxpdevscan.py
++++ b/spsdk/utils/nxpdevscan.py
+@@ -18,7 +18,10 @@
  import struct
- from typing import Any, Optional
+ from typing import Any
  
 -from libusbsio import LIBUSBSIO_Exception, usbsio
 +try:

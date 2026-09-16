@@ -10,7 +10,7 @@ PYPI_PACKAGE = "spsdk_pkcs11"
 
 SRC_URI[sha256sum] = "fc7b61eed173a549fe84bb8c40b18660bc884ebccd46fe8ac83604ac6d0f9d6c"
 
-RDEPENDS:${PN} += " \
+DEPENDS += " \
     python3-pkcs11-native \
     python3-spsdk-native \
     "

@@ -13,6 +13,8 @@ SRC_URI[sha256sum] = "8f49bcb072bca3d74837547dd77145e065ed333e5e8642e539f8b1aca7
 DEPENDS += "python3-cython-native python3-setuptools-scm-native"
 
 RDEPENDS:${PN} += "python3-asn1crypto"
+RDEPENDS:${PN}:class-native = ""
+DEPENDS:append:class-native = " python3-asn1crypto-native"
 
 inherit pypi python_setuptools_build_meta native
 

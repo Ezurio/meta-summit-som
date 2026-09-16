@@ -8,7 +8,6 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=863e3c0c79e2589ac9d16c3918e115d1"
 
 SRC_URI[sha256sum] = "3a601381ad6ac0195d5174b526840f749f8a56a4c6b8b64593e9092d58106023"
 SRC_URI += " \
-    file://0001-normalize-pyproject-for-yocto-native-builds.patch \
     file://0002-ignore-import-errors.patch \
 "
 
@@ -19,11 +18,12 @@ DEPENDS += "python3-setuptools-scm-native"
 
 inherit pypi python_setuptools_build_meta native
 
-# Runtime dependencies (libusbsio and libuuu are provided as stubs via patches;
+# Build dependencies (libusbsio and libuuu are optional and are handled by
+# patches;
 # ruamel.yaml.clib is an optional C-accelerator omitted as ruamel.yaml falls back
 # to its pure-Python implementation automatically;
 # rich is listed in requirements.txt but is not imported anywhere in spsdk 3.11.0).
-RDEPENDS:${PN} += "\
+DEPENDS += "\
     python3-asn1crypto-native \
     python3-bincopy-native \
     python3-bitstring-native \
