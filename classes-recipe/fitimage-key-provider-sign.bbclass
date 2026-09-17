@@ -2,22 +2,18 @@
 
 inherit uboot-key-provider-common
 
-DEPENDS:append = "${@bb.utils.contains( \
-    'HSM_FIT_KEY_ID', \
+DEPENDS:append = "${@oe.utils.ifelse( \
     d.getVar('HSM_FIT_KEY_ID'), \
-    ' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS'), \
-    '', \
-    d)}"
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
+    '')}"
 
 # Stage FIT signing wrappers in UNPACKDIR so we never overwrite any existing
 # keys in the original UBOOT_SIGN_KEYDIR.
 KEY_PROVIDER_FIT_KEYDIR = "${UNPACKDIR}/key-provider-fit-keys"
-UBOOT_SIGN_KEYDIR = "${@bb.utils.contains( \
-    'HSM_FIT_KEY_ID', \
+UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
     d.getVar('HSM_FIT_KEY_ID'), \
     d.getVar('KEY_PROVIDER_FIT_KEYDIR'), \
-    d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG'), \
-    d)}"
+    d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG'))}"
 
 _fitimage_key_provider_setup() {
     # Place a PEM wrapper and certificate only when the selected backend
@@ -80,11 +76,11 @@ do_compile:prepend() {
     _fitimage_key_provider_setup
 }
 
-do_compile_fit[prefuncs] += "${@'_fitimage_key_provider_setup' \
-    if d.getVar('HSM_FIT_KEY_ID') else ''}"
-do_compile_fit[depends] += "${@bb.utils.contains( \
-    'HSM_FIT_KEY_ID', \
-    d.getVar('HSM_FIT_KEY_ID'), \
-    d.getVar('SUMMIT_KEY_PROVIDER_TASK_DEPS'), \
-    '', \
-    d)}"
+do_compile_fit[prefuncs] += "${@oe.utils.ifelse( \
+    '${HSM_FIT_KEY_ID}', \
+    '_fitimage_key_provider_setup', \
+    '')}"
+do_compile_fit[depends] += "${@oe.utils.ifelse( \
+    '${HSM_FIT_KEY_ID}', \
+    '${SUMMIT_KEY_PROVIDER_TASK_DEPS}', \
+    '')}"

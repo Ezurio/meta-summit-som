@@ -3,7 +3,10 @@ LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
 inherit summit-platform-version kernel-yocto kernel
-inherit ${@'fitimage-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'fitimage-key-provider-sign', \
+    '')}
 
 SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/wb-kernel.git;${SUMMIT_EXTERNAL_GIT_SUFFIX}"
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-wb45n-kernel.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"

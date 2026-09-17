@@ -13,12 +13,21 @@ UBOOT_KEY_PROVIDER_KEY_IDS:append = " ${HSM_FIT_KEY_ID}"
 
 # Provider packages are needed for either remote role; the SPSDK PKCS#11
 # plugin is needed only for AHAB container signing.
-DEPENDS:append = "${@' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS') if d.getVar('HSM_FIT_KEY_ID') or d.getVar('HSM_AHAB_KEY_ID') else ''}"
-DEPENDS:append = "${@' python3-spsdk-pkcs11-native' if d.getVar('HSM_AHAB_KEY_ID') else ''}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    d.getVar('HSM_FIT_KEY_ID') or d.getVar('HSM_AHAB_KEY_ID'), \
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
+    '')}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    d.getVar('HSM_AHAB_KEY_ID'), \
+    ' python3-spsdk-pkcs11-native', \
+    '')}"
 
 # Redirect UBOOT_SIGN_KEYDIR to staging copy for FIT key wrappers.
 KEY_PROVIDER_SIG_DATA_ORIG := "${SIG_DATA_PATH}"
-UBOOT_SIGN_KEYDIR = "${@d.getVar('KEY_PROVIDER_SIG_STAGING') + '/keys' if d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') and d.getVar('HSM_FIT_KEY_ID') else d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG')}"
+UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
+    d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') + (d.getVar('HSM_FIT_KEY_ID') or ''), \
+    d.getVar('KEY_PROVIDER_SIG_STAGING') + '/keys', \
+    d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG'))}"
 
 # Allow network access only for tasks whose signing role uses the provider.
 python () {

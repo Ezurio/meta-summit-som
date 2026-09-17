@@ -3,7 +3,7 @@
 HSM_KEY_ID = "${AWS_KMS_KEY_ARN}"
 HSM_CSF_KEY_ID = "${@d.getVar('AWS_KMS_CSF_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
 HSM_IMG_KEY_ID = "${@d.getVar('AWS_KMS_IMG_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
-HSM_FIT_KEY_ID = "${@d.getVar('AWS_KMS_FIT_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
+HSM_FIT_KEY_ID = "${AWS_KMS_FIT_KEY_ARN}"
 HSM_AHAB_KEY_ID = "${@d.getVar('AWS_KMS_AHAB_KEY_ARN') or d.getVar('AWS_KMS_KEY_ARN')}"
 HSM_UPDATE_KEY_ID = "${@d.getVar('AWS_KMS_UPDATE_KEY_ARN') or ''}"
 
@@ -18,11 +18,6 @@ SUMMIT_KEY_PROVIDER_TASK_DEPS = "\
     pkcs11-provider-native:do_populate_sysroot \
     "
 HSM_PKCS11_LIBRARY = "${STAGING_LIBDIR_NATIVE}/pkcs11/aws_kms_pkcs11.so"
-
-export AWS_KMS_PKCS11_CONFIG = "${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
-export OPENSSL_CONF = "${STAGING_DIR_NATIVE}${sysconfdir}/ssl/openssl.cnf"
-LD_LIBRARY_PATH:prepend = "${STAGING_LIBDIR_NATIVE}:"
-export LD_LIBRARY_PATH
 
 summit_key_provider_setup_env() {
     export AWS_KMS_PKCS11_CONFIG="${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"

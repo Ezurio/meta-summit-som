@@ -6,13 +6,24 @@
 inherit uboot-key-provider-common
 
 UBOOT_KEY_PROVIDER_KEY_IDS:append = " ${HSM_CSF_KEY_ID} ${HSM_IMG_KEY_ID} ${HSM_FIT_KEY_ID}"
-DEPENDS:append = "${@' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS') if d.getVar('HSM_CSF_KEY_ID') or d.getVar('HSM_IMG_KEY_ID') or d.getVar('HSM_FIT_KEY_ID') else ''}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    '${HSM_CSF_KEY_ID}${HSM_IMG_KEY_ID}${HSM_FIT_KEY_ID}', \
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
+    '')}"
 
 # Redirect SIG_DATA_PATH to the staging copy; UBOOT_SIGN_KEYDIR points into it.
 KEY_PROVIDER_SIG_DATA_ORIG := "${SIG_DATA_PATH}"
-KEY_PROVIDER_HAB_KEY_ID = "${@d.getVar('HSM_CSF_KEY_ID') or d.getVar('HSM_IMG_KEY_ID') or d.getVar('HSM_FIT_KEY_ID')}"
-SIG_DATA_PATH = "${@d.getVar('KEY_PROVIDER_SIG_STAGING') if d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') and d.getVar('KEY_PROVIDER_HAB_KEY_ID') else d.getVar('KEY_PROVIDER_SIG_DATA_ORIG')}"
-UBOOT_SIGN_KEYDIR = "${@d.getVar('KEY_PROVIDER_SIG_STAGING') + '/keys' if d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') and d.getVar('KEY_PROVIDER_HAB_KEY_ID') else d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG')}"
+KEY_PROVIDER_HAB_KEY_ID = "${@oe.utils.ifelse( \
+    '${HSM_CSF_KEY_ID}', '${HSM_CSF_KEY_ID}', \
+    oe.utils.ifelse('${HSM_IMG_KEY_ID}', '${HSM_IMG_KEY_ID}', '${HSM_FIT_KEY_ID}'))}"
+SIG_DATA_PATH = "${@oe.utils.ifelse( \
+    '${KEY_PROVIDER_SIG_DATA_ORIG}${KEY_PROVIDER_HAB_KEY_ID}', \
+    '${KEY_PROVIDER_SIG_STAGING}', \
+    '${KEY_PROVIDER_SIG_DATA_ORIG}')}"
+UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
+    '${KEY_PROVIDER_SIG_DATA_ORIG}${KEY_PROVIDER_HAB_KEY_ID}', \
+    '${KEY_PROVIDER_SIG_STAGING}/keys', \
+    '${KEY_PROVIDER_SIGN_KEYDIR_ORIG}')}"
 
 python () {
     enabled = bool(d.getVar('KEY_PROVIDER_HAB_KEY_ID'))

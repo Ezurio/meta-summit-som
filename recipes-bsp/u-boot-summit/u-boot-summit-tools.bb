@@ -10,7 +10,10 @@ inherit pkgconfig summit-platform-version
 SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/u-boot-som.git;${SUMMIT_EXTERNAL_GIT_SUFFIX}"
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-u-boot-som60.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"
 
-SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if d.getVar('CLOUD_HSM_BACKEND') else ''}"
+SRC_URI:append = "${@oe.utils.ifelse( \
+	'${CLOUD_HSM_BACKEND}', \
+	' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch', \
+	'')}"
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 B = "${UNPACKDIR}/build"

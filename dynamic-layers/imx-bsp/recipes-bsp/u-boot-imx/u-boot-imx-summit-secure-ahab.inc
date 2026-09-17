@@ -4,10 +4,16 @@ SRC_URI:append:mx95-generic-bsp = " \
     file://0001-imx8image-Set-signature-block-version-1-for-AHAB-V2.patch \
     "
 
-SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if d.getVar('CLOUD_HSM_BACKEND') else ''}"
+SRC_URI:append = "${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    ' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch', \
+    '')}"
 
 # AHAB (imx9x): SPSDK PKCS#11 signer + FIT signing via nxpimage
-inherit ${@'nxp-ahab-uboot-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'nxp-ahab-uboot-key-provider-sign', \
+    '')}
 
 DEPENDS:append = " \
     python3-spsdk-native \

@@ -2,12 +2,10 @@
 
 inherit summit-key-provider
 
-DEPENDS:append = "${@bb.utils.contains( \
-    'HSM_UPDATE_KEY_ID', \
-    d.getVar('HSM_UPDATE_KEY_ID'), \
-    ' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS'), \
-    '', \
-    d)}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    '${HSM_UPDATE_KEY_ID}', \
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
+    '')}"
 
 KEY_PROVIDER_UPDATE_KEYDIR = "${UNPACKDIR}/key-provider-update-keys"
 SWUPDATE_UPDATE_SIGNING_CERT ?= ""
@@ -52,25 +50,20 @@ do_install:prepend() {
     swupdate_key_provider_setup
 }
 
-python swupdate_key_provider_setup_swuimage() {
-    bb.build.exec_func('swupdate_key_provider_setup', d)
-}
+do_swuimage[prefuncs] += "swupdate_key_provider_setup"
 
-do_swuimage[prefuncs] += "${@'swupdate_key_provider_setup_swuimage' \
-    if d.getVar('HSM_UPDATE_KEY_ID') else ''}"
-
-do_install[depends] += "${@bb.utils.contains( \
-    'HSM_UPDATE_KEY_ID', \
-    d.getVar('HSM_UPDATE_KEY_ID'), \
-    d.getVar('SUMMIT_KEY_PROVIDER_TASK_DEPS'), \
-    '', \
-    d)}"
-do_install[file-checksums] += "${@bb.utils.contains( \
-    'HSM_UPDATE_KEY_ID', d.getVar('HSM_UPDATE_KEY_ID'), \
-    d.getVar('SWUPDATE_UPDATE_SIGNING_CERT') + ':True', '', d)}"
-do_swuimage[file-checksums] += "${@bb.utils.contains( \
-    'HSM_UPDATE_KEY_ID', d.getVar('HSM_UPDATE_KEY_ID'), \
-    d.getVar('SWUPDATE_UPDATE_SIGNING_CERT') + ':True', '', d)}"
+do_install[depends] += "${@oe.utils.ifelse( \
+    '${HSM_UPDATE_KEY_ID}', \
+    '${SUMMIT_KEY_PROVIDER_TASK_DEPS}', \
+    '')}"
+do_install[file-checksums] += "${@oe.utils.ifelse( \
+    '${HSM_UPDATE_KEY_ID}', \
+    '${SWUPDATE_UPDATE_SIGNING_CERT}:True', \
+    '')}"
+do_swuimage[file-checksums] += "${@oe.utils.ifelse( \
+    '${HSM_UPDATE_KEY_ID}', \
+    '${SWUPDATE_UPDATE_SIGNING_CERT}:True', \
+    '')}"
 python () {
     enabled = bool(d.getVar('HSM_UPDATE_KEY_ID'))
     d.setVarFlag('do_install', 'network', '1' if enabled else '0')

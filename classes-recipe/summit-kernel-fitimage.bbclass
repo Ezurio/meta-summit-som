@@ -18,7 +18,10 @@
 # below) needs the real file and runs before do_image_complete would ever
 # publish it.
 inherit linux-kernel-base kernel-arch kernel-artifact-names uboot-config
-inherit ${@'fitimage-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+inherit ${@oe.utils.ifelse( \
+    d.getVar('HSM_FIT_KEY_ID'), \
+    'fitimage-key-provider-sign', \
+    '')}
 
 # Real, PN-unique filenames so multiple images sharing a MACHINE don't
 # overwrite each other's fitImage. do_deploy_fit also maintains plain

@@ -2,10 +2,16 @@ DEPENDS:append = " \
     cst-native \
     "
 
-SRC_URI:append = "${@' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch' if d.getVar('CLOUD_HSM_BACKEND') else ''}"
+SRC_URI:append = "${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    ' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch', \
+    '')}"
 
 # HAB4 (imx8m): CSF/IMG key wrappers + FIT signing via CST/binman
-inherit ${@'nxp-hab4-uboot-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'nxp-hab4-uboot-key-provider-sign', \
+    '')}
 
 # binman's nxp-imx8mcst node (active when CONFIG_IMX_HAB is set) reads these
 # from the environment to locate the HAB SRK table and CSF/IMG certificates for

@@ -19,7 +19,10 @@ ENV_INCLUDE:k3 = "recipes-bsp/u-boot-summit/u-boot-summit-env.inc"
 
 require ${ENV_INCLUDE}
 
-inherit ${@'ti-uboot-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'ti-uboot-key-provider-sign', \
+    '')}
 
 do_deploy:append:k3r5() {
     if [ "${SECURE_BOOT}" = "1" ]; then

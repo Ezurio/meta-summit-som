@@ -6,11 +6,17 @@
 
 inherit summit-key-provider
 
-DEPENDS:append = "${@' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS') if d.getVar('HSM_KEY_ID') else ''}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    '${HSM_KEY_ID}', \
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
+    '')}"
 
 KEY_PROVIDER_PROV_KEYDIR_ORIG := "${UBOOT_SIGN_KEYDIR}"
 KEY_PROVIDER_PROV_STAGING = "${UNPACKDIR}/key-provider-prov-keys"
-UBOOT_SIGN_KEYDIR = "${@d.getVar('KEY_PROVIDER_PROV_STAGING') if d.getVar('HSM_KEY_ID') else d.getVar('KEY_PROVIDER_PROV_KEYDIR_ORIG')}"
+UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
+    '${HSM_KEY_ID}', \
+    '${KEY_PROVIDER_PROV_STAGING}', \
+    '${KEY_PROVIDER_PROV_KEYDIR_ORIG}')}"
 
 do_install:prepend() {
     if [ -n "${HSM_KEY_ID}" ]; then
@@ -36,7 +42,10 @@ do_install:prepend() {
     fi
 }
 
-do_install[depends] += "${@d.getVar('SUMMIT_KEY_PROVIDER_TASK_DEPS') if d.getVar('HSM_KEY_ID') else ''}"
+do_install[depends] += "${@oe.utils.ifelse( \
+    '${HSM_KEY_ID}', \
+    '${SUMMIT_KEY_PROVIDER_TASK_DEPS}', \
+    '')}"
 
 python () {
     d.setVarFlag('do_install', 'network',

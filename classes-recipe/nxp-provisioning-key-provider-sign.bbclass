@@ -6,13 +6,10 @@
 
 inherit summit-key-provider
 
-DEPENDS:append = "${@bb.utils.contains( \
-    'HSM_AHAB_KEY_ID', \
-    d.getVar('HSM_AHAB_KEY_ID'), \
-    ' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS') + \
-    ' python3-spsdk-pkcs11-native', \
-    '', \
-    d)}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    '${HSM_AHAB_KEY_ID}', \
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS} python3-spsdk-pkcs11-native', \
+    '')}"
 
 SUMMIT_PROV_IMX_SIGNER = "${@';'.join(( \
     'type=pkcs11', \
@@ -41,9 +38,7 @@ do_install:prepend() {
     fi
 }
 
-do_install[depends] += "${@bb.utils.contains( \
-    'HSM_AHAB_KEY_ID', \
-    d.getVar('HSM_AHAB_KEY_ID'), \
-    d.getVar('SUMMIT_KEY_PROVIDER_TASK_DEPS'), \
-    '', \
-    d)}"
+do_install[depends] += "${@oe.utils.ifelse( \
+    '${HSM_AHAB_KEY_ID}', \
+    '${SUMMIT_KEY_PROVIDER_TASK_DEPS}', \
+    '')}"

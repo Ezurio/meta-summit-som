@@ -6,10 +6,16 @@
 inherit uboot-key-provider-common
 
 UBOOT_KEY_PROVIDER_KEY_IDS:append = " ${HSM_FIT_KEY_ID}"
-DEPENDS:append = "${@' ' + d.getVar('SUMMIT_KEY_PROVIDER_DEPENDS') if d.getVar('HSM_FIT_KEY_ID') else ''}"
+DEPENDS:append = "${@oe.utils.ifelse( \
+    '${HSM_FIT_KEY_ID}', \
+    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
+    '')}"
 
 # Redirect UBOOT_SIGN_KEYDIR to the materialized staging directory.
-UBOOT_SIGN_KEYDIR = "${@d.getVar('KEY_PROVIDER_SIG_STAGING') + '/keys' if d.getVar('HSM_FIT_KEY_ID') else d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG')}"
+UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
+    '${HSM_FIT_KEY_ID}', \
+    '${KEY_PROVIDER_SIG_STAGING}/keys', \
+    '${KEY_PROVIDER_SIGN_KEYDIR_ORIG}')}"
 
 python () {
     enabled = bool(d.getVar('HSM_FIT_KEY_ID'))

@@ -5,8 +5,7 @@ LICENSE = "Ezurio"
 NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
-DEPENDS = "file-native imx-secure-enclave openssl-native python3-cryptography-native python3-pyyaml-native python3-spsdk-native"
-export MAGIC = "${STAGING_DIR_NATIVE}${datadir}/misc/magic.mgc"
+DEPENDS = "imx-secure-enclave openssl-native python3-cryptography-native python3-pyyaml-native python3-spsdk-native"
 RDEPENDS:${PN} = " \
     busybox \
     coreutils \
@@ -23,7 +22,10 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 COMPATIBLE_MACHINE = "(mx93-generic-bsp)"
 
 inherit python3native systemd
-inherit ${@'nxp-provisioning-key-provider-sign' if d.getVar('CLOUD_HSM_BACKEND') else ''}
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'nxp-provisioning-key-provider-sign', \
+    '')}
 
 require conf/machine/include/summit-spsdk-family.inc
 
@@ -112,6 +114,10 @@ do_install () {
         bbfatal "fleet-aes-256.bin must be exactly 32 bytes"
 
     rm -rf "${B}/generated-ele" "${B}/ele-generation-work"
+    SIGNER_ARGS=""
+    if [ -n "${SUMMIT_PROV_IMX_SIGNER}" ]; then
+        SIGNER_ARGS="--signer ${SUMMIT_PROV_IMX_SIGNER}"
+    fi
     ${PYTHON} "${S}/generate_ele_artifacts.py" \
         --sig-data-path "${SIG_DATA_PATH}" \
         --crypto-dir "$crypto_dir" \
@@ -120,7 +126,7 @@ do_install () {
         --work-dir "${B}/ele-generation-work" \
         --family "${SPSDK_FAMILY}" \
         --issue-date "${SUMMIT_PROV_IMX_ISSUE_DATE}" \
-        ${@bb.utils.contains('SUMMIT_PROV_IMX_SIGNER', d.getVar('SUMMIT_PROV_IMX_SIGNER'), '--signer "${SUMMIT_PROV_IMX_SIGNER}"', '', d)}
+        ${SIGNER_ARGS}
     rmdir "${B}/ele-generation-work"
 
     [ "$(stat -c %s "${B}/generated-ele/key-exchange.bin")" -eq 576 ] || \
