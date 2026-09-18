@@ -1,10 +1,17 @@
 
-FILESEXTRAPATHS:prepend:summitsom := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRC_URI:append:summitsom = "\
+SRC_URI:append = "\
     file://1001-bluetooth-get_conn_info-auto_connect-disconnect_reason.patch \
     file://1002-btattach-Use-cfsetspeed-instead-of-c_cflag-baud-OR.patch \
+    file://1003-use-libedit-instead-of-readline.patch \
     "
+
+PACKAGECONFIG[readline] = "--enable-client --with-readline=readline,--disable-client,readline,"
+PACKAGECONFIG[libedit] = "--enable-client --with-readline=libedit,--disable-client,libedit,"
+
+PACKAGECONFIG:remove:summitsom = "readline"
+PACKAGECONFIG:append:summitsom = " libedit"
 
 do_install:append:summitsom () {
    install -D -m 0644 "${S}/src/main.conf" "${D}${sysconfdir}/bluetooth/main.conf"
