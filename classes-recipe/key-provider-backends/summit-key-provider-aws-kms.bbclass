@@ -18,9 +18,14 @@ SUMMIT_KEY_PROVIDER_TASK_DEPS = "\
     pkcs11-provider-native:do_populate_sysroot \
     "
 HSM_PKCS11_LIBRARY = "${STAGING_LIBDIR_NATIVE}/pkcs11/aws_kms_pkcs11.so"
+CLOUD_HSM_SPSDK_PKCS11_OPTIONS = "rsa_pkcs_mechanism=true"
+CLOUD_HSM_SPSDK_PKCS11_CONFIG_ENV = "AWS_KMS_PKCS11_CONFIG"
+CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH = "${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
 
 summit_key_provider_setup_env() {
     export AWS_KMS_PKCS11_CONFIG="${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
+    export SPSDK_PKCS11_CONFIG_ENV="${CLOUD_HSM_SPSDK_PKCS11_CONFIG_ENV}"
+    export SPSDK_PKCS11_CONFIG_PATH="${CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH}"
     export LD_LIBRARY_PATH="${STAGING_LIBDIR_NATIVE}:${LD_LIBRARY_PATH}"
     export OPENSSL_CONF="${STAGING_DIR_NATIVE}${sysconfdir}/ssl/openssl.cnf"
 }

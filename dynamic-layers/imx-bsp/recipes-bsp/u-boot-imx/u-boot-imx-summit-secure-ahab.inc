@@ -30,9 +30,8 @@ do_configure:append() {
     fi
 }
 
-# Signs the imx-boot flash.bin locally via nxpimage for AHAB platforms
-# (mx9/mx8ulp/mx8qm).
-# mx8m (HAB) images are signed by binman/cst at build time instead.
+# Signs the imx-boot flash.bin via nxpimage for AHAB platforms (mx9/mx8ulp/mx8qm).
+# mx8m (HAB) images are signed by the binman/SPSDK adapter at build time instead.
 #
 # The signer line in spsdk_ahab.yaml is rewritten to a SPSDK SignatureProvider
 # config string (type=file;file_path=...;password=...) so nxpimage resolves the
