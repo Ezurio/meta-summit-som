@@ -24,6 +24,18 @@ inherit ${@oe.utils.ifelse( \
     'ti-uboot-key-provider-sign', \
     '')}
 
+SRC_URI:append:k3:summitsom-usb-boot = " \
+    file://uboot-usb_a53.cfg \
+"
+
+SRC_URI:append:k3r5:summitsom-usb-boot = " \
+    file://uboot-usb_r5.cfg \
+"
+
+SRC_URI:append:summitsom-usb-boot:am62lxx = " \
+    file://uboot-mfg.cfg \
+"
+
 do_deploy:append:k3r5() {
     if [ "${SECURE_BOOT}" = "1" ]; then
         ln -sf tiboot3-*-hs-carbon.bin "${DEPLOYDIR}/tiboot3.bin"
