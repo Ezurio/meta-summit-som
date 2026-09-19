@@ -27,14 +27,14 @@ do_deploy () {
     install -D -m 0755 -t "${DEPLOYDIR}" "${S}/mksdcard.sh"
 }
 
+UUU_FILE:imx-generic-bsp = "${S}/imx-rescue.uuu"
+UUU_FILE:mx8mm-generic-bsp = "${S}/imx8mm-rescue.uuu"
+UUU_FILE:mx95-generic-bsp = "${S}/imx95-rescue.uuu"
+
 do_deploy:imx-generic-bsp:summitsom-rescue-initramfs () {
-    install -D -m 0644 -t "${DEPLOYDIR}" "${S}/imx-rescue.uuu"
+    install -D -m 0644 "${UUU_FILE}" "${DEPLOYDIR}/imx-rescue.uuu"
 }
 
-do_deploy:mx8mm-generic-bsp:summitsom-rescue-initramfs () {
-    install -D -m 0644 "${S}/imx8mm-rescue.uuu" "${DEPLOYDIR}/imx-rescue.uuu"
-}
-
-do_deploy:mx95-generic-bsp:summitsom-rescue-initramfs () {
-    install -D -m 0644 "${S}/imx95-rescue.uuu" "${DEPLOYDIR}/imx-rescue.uuu"
+do_deploy:imx-generic-bsp:summitsom-mfg-initramfs () {
+    sed 's/rescue/mfg/g' "${UUU_FILE}" > "${DEPLOYDIR}/imx-mfg.uuu"
 }

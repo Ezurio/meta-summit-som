@@ -1,6 +1,6 @@
 LICENSE = "Ezurio-Clause"
 
-inherit core-image extrausers summit-kernel-fitimage
+inherit core-image extrausers summit-kernel-fitimage serial-autologin-root
 
 PASSWD = "\$5\$JJ/ksbVr4475qA49\$wzyEBumoH1YyHOG9OgKzjRKjwGVImxFDCu0m90hymoA"
 
@@ -80,27 +80,6 @@ ARCHIVE_NAME ?= "${IMAGE_BASENAME}-${MACHINE}-summit${IMAGE_VERSION_SUFFIX}"
 ARCHIVE_WILDCARD ?= ""
 
 addtask create_archive after do_image_complete before do_build
-
-serial_autologin_root:prepend() {
-    inittab="${IMAGE_ROOTFS}/etc/inittab"
-    autologin="${IMAGE_ROOTFS}${base_sbindir}/serial-autologin"
-
-    if [ -e "${inittab}" ]; then
-        if grep -qE '/agetty' "${inittab}"; then
-            sed -i '/:respawn:/ s,/agetty,/agetty -a root ,g' "${inittab}"
-        fi
-
-        if grep -qE '/getty' "${inittab}"; then
-            if [ ! -f "${autologin}" ]; then
-                printf '%s\n' '#!/bin/sh' 'exec /bin/login -f root' > "${autologin}"
-                chmod 0755 "${autologin}"
-            fi
-
-            sed -i "/:respawn:/ s,/getty,/getty -n -l ${base_sbindir}/serial-autologin,g" "${inittab}"
-            return 0
-        fi
-    fi
-}
 
 do_create_archive() {
     if echo "${IMAGE_VERSION_SUFFIX}" | grep -xEq '\-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' ; then

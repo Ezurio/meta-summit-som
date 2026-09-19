@@ -56,8 +56,7 @@ SRC_URI:append:summitsom-rescue = " \
     file://kernel-rescue.cfg \
     "
 
-SRC_URI:append:summitsom-rescue-initramfs = " \
-    file://kernel-rescue.cfg \
+SRC_URI:append:summitsom-initramfs = " \
     file://kernel-initramfs.cfg \
     "
 
