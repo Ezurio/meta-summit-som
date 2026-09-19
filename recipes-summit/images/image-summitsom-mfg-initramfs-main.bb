@@ -42,6 +42,6 @@ do_create_archive() {
         tar --transform='s,.*/,,' -cvjhf "${DEPLOY_DIR_IMAGE}/${ARCHIVE_NAME}.tar.bz2" \
             ${DEPLOY_DIR_IMAGE}/flash-mfg.bin \
             ${DEPLOY_DIR_IMAGE}/fitImage-mfg \
-            ${DEPLOY_DIR_IMAGE}/imx-rescue.uuu
+            ${DEPLOY_DIR_IMAGE}/imx-mfg.uuu
     fi
 }
