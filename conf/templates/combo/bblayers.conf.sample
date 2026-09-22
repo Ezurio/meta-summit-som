@@ -16,15 +16,6 @@ BBLAYERS = " \
   ${BSPDIR}/sources/meta-openembedded/meta-python \
   ${BSPDIR}/sources/meta-openembedded/meta-perl \
   \
-  ${BSPDIR}/sources/meta-freescale \
-  ${BSPDIR}/sources/meta-freescale-3rdparty \
-  ${BSPDIR}/sources/meta-freescale-distro \
-  ${BSPDIR}/sources/meta-freescale-ml \
-  \
-  ${BSPDIR}/sources/meta-imx/meta-imx-bsp \
-  ${BSPDIR}/sources/meta-imx/meta-imx-sdk \
-  ${BSPDIR}/sources/meta-imx/meta-imx-ml \
-  \
   ${BSPDIR}/sources/meta-arm/meta-arm \
   ${BSPDIR}/sources/meta-arm/meta-arm-toolchain \
   \
@@ -39,3 +30,22 @@ BBLAYERS = " \
   \
   ${BSPDIR}/sources/meta-summit-radio/meta-summit-radio \
 "
+
+BBLAYERS_NXP = " \
+  ${BSPDIR}/sources/meta-freescale \
+  ${BSPDIR}/sources/meta-freescale-3rdparty \
+  ${BSPDIR}/sources/meta-freescale-distro \
+  ${BSPDIR}/sources/meta-freescale-ml \
+  \
+  ${BSPDIR}/sources/meta-imx/meta-imx-bsp \
+  ${BSPDIR}/sources/meta-imx/meta-imx-sdk \
+  ${BSPDIR}/sources/meta-imx/meta-imx-ml \
+"
+
+BBLAYERS_TI = " \
+  ${BSPDIR}/sources/meta-ti/meta-ti-bsp \
+"
+
+BSP_VENDOR ?= "NXP"
+
+BBLAYERS += "${@d.getVar('BBLAYERS_' + d.getVar('BSP_VENDOR').upper())}"

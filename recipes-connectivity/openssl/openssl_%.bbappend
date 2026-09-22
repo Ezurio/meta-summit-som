@@ -4,4 +4,4 @@ do_install:append:summitsom:class-native() {
     install -d "${D}${sysconfdir}/ssl/openssl.cnf.d"
 }
 
-PACKAGECONFIG:summitsom = "tls1 tls1_1 legacy"
+PACKAGECONFIG:append:class-target:summitsom = " tls1 tls1_1 legacy"

@@ -9,6 +9,7 @@ BBLAYERS = " \
   \
   ${BSPDIR}/sources/openembedded-core/meta \
   ${BSPDIR}/sources/meta-yocto/meta-poky \
+  ${BSPDIR}/sources/meta-lts-mixins \
   \
   ${BSPDIR}/sources/meta-openembedded/meta-oe \
   ${BSPDIR}/sources/meta-openembedded/meta-multimedia \
