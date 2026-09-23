@@ -6,7 +6,15 @@ LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
 inherit allarch systemd
 
-SWUPDATE_SIGNING_CERT ?= "${UBOOT_SIGN_KEYDIR}/update_signing.crt"
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'swupdate-key-provider-sign', \
+    '')}
+
+SWUPDATE_SIGNING_CERT ?= "${@oe.utils.ifelse( \
+    d.getVar('HSM_UPDATE_KEY_ID'), \
+    d.getVar('SWUPDATE_UPDATE_SIGNING_CERT'), \
+    d.getVar('UBOOT_SIGN_KEYDIR') + '/update_signing.crt')}"
 
 SRC_URI = " \
     file://LICENSE.ezurio \

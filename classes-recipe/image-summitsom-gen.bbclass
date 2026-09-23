@@ -1,6 +1,6 @@
 LICENSE = "MIT"
 
-inherit core-image extrausers
+inherit core-image extrausers summit-kernel-fitimage
 
 PASSWD = "\$5\$JJ/ksbVr4475qA49\$wzyEBumoH1YyHOG9OgKzjRKjwGVImxFDCu0m90hymoA"
 
@@ -13,14 +13,26 @@ IMAGE_ROOTFS_VERITY_TYPE = "squashfs-zst.verity"
 IMAGE_ROOTFS_VERITY_NAME = "${IMAGE_LINK_NAME}.${IMAGE_ROOTFS_VERITY_TYPE}"
 IMAGE_FSTYPES:append:summitsom = " ${IMAGE_ROOTFS_VERITY_TYPE}"
 
-IMAGE_BOOT_FILES:append:summitsom = " ${IMGDEPLOYDIR}/${IMAGE_ROOTFS_VERITY_NAME}.scr.bin;fitImageVerity.bin"
+# fitImage is produced by the summit-kernel-fitimage.bbclass task graph
+# (do_compile_fit/do_deploy_fit) as part of this image recipe itself rather
+# than a separate kernel-fitimage recipe, so add it to
+# IMAGE_BOOT_FILES/SWUPDATE_IMAGES here instead of requiring every machine
+# .inc to list it. ":append" (unlike a plain "+=") is applied unconditionally
+# after any machine-specific override (e.g. IMAGE_BOOT_FILES:k3) has already
+# been resolved, so this still takes effect even for machines that fully
+# override those variables.
+#
+# do_deploy_fit always maintains "kernel.itb" as a symlink to this build's
+# own real (PN-namespaced) fitImage, so it can be referenced directly here.
+IMAGE_BOOT_FILES:append = " kernel.itb"
+SWUPDATE_IMAGES:append = " kernel.itb"
 
 #IMAGE_MACHINE_SUFFIX ?= ""
 IMAGE_NAME_SUFFIX ?= ""
 
 IMAGE_ROOTFS_EXTRA_SPACE = "0"
 
-SUMMIT_CONSOLE_LOGGING ?= "debug no_console_suspend"
+SUMMIT_CONSOLE_LOGGING ?= "quiet"
 
 IMAGE_BOOTSTR = "bootside=\${bootside} ${SUMMIT_CONSOLE_LOGGING} init=/usr/sbin/pre-systemd-init.sh inittype=overlay"
 IMAGE_BOOTSTR:remove:summit-secure = "inittype=overlay"

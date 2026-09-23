@@ -1,7 +1,5 @@
 DESCRIPTION = "Summit SOM Command Line Image"
 
-FILESEXTRAPATHS:prepend := "${THISDIR}/files/nomcu:"
-
 inherit image-summitsom-gen image-summitsom-sd-gen image-summitsom-swu-gen
 
 IMAGE_INSTALL += "\
@@ -11,4 +9,4 @@ IMAGE_INSTALL += "\
     packagegroup-summit-camera \
     "
 
-include image-summitsom-demo-mcu.inc
+include ${@'image-summitsom-demo-mcu.inc' if 'imx8mp-summitsom' in d.getVar('OVERRIDES').split(':') else ''}

@@ -18,7 +18,7 @@ SRC_URI = " \
 
 do_configure[noexec] = "1"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}"
 
 do_install () {
     install -D -m 0755 -t "${D}${bindir}" "${B}/dmcrypt_image"

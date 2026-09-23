@@ -45,14 +45,14 @@ SRC_URI:append:summitsom = " \
     file://dts \
     "
 
-KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if d.getVar('KERNEL_DEVICETREE').find('.dtbo') else ''}"
+KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if (d.getVar('KERNEL_DEVICETREE') or '').find('.dtbo') >= 0 else ''}"
 
 KERNEL_CONFIG_SUMMIT:am62xx = "k3-am625-carbon_defconfig"
 KERNEL_CONFIG_SUMMIT:j722s  = "k3-am675-carbon_defconfig"
 KERNEL_CONFIG_SUMMIT ?= ""
 
 KERNEL_DTBVENDORED:summitsom = "0"
-KERNEL_DEFCONFIG:summitsom = "file://${KERNEL_CONFIG_SUMMIT}"
+KERNEL_DEFCONFIG:summitsom = "${@'file://' + d.getVar('KERNEL_CONFIG_SUMMIT') if d.getVar('KERNEL_CONFIG_SUMMIT') else ''}"
 
 # Remove kernel binary from rootfs
 RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base:summitsom = ""

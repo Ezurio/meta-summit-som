@@ -19,7 +19,7 @@ usage() {
 	echo "  -b: boot size in MiB" >&2
 	echo "  -p: perm size in MiB" >&2
 	echo "  -w: swap size in MiB" >&2
-	echo "  -u: add swu file to rootfs_data" >&2
+	echo "  -u: add swu file to rootfs_data (will be located in /rw)" >&2
 	echo "  -h: Show this help" >&2
 	echo "  <device> is the SD card to be programmed (e.g., /dev/sdc)"
 	exit 1
@@ -212,17 +212,22 @@ create_boot_partition() {
 			"${SRCDIR}/tiboot3.bin" \
 			"${SRCDIR}/u-boot.img" \
 			"${SRCDIR}/uboot.env"
-		if [ -f "${SRCDIR}/prov_data.tar.zst_sign_enc.bin" ]; then
-			cp -t "${BOOT_PART}" "${SRCDIR}/prov_data.tar.zst_sign_enc.bin"
+		if [ -f "${SRCDIR}/prov_data.tar.gz_sign_enc.bin" ]; then
+			cp -t "${BOOT_PART}" "${SRCDIR}/prov_data.tar.gz_sign_enc.bin"
 		fi
 	elif [ -f "${SRCDIR}/flash.bin" ]; then
+		if strings "${SRCDIR}/flash.bin" | grep -xq 'fsl,imx8m[mq]'; then
+			IMX_BOOT_SEEK=33
+		else
+			IMX_BOOT_SEEK=32
+		fi
 		cp -t "${BOOT_PART}" "${SRCDIR}/uboot.env"
-		/usr/bin/dd if="${SRCDIR}/flash.bin" of="${TARGET}" bs=1k seek=32 status=none
+		/usr/bin/dd if="${SRCDIR}/flash.bin" of="${TARGET}" bs=1k \
+			seek=${IMX_BOOT_SEEK} status=none
 	fi
 
 	if ! ${boot_only}; then
-		cp -t "${BOOT_PART}" "${SRCDIR}/fitImage" 
-		cp "$(find_file '*.verity.scr.bin')" "${BOOT_PART}/fitImageVerity.bin" 
+		cp -t "${BOOT_PART}" "${SRCDIR}/kernel.itb"
 	fi
 
 	sync

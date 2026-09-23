@@ -1,0 +1,46 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] pyproject and cargo compatibility for Yocto
+
+Relax maturin requirement to >=1.4.0, normalize license field, remove
+license-files list not supported by older maturin, and configure pyo3 with
+abi3-py310 feature for abi3 wheel building.
+
+Upstream-Status: Inappropriate [compatibility with older build tools]
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/Cargo.toml b/Cargo.toml
+index d045bb0..f435f7f 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -30,7 +30,7 @@ foreign-types-shared = "0.1"
+ openssl = "0.10.79"
+ openssl-sys = "0.9.115"
+ pem = { version = "3", default-features = false }
+-pyo3 = { version = "0.28", features = ["abi3"] }
++pyo3 = { version = "0.28", features = ["abi3-py310"] }
+ pyo3-build-config = { version = "0.28" }
+ self_cell = "1"
+ 
+diff --git a/pyproject.toml b/pyproject.toml
+index f9d05bb..e74e253 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -2,7 +2,7 @@
+ # These requirements must be kept sync with the requirements in
+ # ./.github/requirements/build-requirements.{in,txt}
+ requires = [
+-    "maturin>=1.9.4,<2,!=1.12.0",
++    "maturin>=1.4.0,<2",
+ 
+     # Must be kept in sync with `project.dependencies`
+     "cffi>=2.0.0; platform_python_implementation != 'PyPy'",
+@@ -21,8 +21,7 @@ authors = [
+ ]
+ description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
+ readme = "README.rst"
+-license = "Apache-2.0 OR BSD-3-Clause"
+-license-files = [ "LICENSE", "LICENSE.APACHE", "LICENSE.BSD" ]
++license = { text = "Apache-2.0 OR BSD-3-Clause" }
+ classifiers = [
+     "Development Status :: 5 - Production/Stable",
+     "Intended Audience :: Developers",

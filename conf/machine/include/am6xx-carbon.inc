@@ -37,6 +37,7 @@ FIT_PAD_ALG = "pss"
 FIT_HASH_ALG = "sha512"
 FIT_SIGN_ALG = "rsa4096"
 
+KERNEL_CLASSES = "kernel-fit-extra-artifacts"
 KERNEL_IMAGETYPE = "Image"
 KERNEL_IMAGETYPES = "Image"
 IMAGE_BOOT_FILES = "${SPL_BINARYNAME} u-boot.${UBOOT_SUFFIX} tiboot3.bin uboot.env prov_data.tar.gz_sign_enc.bin"

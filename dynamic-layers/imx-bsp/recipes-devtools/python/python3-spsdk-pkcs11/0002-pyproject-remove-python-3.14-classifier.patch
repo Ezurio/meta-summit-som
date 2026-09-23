@@ -1,0 +1,20 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] remove Python 3.14 classifier
+
+Python 3.14 is not recognized by trove-classifiers in Yocto Scarthgap.
+
+Upstream-Status: Inappropriate [build compatibility]
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/pyproject.toml b/pyproject.toml
+index ad65974..83d5dbe 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -36,7 +36,6 @@ classifiers = [
+     "Programming Language :: Python :: 3.11",
+     "Programming Language :: Python :: 3.12",
+     "Programming Language :: Python :: 3.13",
+-    "Programming Language :: Python :: 3.14",
+ ]
+ 
+ [project.entry-points]

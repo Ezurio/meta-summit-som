@@ -18,8 +18,8 @@ MACHINE_FEATURES += "pci usbhost alsa rtc optee wifi bluetooth"
 
 SOC_DEFAULT_IMAGE_FSTYPES = ""
 
-IMAGE_BOOT_FILES = "uboot.env ${KERNEL_IMAGETYPE}"
-SWUPDATE_IMAGES = "flash.bin uboot.env ${KERNEL_IMAGETYPE}"
+IMAGE_BOOT_FILES = "uboot.env"
+SWUPDATE_IMAGES = "flash.bin uboot.env"
 
 IMX_DEFAULT_BOOTLOADER:mx8m-generic-bsp = "u-boot-imx-summit"
 IMX_DEFAULT_UBOOTTOOLS:imx-generic-bsp = "u-boot-summit-tools"
@@ -53,11 +53,11 @@ IMX_DEFAULT_BSP = "nxp"
 
 MACHINE_EXTRA_RRECOMMENDS:remove = "imx-m7-demos"
 
-KERNEL_CLASSES  = "kernel-fitimage"
-KERNEL_IMAGETYPES = "fitImage"
+KERNEL_CLASSES  = "kernel-fit-extra-artifacts"
+KERNEL_IMAGETYPES = "Image"
 
-KERNEL_IMAGETYPE = "fitImage"
-KERNEL_IMAGETYPE:mx8-generic-bsp = "fitImage"
+KERNEL_IMAGETYPE = "Image"
+KERNEL_IMAGETYPE:mx8-generic-bsp = "Image"
 IMAGE_CLASSES += "dm-verity"
 
 UBOOT_DTB_LOADADDRESS = "0x43000000"
@@ -74,6 +74,9 @@ CUSTOM_KEYS_DIR ?= ""
 UBOOT_SIGN_KEYDIR = "${@oe.utils.conditional('CUSTOM_KEYS_DIR', '', '${SUMMIT_SOM_KEYS_DIR}/summitsom', '${CUSTOM_KEYS_DIR}', d)}"
 UBOOT_SIGN_KEYNAME = "dev"
 UBOOT_SIGN_ENABLE = "1"
+
+UBOOT_ENV_OFFSET = "4128768"
+EMMC_BOOT_OFFSET = "0"
 
 EMMC_DEVICE = "2"
 SD_DEVICE = "0"

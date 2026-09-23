@@ -30,9 +30,9 @@
 set -e
 
 SUMMIT_PROV_MODULE="summit_prov"
-INPUT_FILE="/boot/prov_data.tar.zst_sign_enc.bin"
+INPUT_FILE="/boot/prov_data.tar.gz_sign_enc.bin"
 WORKDIR_TMP=$(mktemp -d -t import-keys.XXXXXX)
-OUTPUT_FILE="${WORKDIR_TMP}/prov_data.tar.zst"
+OUTPUT_FILE="${WORKDIR_TMP}/prov_data.tar.gz"
 P11_TOOL="/usr/bin/pkcs11-tool --module /usr/lib/libckteec.so.0"
 TOKEN_LABEL="summit-keystore"
 SO_PIN="1234567890"
@@ -135,13 +135,13 @@ if [ -n "${DECRYPT_KEY}" ]; then
     use_ti_sci=0
 
     # Import decryption key to kernel keyring
-    echo -n "${DECRYPT_KEY}" | keyctl padd -x user summit_prov_decrypt_key @s > /dev/null || {
+    printf %s "${DECRYPT_KEY}" | keyctl padd -x user summit_prov_decrypt_key @s > /dev/null || {
         echo "Failed to add decryption key to kernel keyring!"
         exit 1
     }
 
     # Import decryption IV to kernel keyring
-    echo -n "${DECRYPT_IV}" | keyctl padd -x user summit_prov_decrypt_iv @s > /dev/null || {
+    printf %s "${DECRYPT_IV}" | keyctl padd -x user summit_prov_decrypt_iv @s > /dev/null || {
         echo "Failed to add decryption IV to kernel keyring!"
         exit 1
     }
@@ -157,8 +157,8 @@ if [ ! -f "${OUTPUT_FILE}" ]; then
     exit 1
 fi
 
-# Extract the certificates and private keys from decrypted keystore tar.zst
-zstd -fdc "${OUTPUT_FILE}" | tar -xpf - -C "${WORKDIR_TMP}" --warning=no-timestamp || {
+# Extract the certificates and private keys from decrypted keystore tar.gz
+tar -xzpf "${OUTPUT_FILE}" -C "${WORKDIR_TMP}" || {
     echo "Failed to extract the decrypted keystore!"
     exit 1
 }
@@ -193,5 +193,5 @@ rm -rf "${INPUT_FILE}" "${WORKDIR_TMP}"
 # Mark device as provisioned
 mkdir -p /data
 touch "${PROVISIONED_FLAG}"
+sync
 echo "Provisioning completed successfully."
-exit 0

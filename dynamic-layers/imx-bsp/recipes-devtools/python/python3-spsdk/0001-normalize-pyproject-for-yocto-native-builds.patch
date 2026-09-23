@@ -1,0 +1,39 @@
+From: Chris Trowbridge <chris.trowbridge@ezurio.com>
+Subject: [PATCH] Normalize pyproject metadata for Yocto native builds
+
+Adjust the source metadata in-tree instead of mutating it from the recipe
+with sed during do_configure.
+
+Upstream-Status: Inappropriate [Yocto native integration adjustments]
+Signed-off-by: Chris Trowbridge <chris.trowbridge@ezurio.com>
+---
+diff --git a/pyproject.toml b/pyproject.toml
+index 6db49c1..1f285ec 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ dynamic = ["dependencies", "version"]
+ description = "Open Source Secure Provisioning SDK for NXP MCU/MPU"
+ readme = "README.md"
+ authors = [{ name = "NXP", email = "spsdk@nxp.com" }]
+-license = "BSD-3-Clause"
++license = { text = "BSD-3-Clause" }
+ requires-python = ">=3.10"
+ classifiers = [
+     "Development Status :: 3 - Alpha",
+@@ -13,7 +13,6 @@ classifiers = [
+     "Programming Language :: Python :: 3.11",
+     "Programming Language :: Python :: 3.12",
+     "Programming Language :: Python :: 3.13",
+-    "Programming Language :: Python :: 3.14",
+     "Operating System :: POSIX :: Linux",
+     "Operating System :: Microsoft :: Windows",
+     "Operating System :: MacOS :: MacOS X",
+@@ -85,7 +84,7 @@ lpcprog = "spsdk.apps.lpcprog:safe_main"
+ nxpshe = "spsdk.apps.nxpshe:safe_main"
+ 
+ [build-system]
+-requires = ["setuptools_scm<10", "setuptools>=77", "wheel"]
++requires = ["setuptools_scm<10", "setuptools>=65", "wheel"]
+ 
+ [tool.black]
+ line-length = 100

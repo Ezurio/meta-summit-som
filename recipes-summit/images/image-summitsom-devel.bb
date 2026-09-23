@@ -1,7 +1,5 @@
 DESCRIPTION = "Summit SOM Devel Image"
 
-FILESEXTRAPATHS:prepend := "${THISDIR}/files/nomcu:"
-
 inherit image-summitsom-gen image-summitsom-sd-gen
 
 # Data partition size
@@ -15,4 +13,4 @@ IMAGE_INSTALL += "\
     packagegroup-core-buildessential \
     "
 
-include image-summitsom-demo-mcu.inc
+include ${@'image-summitsom-demo-mcu.inc' if 'imx8mp-summitsom' in d.getVar('OVERRIDES').split(':') else ''}

@@ -1,5 +1,3 @@
-inherit custom-fit-gen
-
 verity_setup() {
     local type=${1}
     local input=${IMAGE_NAME}.${type}
@@ -37,9 +35,7 @@ verity_setup() {
             ${type%%-*}
     } > ${output}.scr
 
-    fitimage_script ${output}.scr.its ${output}.scr ${output}.scr.bin
-
-    ln -sf ${output}.scr.bin ${output_link}.scr.bin
+    ln -sf ${output}.scr ${output_link}.scr
 }
 
 IMAGE_TYPES += "verity"

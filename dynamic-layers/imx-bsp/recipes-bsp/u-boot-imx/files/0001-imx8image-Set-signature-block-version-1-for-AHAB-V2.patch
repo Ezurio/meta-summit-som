@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Summit SOM <support@ezurio.com>
+Date: Thu, 19 Mar 2026 00:00:00 +0000
+Subject: [PATCH] tools: imx8image: Set signature block version=1 for AHAB V2
+ containers
+
+When building PQC-capable AHAB V2 containers (cntr_version != 0), the
+outer container header is correctly set to version=2. However, the
+embedded signature block placeholder retains version=0 (the classic V1
+value) because set_container() never assigns the version field.
+
+SPSDK >= 3.7.0 strictly enforces that a SignatureBlock inside an AHAB
+V2 container (tag=0x87, version=0x02) must itself have version=1
+(SignatureBlockV2). With version=0, nxpimage ahab sign fails to parse
+the image and cannot sign the OEM container.
+
+Fix by setting sig_blk_hdr.version to 1 when cntr_version is non-zero.
+
+Upstream-Status: Pending [Needs submission to upstream U-Boot]
+Signed-off-by: Summit SOM <support@ezurio.com>
+---
+ tools/imx8image.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tools/imx8image.c b/tools/imx8image.c
+index 1111111..2222222 100644
+--- a/tools/imx8image.c
++++ b/tools/imx8image.c
+@@ -790,6 +790,7 @@ void set_container(flash_header_v3_t *container,  uint16_t sw_version,
+ {
+ 	container->sig_blk_hdr.tag = 0x90;
+ 	container->sig_blk_hdr.length = sizeof(sig_blk_hdr_t);
++	container->sig_blk_hdr.version = cntr_version ? 1 : 0;
+ 	container->sw_version = sw_version;
+ 	container->padding = alignment;
+ 	container->fuse_version = fuse_version;

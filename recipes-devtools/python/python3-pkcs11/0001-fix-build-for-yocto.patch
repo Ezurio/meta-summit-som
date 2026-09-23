@@ -1,0 +1,60 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] fix build for Yocto environment
+
+Lower build-system requirements, convert license string to table format,
+remove unsupported Python 3.14 classifier, and add setup.py for Cython
+extension compilation under older setuptools that do not support
+[tool.setuptools.ext-modules].
+
+Upstream-Status: Inappropriate [compatibility with older build tools]
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/pyproject.toml b/pyproject.toml
+index 174003e..a575035 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools>=80.8", "cython", "setuptools-scm>=8.3.1"]
++requires = ["setuptools", "cython", "setuptools-scm"]
+ build-backend = "setuptools.build_meta"
+ 
+ [project]
+@@ -20,11 +20,10 @@ classifiers = [
+     "Programming Language :: Python :: 3.11",
+     "Programming Language :: Python :: 3.12",
+     "Programming Language :: Python :: 3.13",
+-    "Programming Language :: Python :: 3.14",
+     "Topic :: Security :: Cryptography",
+ ]
+ dependencies = ["asn1crypto>=1.5.1"]
+-license = "MIT"
++license = { text = "MIT" }
+ requires-python = ">=3.10"
+ dynamic = ["version"]
+ 
+@@ -50,10 +49,6 @@ extend-select = [
+ [tool.ruff.lint.isort]
+ combine-as-imports = true
+ 
+-[tool.setuptools]
+-ext-modules = [
+-    {name = "pkcs11._pkcs11", sources = ["pkcs11/_pkcs11.pyx"]}
+-]
+ 
+ [tool.cibuildwheel]
+ skip = "cp3??t-*"
+diff --git a/setup.py b/setup.py
+new file mode 100644
+index 0000000..05e8869
+--- /dev/null
++++ b/setup.py
+@@ -0,0 +1,8 @@
++from setuptools import setup
++from setuptools.extension import Extension
++
++setup(
++    ext_modules=[
++        Extension("pkcs11._pkcs11", sources=["pkcs11/_pkcs11.pyx"]),
++    ],
++)

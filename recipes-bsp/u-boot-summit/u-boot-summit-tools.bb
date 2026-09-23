@@ -10,11 +10,24 @@ inherit pkgconfig summit-platform-version
 SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/u-boot-som.git;${SUMMIT_EXTERNAL_GIT_SUFFIX}"
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-u-boot-som60.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"
 
+SRC_URI:append = "${@oe.utils.ifelse( \
+	'${CLOUD_HSM_BACKEND}', \
+	' file://0002-rsa-sign-load-openssl-config-for-provider-support.patch', \
+	'')}"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
 DEPENDS += "flex-native bison-native python3-setuptools-native" 
 
-PROVIDES:class-target += "u-boot-tools"
-PROVIDES:class-native += "u-boot-tools-native"
-PROVIDES:class-nativesdk += "nativesdk-u-boot-tools"
+PROVIDES:append:class-target = " u-boot-tools"
+PROVIDES:append:class-native = " u-boot-tools-native"
+PROVIDES:append:class-nativesdk = " nativesdk-u-boot-tools"
+
+# Split dumpimage out of ${PN}-mkimage into its own package
+PACKAGES += "${PN}-dumpimage"
+FILES:${PN}-mkimage:remove = "${bindir}/uboot-dumpimage ${bindir}/dumpimage"
+FILES:${PN}-dumpimage = "${bindir}/uboot-dumpimage ${bindir}/dumpimage"
+RPROVIDES:${PN}-dumpimage += " ${MLPREFIX}u-boot-dumpimage"
+RDEPENDS:${PN} += "${PN}-dumpimage"

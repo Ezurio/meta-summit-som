@@ -1,0 +1,22 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] pyproject.toml: normalize license field
+
+Older setuptools versions require the license field in pyproject.toml
+to be a table specifying text or file instead of a plain string.
+
+Upstream-Status: Inappropriate [compatibility with older setuptools]
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/pyproject.toml b/pyproject.toml
+index f147723..a41cd94 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -16,7 +16,7 @@ requires-python = ">=3.9"
+ 
+ description = "Foreign Function Interface for Python calling C code."
+ readme = {file = "README.md", content-type = "text/markdown"}
+-license = "MIT"
++license = { text = "MIT" }
+ classifiers = [
+     "Programming Language :: Python",
+     "Programming Language :: Python :: 3",

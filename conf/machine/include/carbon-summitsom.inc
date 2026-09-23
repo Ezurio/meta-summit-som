@@ -19,8 +19,7 @@ SWUPDATE_IMAGES = "\
     u-boot.${UBOOT_SUFFIX} \
     tiboot3.bin \
     uboot.env \
-    ${KERNEL_IMAGETYPE} \
-    prov_data.tar.zst_sign_enc.bin \
+    prov_data.tar.gz_sign_enc.bin \
     "
 
 FIT_KERNEL_COMP_ALG = "zstd"
@@ -36,9 +35,10 @@ UBOOT_SIGN_KEYNAME = "dev"
 
 # Do not set these for k3r5
 UBOOT_SIGN_ENABLE:k3 = "1"
-KERNEL_IMAGETYPE:k3 = "fitImage"
-KERNEL_IMAGETYPES:k3 = "fitImage"
-IMAGE_BOOT_FILES:k3 = "${SPL_BINARYNAME} u-boot.${UBOOT_SUFFIX} tiboot3.bin uboot.env ${KERNEL_IMAGETYPE}"
+KERNEL_CLASSES = "kernel-fit-extra-artifacts"
+KERNEL_IMAGETYPE:k3 = "Image"
+KERNEL_IMAGETYPES:k3 = "Image"
+IMAGE_BOOT_FILES:k3 = "${SPL_BINARYNAME} u-boot.${UBOOT_SUFFIX} tiboot3.bin uboot.env prov_data.tar.gz_sign_enc.bin"
 
 MACHINE_ESSENTIAL_EXTRA_RDEPENDS:remove = "kernel-image-image kernel-devicetree"
 
@@ -50,7 +50,9 @@ MACHINE_FEATURES:k3r5 = ""
 # and as such have sstate cache reuse for native recipies
 CXXFLAGS:append:k3r5 = " -fvisibility-inlines-hidden"
 
-
+UBOOT_ENV_OFFSET = "3670016"
+EMMC_SPL_OFFSET = "524288"
+EMMC_BOOT_OFFSET = "2621440"
 
 EMMC_DEVICE = "0"
 SD_DEVICE = "1"
