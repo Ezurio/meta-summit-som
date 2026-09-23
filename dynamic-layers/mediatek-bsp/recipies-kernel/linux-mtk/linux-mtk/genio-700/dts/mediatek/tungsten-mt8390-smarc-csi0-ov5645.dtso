@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * ArduCam OV5645 5MP camera module
+ *
+ * Copyright (C) 2026 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "tungsten-mt8390-smarc-csi0.dtsi"
+
+&cam_csi0 {
+	status = "okay";
+	reg = <0x3c>;
+	compatible = "ovti,ov5645";
+
+	vdddo-supply = <&reg_3v3>;
+	vdda-supply = <&reg_3v3>;
+	vddd-supply = <&reg_3v3>;
+
+	reset-gpios = <&pio 19 GPIO_ACTIVE_LOW>;
+	enable-gpios = <&pio 18 GPIO_ACTIVE_HIGH>;
+
+	clock-frequency = <24000000>;
+};

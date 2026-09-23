@@ -1,0 +1,177 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright 2026 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/mediatek,mt8188-pinfunc.h>
+
+#include "tungsten-mt8390-bd-panel.dtsi"
+
+
+&{/} {
+	backlight_lcd0: backlight-lcd0 {
+		compatible = "pwm-backlight";
+		brightness-levels = <0 1023>;
+		default-brightness-level = <768>;
+		num-interpolated-steps = <1023>;
+		enable-gpios = <&pio 30 GPIO_ACTIVE_HIGH>;
+		pwms = <&disp_pwm0 0 30000>;
+	};
+
+	panel_dsi0: panel-dsi0 {
+		compatible = "tianma,tm070jdhg30";
+		backlight = <&backlight_lcd0>;
+		power-supply = <&reg_5v>;
+
+		panel-timing {
+			BD_PANEL_TIMING
+		};
+
+		port {
+			dsi0_panel_in: endpoint {
+				remote-endpoint = <&sn65dsi84_bridge_out>;
+			};
+		};
+	};
+};
+
+&disp_pwm0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&disp_pwm0_pins>;
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+};
+
+&mipi_tx_config0 {
+	status = "okay";
+};
+
+
+&disp_dsi0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+
+			dsi0_in: endpoint {
+				remote-endpoint = <&dither0_out>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+
+			dsi0_out: endpoint {
+				remote-endpoint = <&sn65dsi84_bridge_in>;
+			};
+		};
+	};
+};
+
+
+&dither0_in {
+	remote-endpoint = <&postmask0_out>;
+};
+
+&dither0_out {
+	remote-endpoint = <&dsi0_in>;
+};
+
+&postmask0_out {
+	remote-endpoint = <&dither0_in>;
+};
+
+&i2c_mux_lcd_2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sn65dsi84_dsi0: bridge@2c {
+		compatible = "ti,sn65dsi84";
+		reg = <0x2c>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&dsi0_sn65dsi84_pins>;
+		enable-gpios = <&pio 25 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				sn65dsi84_bridge_in: endpoint {
+					remote-endpoint = <&dsi0_out>;
+					data-lanes = <1 2 3 4>;
+				};
+			};
+
+			port@2 {
+				reg = <2>;
+
+				sn65dsi84_bridge_out: endpoint {
+					remote-endpoint = <&dsi0_panel_in>;
+				};
+			};
+		};
+	};
+
+	touchscreen_dsi0: touchscreen@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_dsi0_goodix_pins>;
+		interrupts-extended = <&pio 146 IRQ_TYPE_LEVEL_HIGH>;
+		irq-gpios = <&pio 146 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio 7 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
+
+&pio {
+	disp_pwm0_pins: disp-pwm0-pins {
+		pins {
+			pinmux = <PINMUX_GPIO29__FUNC_O_DISP_PWM0>;
+			bias-pull-down;
+		};
+	};
+
+	dsi0_sn65dsi84_pins: dsi0-sn65dsi84-pins {
+		pins-irq {
+			pinmux = <PINMUX_GPIO128__FUNC_B_GPIO128>;
+			bias-pull-down;
+			input-enable;
+		};
+
+		pins-enable {
+			pinmux = <PINMUX_GPIO25__FUNC_B_GPIO25>;
+			bias-pull-down;
+		};
+	};
+
+	ts_dsi0_goodix_pins: ts-dsi0-goodix-pins {
+		pins-irq {
+			pinmux = <PINMUX_GPIO146__FUNC_B_GPIO146>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+			input-enable;
+		};
+
+		pins-reset {
+			pinmux = <PINMUX_GPIO7__FUNC_B_GPIO7>;
+			bias-pull-down;
+		};
+	};
+};

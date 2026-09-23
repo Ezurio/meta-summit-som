@@ -20,7 +20,7 @@ IMAGE_NAME_SUFFIX ?= ""
 
 IMAGE_ROOTFS_EXTRA_SPACE = "0"
 
-SUMMIT_CONSOLE_LOGGING ?= "quiet"
+SUMMIT_CONSOLE_LOGGING ?= "debug no_console_suspend"
 
 IMAGE_BOOTSTR = "bootside=\${bootside} ${SUMMIT_CONSOLE_LOGGING} init=/usr/sbin/pre-systemd-init.sh inittype=overlay"
 IMAGE_BOOTSTR:remove:summit-secure = "inittype=overlay"

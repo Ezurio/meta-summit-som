@@ -3,6 +3,8 @@ SECTION = "net/misc"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.MIT;md5=3da9cfbcb788c80a0384361b4de20420"
 
+PACKAGE_ARCH = "${MACHINE_ARCH}"
+
 inherit packagegroup
 
 SUMMIT_SOM_RADIO_TYPE ?= "none"
@@ -26,6 +28,7 @@ RADIO_COMMON_PACKAGES = " \
     summit-supplicant \
     summit-supplicant-cli \
     summit-networkmanager \
+    summit-networkmanager-wifi \
     summit-networkmanager-nmcli \
     summit-hostapd \
     "

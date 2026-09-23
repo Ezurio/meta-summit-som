@@ -17,4 +17,5 @@ RDEPENDS:${PN} = " \
     ${@bb.utils.contains('LICENSE_FLAGS_ACCEPTED', 'commercial', 'gstreamer1.0-libav', '', d)} \
     summit-camera-setup \
     libcamera \
+    kernel-module-pivariety \
     "

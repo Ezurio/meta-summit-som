@@ -19,13 +19,15 @@ RDEPENDS:${PN} = " \
     spitools \
     mdio-tools \
     libinput \
+    libinput-bin \
     evtest \
     linuxptp \
-    mpg123 \
     con2fbmap \
+    ncurses-terminfo \
+    util-linux-dmesg \
     ${@bb.utils.contains('COMBINED_FEATURES', 'usbhost', 'usbutils', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'pci', 'pciutils', '', d)} \
-    ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-speakertest', '', d)} \
+    ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-speakertest mpg123', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'systemd-analyze', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'opengl', 'fbida', '', d)} \
     "

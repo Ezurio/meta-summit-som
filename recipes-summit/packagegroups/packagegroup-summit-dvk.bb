@@ -9,6 +9,8 @@ RDEPENDS:${PN} = " \
     summit-set-mode \
     python3 \
     python3-dbus-fast \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'alsa', 'kernel-module-tac5x1x', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'camera', 'packagegroup-summit-camera', '', d)} \
     "
 
 RDEPENDS:${PN}:append:imx8mp-summitsom = " \

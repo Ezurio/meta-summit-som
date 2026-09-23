@@ -1,0 +1,25 @@
+Detach swupdate's stdin/stdout/stderr from the console when started via
+the SysV init script, using start-stop-daemon's --background option
+(the same mechanism used by Buildroot's S80swupdate). This prevents
+swupdate's console_notifier output from appearing on screen. Messages
+sent via syslog()/-L are unaffected, since syslog() writes to /dev/log
+independently of stdio.
+
+Upstream-Status: Inappropriate [distro-specific init-script behavior]
+Signed-off-by: Ezurio
+
+--- a/swupdate
++++ b/swupdate
+@@ -57,7 +57,11 @@
+ 	*)
+ 		echo "Starting $DESC ..."
+ 		cd /home/root
+-		exec $DAEMON &
++		# Detach stdin/stdout/stderr from the console so console_notifier
++		# output does not appear on screen; syslog/-L are unaffected.
++		start-stop-daemon --start --quiet --background \
++			--make-pidfile --pidfile "$PIDFILE" \
++			--exec "$DAEMON"
+ 		exit 0
+ 		;;
+ 	esac

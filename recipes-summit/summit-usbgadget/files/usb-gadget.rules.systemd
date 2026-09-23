@@ -1,1 +1,0 @@
-SUBSYSTEM=="udc", ACTION=="add", TAG+="systemd", ENV{SYSTEMD_WANTS}+="usb-gadget@%k.service"

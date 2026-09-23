@@ -1,6 +1,6 @@
-FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend:summitsom := "${THISDIR}/${PN}:"
 
-SRC_URI:append = "\
+SRC_URI:append:summitsom = "\
         file://1001-run-shell-scripts-indirectly.patch \
         file://1002-ubiattach.patch \
         file://1003-ubi-mtd-name.patch \
@@ -18,9 +18,13 @@ SRC_URI:append = "\
         file://1016-fat-format.patch \
         file://1020-hw-compatibility.patch \
         file://1022-fix-offset-type.patch \
-        file://1023-emmc_csd_handler-Fix-warning-active-my-be-used.patch \
         file://1024-support-legacy-raw-file-path.patch \
         file://1025-disable-emmc-boot-change-on-failure.patch \
+        file://1026-fix-progress-cr-when-redirected.patch \
+        file://1027-syslog-detach-console.patch;patchdir=.. \
+        file://1028-register-syslog-notifier-early.patch \
+        ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', ' file://systemd.cfg', '', d)} \
+        ${@bb.utils.contains('MACHINE_FEATURES', 'nand', ' file://flash.cfg', ' file://emmc.cfg', d)} \
         "
 
 SWUPDATE_CMS_IGNORE_EXPIRED_CERTS ?= "1"
@@ -29,6 +33,8 @@ SRC_URI:append:summit-secure = " \
         file://summit-secure.cfg \
         ${@oe.utils.conditional('SWUPDATE_CMS_IGNORE_EXPIRED_CERTS', '1', 'file://cms-ignore-expired-certs.cfg', '', d)} \
         "
+
+DEPENDS += "openssl"
 
 SYSTEMD_SERVICE:${PN}:summitsom = "swupdate.socket"
 

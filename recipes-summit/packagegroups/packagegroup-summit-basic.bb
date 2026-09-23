@@ -19,11 +19,14 @@ RDEPENDS:${PN} = " \
     optee-client \
     libgpiod \
     libgpiod-tools \
+    util-linux-hwclock \
+    pkcs11-provider \
+    pkcs11-optee-openssl \
     summit-automount \
     summit-initdata \
     summit-update \
-    packagegroup-summit-radio-stack-som \
-    ${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', 'summit-usbgadget', '', d)} \
+    summit-usbgadget \
+    ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-som', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-alsamixer alsa-utils-aplay', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'less', '', d)} \
     "

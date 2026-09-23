@@ -15,6 +15,7 @@
 #include "k3-serdes.h"
 
 #include "k3-j722s.dtsi"
+#include "k3-timesync-router.h"
 
 / {
 	compatible = "summit,carbon-am67x", "ti,j722s";
@@ -405,6 +406,15 @@
 	pinctrl-0 = <&main_mdio0_pins_default>;
 };
 
+&timesync_router {
+	/* Use Time Sync Router to map GENF1 input to HW3_TS_PUSH output */
+	mux-reg-mask-val = <
+		/* pps [cpsw cpts genf1] in17 -> out12 [cpsw cpts hw3_push] */
+		K3_TS_OFFSET(12, 0x0001ffff, 17)
+		>;
+	idle-states = <0x1>;
+};
+
 &epwm1 { /* LVDS_E_BL_PWM / PWM_2 & CAM_D_MCK / PWM_5 */
 	pinctrl-names = "default";
 	pinctrl-0 = <&main_epwm1_pins_default>;
@@ -562,6 +572,7 @@
 		compatible = "microcrystal,rv3028";
 		reg = <0x52>;
 
+		backup-switchover-dsm;
 		pinctrl-names = "default";
 		pinctrl-0 = <&rtc_pins_default>;
 		interrupts-extended = <&main_gpio0 22 IRQ_TYPE_EDGE_FALLING>;
@@ -723,9 +734,6 @@
 };
 
 &main_pmx0 {
-	///delete-property/ interrupts;
-	interrupts = <GIC_SPI 248 IRQ_TYPE_LEVEL_HIGH>;
-
 	main_epwm1_pins_default: main-epwm1-default-pins {
 		pinctrl-single,pins = <
 			J722S_IOPAD(0x19c, PIN_OUTPUT, 6) /* LVDS_E_BL_PWM/PWM_2 (B25) MCASP0_AXR1.EHRPWM1_A */
@@ -1312,8 +1320,7 @@
 
 /* On-module Bluetooth */
 &main_uart1 {
-	/* BT (Also used by TIFS firmware) */
-	status = "reserved";
+	/* BT */
 	pinctrl-names = "default";
 	pinctrl-0 = <&main_uart1_pins_default>;
 	uart-has-rtscts;
@@ -1326,7 +1333,7 @@
 };
 
 &main_uart6 {
-	 /* UART_D */
+	/* UART_D */
 	pinctrl-names = "default";
 	pinctrl-0 = <&main_uart6_pins_default>;
 };
@@ -1352,7 +1359,7 @@
 
 &mcu_gpio0 {
 	status = "okay";
-	gpio-line-names = 
+	gpio-line-names =
 		"","WAKEUP","","","",				/* 0 - 4 */
 		"","","","","",
 		"","","VPP_EN","GPIO_D_6","",					/* 10 - 14 */
@@ -1506,7 +1513,23 @@
 	pinctrl-0 = <&wkup_uart0_pins_default>;
 };
 
+&usbss0 {
+	ti,vbus-divider;
+};
+
+&usbss1 {
+	ti,vbus-divider;
+};
+
+&usb0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&main_usb0_en_pins_default>;
+};
+
 &usb1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&main_usb1_en_pins_default>;
+
 	maximum-speed = "super-speed";
 	phys = <&serdes0_usb_link>;
 	phy-names = "cdns3,usb3-phy";

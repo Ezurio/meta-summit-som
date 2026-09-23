@@ -29,8 +29,6 @@ RDEPENDS:${PN} = "\
 
 PACKAGES += "${PN}-push"
 
-RRECOMMENDS:${PN} += "${PN}-push"
-
 SYSTEMD_PACKAGES = "${PN}-push"
 SYSTEMD_SERVICE:${PN}-push += "fw_update.socket fw_update@.service"
 
