@@ -44,5 +44,6 @@ do_configure:append() {
     # binman entry remains available in U-Boot for upstream compatibility, but
     # this Yocto integration intentionally always selects SPSDK.
     echo "CONFIG_IMX_HAB=y" >> "${B}/.config"
+    echo "CONFIG_SUMMIT_AUTO_CLOSE=y" >> "${B}/.config"
     echo "# CONFIG_IMX_HAB_CST is not set" >> "${B}/.config"
 }
