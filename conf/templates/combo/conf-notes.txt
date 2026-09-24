@@ -17,6 +17,7 @@ Other commonly useful commands are:
  - 'bitbake-layers' handles common layer tasks
  - 'oe-pkgdata-util' handles common target package tasks
 
- Set BSP_VENDOR environment variable to choose BSP vendor, for example:
-    export BSP_VENDOR=NXP
-    export BSP_VENDOR=TI
+ BSP vendor and isolated TMPDIR are automatically selected based on MACHINE.
+ You can also explicitly override BSP_VENDOR if needed, for example:
+    export BSP_VENDOR=nxp
+    export BSP_VENDOR=ti

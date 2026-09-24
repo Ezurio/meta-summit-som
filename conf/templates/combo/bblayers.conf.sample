@@ -46,6 +46,6 @@ BBLAYERS_TI = " \
   ${BSPDIR}/sources/meta-ti/meta-ti-bsp \
 "
 
-BSP_VENDOR ?= "NXP"
+BSP_VENDOR ?= "${@'ti' if any(m in (d.getVar('MACHINE') or (open(d.getVar('TOPDIR') + '/conf/local.conf').read() if os.path.exists(d.getVar('TOPDIR') + '/conf/local.conf') else '')) for m in ('am6', 'k3')) else 'nxp'}"
 
 BBLAYERS += "${@d.getVar('BBLAYERS_' + d.getVar('BSP_VENDOR').upper())}"
