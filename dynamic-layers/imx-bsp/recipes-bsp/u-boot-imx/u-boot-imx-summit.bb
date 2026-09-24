@@ -15,6 +15,7 @@ SRC_URI:append:summitsom-usb-boot = " \
     file://uboot-mfg.cfg \
 "
 
+S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
 PROVIDES += "u-boot"

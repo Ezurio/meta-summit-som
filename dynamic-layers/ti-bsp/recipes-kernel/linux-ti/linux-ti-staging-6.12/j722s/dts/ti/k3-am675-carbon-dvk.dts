@@ -609,10 +609,6 @@
 
 /* MCUs not loaded currently because of UART conflict */
 /*
-&wkup_r5fss0 {
-	status = "okay";
-};
-
 &mcu_r5fss0 {
 	status = "okay";
 };

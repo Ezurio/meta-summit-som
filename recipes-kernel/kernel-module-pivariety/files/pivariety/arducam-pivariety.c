@@ -17,11 +17,24 @@
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
+#include <linux/version.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-fwnode.h>
 #include "arducam-pivariety.h"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+#define pivariety_get_try_format(sd, state, pad) \
+	v4l2_subdev_state_get_format(state, pad)
+#define pivariety_get_try_crop(sd, state, pad) \
+	v4l2_subdev_state_get_crop(state, pad)
+#else
+#define pivariety_get_try_format(sd, state, pad) \
+	v4l2_subdev_get_try_format(sd, state, pad)
+#define pivariety_get_try_crop(sd, state, pad) \
+	v4l2_subdev_get_try_crop(sd, state, pad)
+#endif
 
 static int debug;
 module_param(debug, int, 0644);
@@ -402,7 +415,7 @@ static int pivariety_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	struct pivariety *pivariety = to_pivariety(sd);
 	struct v4l2_mbus_framefmt *try_fmt =
-		v4l2_subdev_state_get_format(fh->state, 0);
+		pivariety_get_try_format(sd, fh->state, 0);
 	struct arducam_format *def_fmt = &pivariety->supported_formats[0];
 
 	/* Initialize try_fmt */
@@ -779,7 +792,7 @@ __pivariety_get_pad_crop(struct pivariety *pivariety,
 
 	switch (which) {
 	case V4L2_SUBDEV_FORMAT_TRY:
-		return v4l2_subdev_state_get_crop(sd_state, pad);
+		return pivariety_get_try_crop(&pivariety->sd, sd_state, pad);
 	case V4L2_SUBDEV_FORMAT_ACTIVE:
 		ret = pivariety_read_sel(pivariety, &pivariety->crop);
 		if (ret)

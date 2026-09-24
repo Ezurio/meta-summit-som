@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: LicenseRef-Ezurio-Clause
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright 2021 Ezurio
+ * Copyright 2021 Ezurio LLC
  */
 
 #include <dt-bindings/phy/phy-imx8-pcie.h>
@@ -13,7 +13,7 @@
 	compatible = "summit,imx8mp-summitsom", "fsl,imx8mp";
 
 	chosen {
-		stdout-path = &uart2;
+		stdout-path = "serial1:115200n8";
 	};
 
 	reserved-memory {

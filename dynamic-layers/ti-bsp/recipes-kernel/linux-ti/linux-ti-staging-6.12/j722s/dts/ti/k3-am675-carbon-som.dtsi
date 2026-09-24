@@ -481,6 +481,8 @@
 	mboxes = <&mailbox0_cluster0 &mbox_wkup_r5_0>;
 	memory-region = <&wkup_r5fss0_core0_dma_memory_region>,
 			<&wkup_r5fss0_core0_memory_region>;
+
+	ti,rproc-attach-only;
 };
 
 &mcu_r5fss0_core0 {
@@ -1583,4 +1585,8 @@
 
 &oldi1_dss1 {
 	reg = <1>;
+};
+
+&wkup_r5fss0 {
+	status = "okay";
 };

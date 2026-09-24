@@ -1,5 +1,7 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
+inherit summit-kernel-dtbo-check
+
 SRC_URI:append:summitsom = " \
     file://0001-ts3a227-jack.patch \
     file://0006-sound_ts3a227_support.patch \

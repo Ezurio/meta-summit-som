@@ -13,7 +13,7 @@ SRC_URI = " \
     file://somlte.nmconnection \
     "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}"
 
 FILES:${PN} += " \
     ${systemd_system_unitdir} \
