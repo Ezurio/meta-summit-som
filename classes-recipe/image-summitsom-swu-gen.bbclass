@@ -10,7 +10,7 @@ inherit ${@oe.utils.ifelse( \
     'swupdate-key-provider-sign', \
     '')}
 
-SRC_URI += "file://erase_data_emmc.sh"
+SRC_URI += "file://erase_data_emmc.sh file://erase_data.sh file://copy_partitions.sh"
 SRC_URI:append:imx8mp-summitsom = " file://update_support.sh"
 
 DEPENDS += "summit-image-tools"

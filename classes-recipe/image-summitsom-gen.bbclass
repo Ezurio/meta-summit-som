@@ -1,6 +1,6 @@
 LICENSE = "MIT"
 
-inherit core-image extrausers summit-kernel-fitimage
+inherit core-image extrausers summit-kernel-fitimage serial-autologin-root
 
 PASSWD = "\$5\$JJ/ksbVr4475qA49\$wzyEBumoH1YyHOG9OgKzjRKjwGVImxFDCu0m90hymoA"
 
@@ -49,6 +49,12 @@ IMAGE_FEATURES:append:summit-secure = "\
 IMAGE_INSTALL += "os-release"
 
 ROOTFS_POSTPROCESS_COMMAND += "rootfs_os_release; "
+ROOTFS_POSTPROCESS_COMMAND:append:disable-console-login = " disable_console_login;"
+
+# Ensure os-release is available for rootfs_os_release.
+# When systemd is the init manager it provides this file;
+# with other init managers the standalone package is needed.
+IMAGE_INSTALL:append = " os-release"
 
 rootfs_os_release() {
     ver=${IMAGE_VERSION_SUFFIX}
@@ -59,6 +65,16 @@ rootfs_os_release() {
     echo "Summit SOM ${MACHINE} ${IMAGE_BASENAME} ${ver} %h" > "${IMAGE_ROOTFS}${sysconfdir}/issue.net"
 }
 
+disable_console_login() {
+    if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then
+        install -d "${IMAGE_ROOTFS}${sysconfdir}/systemd/system-generators"
+        ln -sf /dev/null "${IMAGE_ROOTFS}${sysconfdir}/systemd/system-generators/systemd-getty-generator"
+    else
+        if [ -f "${IMAGE_ROOTFS}${sysconfdir}/inittab" ]; then
+            sed -i '/getty/d' "${IMAGE_ROOTFS}${sysconfdir}/inittab"
+        fi
+    fi
+}
 ARCHIVE_NAME ?= "${IMAGE_BASENAME}-${MACHINE}-summit${IMAGE_VERSION_SUFFIX}"
 ARCHIVE_WILDCARD ?= ""
 

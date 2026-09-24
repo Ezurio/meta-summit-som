@@ -8,7 +8,6 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 inherit packagegroup
 
 SUMMIT_SOM_RADIO_TYPE ?= "none"
-SUMMIT_SOM_RADIO_TYPE:imx8mp-summitsom = "60-som8mp"
 
 PACKAGECONFIG ?= "${SUMMIT_SOM_RADIO_TYPE}"
 

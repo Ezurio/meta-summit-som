@@ -14,8 +14,7 @@ RDEPENDS:${PN} = " \
     "
 
 RDEPENDS:${PN}:append:imx8mp-summitsom = " \
-    kernel-module-pac193x \
-    qfirehose \
+    imx8mp-summitsom-dvk-support \
     "
 
 RDEPENDS:${PN}:append:k3:summitsom = " \

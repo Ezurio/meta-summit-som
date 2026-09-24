@@ -6,7 +6,6 @@ IMAGE_INSTALL += "\
     packagegroup-summit-basic \
     packagegroup-summit-dvk \
     packagegroup-summit-diag \
-    packagegroup-summit-camera \
     "
 
 include ${@'image-summitsom-demo-mcu.inc' if 'imx8mp-summitsom' in d.getVar('OVERRIDES').split(':') else ''}

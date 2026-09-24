@@ -8,7 +8,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 inherit packagegroup
 
 RDEPENDS:${PN} = " \
-    kernel-modules \
+    kernel-modules  \
     ca-certificates \
     tzdata-core \
     tzdata-posix \
@@ -28,9 +28,14 @@ RDEPENDS:${PN} = " \
     summit-usbgadget \
     ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-som', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-alsamixer alsa-utils-aplay', '', d)} \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'less', '', d)} \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'less systemd-extra-utils', '', d)} \
+    "
+
+RDEPENDS:${PN}:append:summit-secure = " \
+    summit-initdata-secure \
     "
 
 RDEPENDS:${PN}:append:k3 = " \
+    iproute2-devlink \
     summit-prov \
     "

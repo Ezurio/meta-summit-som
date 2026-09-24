@@ -9,7 +9,6 @@ IMAGE_INSTALL += "\
     packagegroup-summit-basic \
     packagegroup-summit-dvk \
     packagegroup-summit-diag \
-    packagegroup-summit-camera \
     packagegroup-core-buildessential \
     "
 

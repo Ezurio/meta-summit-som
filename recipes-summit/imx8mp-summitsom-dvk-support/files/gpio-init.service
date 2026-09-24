@@ -1,0 +1,16 @@
+[Unit]
+Description=GPIO pin initialization
+DefaultDependencies=no
+Before=sysinit.target
+After=local-fs.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/gpioset -t0 bt_nautorun=0 bt_reset=0 ser_rs485_hd=1 ser_nrs232=0 ser_term=0 ser_nreset=1 lte_power=0 lte_on=0 lte_reset=0 lte_airplane=0 lte_wakeup=0
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=sysinit.target

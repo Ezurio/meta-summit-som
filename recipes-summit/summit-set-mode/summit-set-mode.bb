@@ -15,7 +15,7 @@ S = "${WORKDIR}"
 
 RDEPENDS:${PN} = "\
     libubootenv-bin \
-    u-boot-mkimage \
+    u-boot-dumpimage \
     "
 
 do_install () {

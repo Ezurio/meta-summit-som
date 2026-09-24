@@ -20,6 +20,9 @@ start)
 	ubi)
 		fwenv=flash
 		;;
+	initramfs)
+		fwenv=initramfs
+		;;
 	esac
 	mount --bind "/etc/fw_env_${fwenv}.config" /etc/fw_env.config
 	;;

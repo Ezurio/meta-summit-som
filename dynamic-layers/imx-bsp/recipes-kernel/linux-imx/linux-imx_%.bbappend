@@ -16,7 +16,6 @@ SRC_URI:append:summitsom = " \
     "
 
 SRC_URI:append:imx8mp-summitsom = " \
-    file://0003-gpio-add-gpio_of_helper.patch \
     file://0004-Introduce-the-BQ25790-charger-driver.patch \
     "
 

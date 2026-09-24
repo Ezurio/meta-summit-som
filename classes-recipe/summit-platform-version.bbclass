@@ -1,17 +1,18 @@
 
-include ${@'summit-platform-version.inc' if not d.getVar('SUMMIT_PLATFORM_VERSION') else ''}
+include summit-platform-version.inc
 
-python () {
-    platform_version = d.getVar('SUMMIT_PLATFORM_VERSION')
-    if platform_version.startswith('LRD-REL-'):
-        d.setVar('PV', platform_version.split('-')[2])
-        d.setVar('SUMMIT_PLATFORM_BRANCH', 'nobranch=1')
-    else:
-        d.setVar('PV', platform_version + '+git')
-        d.setVar('SUMMIT_PLATFORM_BRANCH', 'branch=' + platform_version)
-}
+SUMMIT_PLATFORM_VERSION ?= "master"
 
-SRCREV = "${@ d.getVar('SUMMIT_PLATFORM_VERSION') if d.getVar('SUMMIT_PLATFORM_VERSION').startswith('LRD-REL-') else d.getVar('AUTOREV')}"
+OVERRIDES =. "${@ "summit-pv:" if d.getVar('SUMMIT_PLATFORM_VERSION', False).startswith('LRD-REL-') else ''}"
+
+PV = "${SUMMIT_PLATFORM_VERSION}+git"
+PV:summit-pv = "${@ d.getVar('SUMMIT_PLATFORM_VERSION').split('-')[2]}"
+
+SUMMIT_PLATFORM_BRANCH = "branch=${SUMMIT_PLATFORM_VERSION}"
+SUMMIT_PLATFORM_BRANCH:summit-pv = "nobranch=1"
+
+SRCREV = "${AUTOREV}"
+SRCREV:summit-pv = "${SUMMIT_PLATFORM_VERSION}"
 
 SUMMIT_EXTERNAL_GIT_URI ?= "git://github.com/Ezurio"
 SUMMIT_EXTERNAL_GIT_PROTOCOL ?= "https"

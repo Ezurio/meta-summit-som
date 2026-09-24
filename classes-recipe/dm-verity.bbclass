@@ -54,6 +54,11 @@ python __anonymous() {
 
     # If we're using wic: we'll have to use partition images and not the rootfs
     # source plugin so add the appropriate dependency.
+    #
+    # image.bbclass keys do_image_<type> tasks by the BASE type - the
+    # "verity" conversion command is appended into that same task's body
+    # rather than getting a separate task of its own - so depend on the base
+    # type's task, not a task named after the full "<type>.verity" string.
     for fst in fstypes_list:
         if ".verity" in fst:
             f = fst[:fst.index(".verity")]

@@ -26,7 +26,3 @@ FIT_SIGN_ALG = "rsa4096"
 UBOOT_SIGN_ENABLE = "0"
 UBOOT_SIGN_KEYNAME = "dev"
 UBOOT_SIGN_KEYDIR = "${SUMMIT_SOM_KEYS_DIR}/carbon"
-
-# It's needed to equalize hash for tclib-baremetal with tclib-glibc
-# and as such have sstate cache reuse for native recipies
-CXXFLAGS:append = " -fvisibility-inlines-hidden"

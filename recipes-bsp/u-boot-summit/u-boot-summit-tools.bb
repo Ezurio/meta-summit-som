@@ -25,6 +25,9 @@ PROVIDES:append:class-target = " u-boot-tools"
 PROVIDES:append:class-native = " u-boot-tools-native"
 PROVIDES:append:class-nativesdk = " nativesdk-u-boot-tools"
 
+PROVIDES:append:class-target = " ${MLPREFIX}u-boot-dumpimage"
+PROVIDES:append:class-native = " u-boot-dumpimage-native"
+
 # Split dumpimage out of ${PN}-mkimage into its own package
 PACKAGES += "${PN}-dumpimage"
 FILES:${PN}-mkimage:remove = "${bindir}/uboot-dumpimage ${bindir}/dumpimage"

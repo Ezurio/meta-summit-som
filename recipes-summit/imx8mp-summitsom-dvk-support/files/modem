@@ -1,0 +1,53 @@
+#! /bin/sh
+# SPDX-License-Identifier: LicenseRef-Ezurio-Clause
+# Copyright (c) 2026 Ezurio LLC.
+
+set -eu
+
+set_line() {
+    gpioset -t0 "${1}=${2}"
+}
+
+press_on_off() {
+        set_line lte_on 1
+        sleep 1
+        set_line lte_on 0
+}
+
+is_on() {
+    value="$(gpioget lte_power 2>/dev/null || true)"
+    [ "${value}" = "1" ]
+}
+
+power() {
+    set_line lte_power "${1}"
+}
+
+case "${1}" in
+    on)
+        if ! is_on; then
+            power 1
+            sleep 1
+            press_on_off
+        else
+            echo "Modem already on"
+        fi
+        ;;
+
+    off)
+        if is_on; then
+            press_on_off
+            sleep 2
+            power 0
+        else
+            echo "Modem already off"
+        fi
+        ;;
+
+    *)
+        echo "Usage: $0 [on | off]" >&2
+        exit 2
+        ;;
+esac
+
+exit 0

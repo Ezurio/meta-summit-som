@@ -1,7 +1,6 @@
 SUMMARY = "Summit USB Gadget daemon (Rust)"
 HOMEPAGE = "https://github.com/rfpros/cp_linux-som-external"
 LICENSE = "Ezurio-Clause"
-NO_GENERIC_LICENSE[Ezurio-Clause] = "LICENSE.ezurio"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 
 inherit cargo pkgconfig systemd update-rc.d summit-platform-version

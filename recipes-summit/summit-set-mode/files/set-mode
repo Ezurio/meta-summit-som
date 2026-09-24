@@ -7,17 +7,31 @@ die() {
     exit 1
 }
 
+# shellcheck disable=SC1091
+. /usr/sbin/boot-rootfs.sh
+
 # Find kernel FIT Image
-if [ -f '/boot/kernel.itb' ]; then
-    kernel='/boot/kernel.itb'
-elif [ -f '/boot/fitImage' ]; then
-    kernel='/boot/fitImage'
-else
-    die 'No kernel image found'
-fi
+case "${rootDevType:?}" in
+    SD|MMC)
+        if [ -f '/boot/kernel.itb' ]; then
+            kernel='/boot/kernel.itb'
+        elif [ -f '/boot/fitImage' ]; then
+            kernel='/boot/fitImage'
+        else
+            die 'No kernel image found'
+        fi
+        ;;
+    ubi)
+        # Kernel FIT Image lives directly in its UBI volume, no /boot mount
+        kernel="/dev/$(getPart kernel)"
+        ;;
+    *)
+        die "Unsupported root device type: ${rootDevType}"
+        ;;
+esac
 
 # Retrieve all configurations from FIT Image
-confs=$(dumpimage -l ${kernel} | grep -F 'Configuration')
+confs=$(dumpimage -l "${kernel}" | grep -F 'Configuration')
 
 # Find default configuration
 default=$(echo "${confs}" | grep -m1 -o 'conf-.*\.dtb')
@@ -91,9 +105,6 @@ case "${1}" in
         # If no parameters are found, exit
         [ -n "${params}" ] || die 'No overlays found'
 
-        # shellcheck disable=SC1091
-        . /usr/sbin/boot-rootfs.sh
-
         # Start from current conf, skipping stale overlays
         overlay_names=$(echo "${cconf_names}" | grep -Fx "${params}")
         _cleared=false
@@ -102,7 +113,7 @@ case "${1}" in
         # configuration string
         # Validate all names at once
         _invalid=$(printf '%s\n' "${@}" | grep -oE '[^+-].*' | grep -vFx "${params}")
-        [ -z "${_invalid}" ] || die "Invalid mode: $(echo "${_invalid}" | head -1)"
+        [ -z "${_invalid}" ] || die "Invalid mode: $(printf '%s\n' "${_invalid}" | sed -n '1p')"
 
         for i in "${@}" ; do
             case "${i}" in
