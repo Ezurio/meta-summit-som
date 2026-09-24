@@ -16,3 +16,5 @@ BB_NICE_LEVEL ??= "10"
 USER_CLASSES ?= "buildstats"
 
 CONF_VERSION = "2"
+
+TMPDIR = "${TOPDIR}/tmp-${BSP_VENDOR}"
