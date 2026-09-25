@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Fri, 26 Sep 2026 00:00:00 +0000
+Subject: [PATCH] media: staging: imx: dwc-mipi-csi2: tolerate -ENOIOCTLCMD on s_power
+
+Modern camera sensors such as ov5645 do not implement core ops (.s_power),
+causing v4l2_subdev_call() to return -ENOIOCTLCMD. Treat -ENOIOCTLCMD as
+success since s_power is optional. Also remove ppi_pg_enable sysfs file
+in remove() to avoid -EEXIST on driver reload.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Upstream-Status: Inappropriate NXP proprietary driver
+---
+ drivers/staging/media/imx/dwc-mipi-csi2.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/imx/dwc-mipi-csi2.c b/drivers/staging/media/imx/dwc-mipi-csi2.c
+index 8a24b0231596..0126b27f27d8 100644
+--- a/drivers/staging/media/imx/dwc-mipi-csi2.c
++++ b/drivers/staging/media/imx/dwc-mipi-csi2.c
+@@ -1160,12 +1160,14 @@ static int dwc_mipi_csi2_s_power(struct v4l2_subdev *sd, int on)
+ {
+ 	struct dwc_mipi_csi2_host *csi2h = sd_to_dwc_mipi_csi2h(sd);
+ 	struct v4l2_subdev *sen_sd;
++	int ret;
+ 
+ 	sen_sd = dwc_get_remote_subdev(csi2h, __func__);
+ 	if (!sen_sd)
+ 		return -EINVAL;
+ 
+-	return v4l2_subdev_call(sen_sd, core, s_power, on);
++	ret = v4l2_subdev_call(sen_sd, core, s_power, on);
++	return (ret == -ENOIOCTLCMD) ? 0 : ret;
+ }
+ 
+ static int dwc_mipi_csi2_g_frame_interval(struct v4l2_subdev *sd,
+@@ -1452,6 +1454,8 @@ static int dwc_mipi_csi2_host_probe(struct platform_device *pdev)
+ 
+ static int dwc_mipi_csi2_host_remove(struct platform_device *pdev)
+ {
++	device_remove_file(&pdev->dev, &dev_attr_ppi_pg_enable);
++	pm_runtime_disable(&pdev->dev);
+ 	return 0;
+ }
+ 
+-- 
+2.43.0

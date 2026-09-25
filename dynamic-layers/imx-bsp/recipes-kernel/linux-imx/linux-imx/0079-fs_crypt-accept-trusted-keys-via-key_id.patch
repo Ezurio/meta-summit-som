@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Sun, 2 Aug 2026 00:00:00 -0400
+Subject: [PATCH] fs_crypt: accept trusted keys via key_id
+
+FS_IOC_ADD_ENCRYPTION_KEY already supports specifying a master key by
+Linux keyring ID (key_id) instead of raw bytes, but only accepts keys
+of type "fscrypt-provisioning", whose payload must already contain
+raw key bytes supplied by userspace.
+
+Widen this to also accept Linux "trusted" keys (TPM- or TEE-sealed).
+A trusted key never exposes its raw payload to userspace via keyctl
+(read/pipe/print all return only the sealed export blob), so this
+allows a persistently-sealed trusted key to be used as an fscrypt v2
+master key while the raw key material never leaves kernel space.
+
+Reject hardware-bound trusted keys where that metadata is available,
+since their payload is not a directly-usable raw key.  Bound the
+accepted key size to fscrypt's supported raw-key limits
+(FSCRYPT_MIN_KEY_SIZE..FSCRYPT_MAX_KEY_SIZE).
+
+PROD-62700
+---
+ fs/crypto/keyring.c | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+
+Upstream-Status: Inappropriate Local requirement
+
+--- a/fs/crypto/keyring.c	2026-08-02 02:31:17.183248839 -0400
++++ b/fs/crypto/keyring.c	2026-08-02 02:31:27.972657667 -0400
+@@ -23,6 +23,7 @@
+ #include <linux/key-type.h>
+ #include <linux/random.h>
+ #include <linux/seq_file.h>
++#include <keys/trusted-type.h>
+ 
+ #include "fscrypt_private.h"
+ 
+@@ -639,7 +640,34 @@
+ 	if (IS_ERR(ref))
+ 		return PTR_ERR(ref);
+ 	key = key_ref_to_ptr(ref);
+ 
++	/*
++	 * Trusted keys can be used for v2 fscrypt master keys without exposing
++	 * the raw payload to userspace.  Their payload does not encode the
++	 * fscrypt key-specifier type, so accept only identifier keys.
++	 * Hardware-bound keys do not contain a raw key usable by fscrypt.
++	 */
++	if (key->type == &key_type_trusted) {
++		const struct trusted_key_payload *tpayload;
++
++		if (type != FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER)
++			goto bad_key;
++		down_read(&key->sem);
++		tpayload = dereference_key_locked(key);
++		if (IS_ERR_OR_NULL(tpayload) ||
++		    tpayload->is_hw_bound ||
++		    tpayload->key_len < FSCRYPT_MIN_KEY_SIZE ||
++		    tpayload->key_len > FSCRYPT_MAX_KEY_SIZE) {
++			up_read(&key->sem);
++			goto bad_key;
++		}
++		secret->size = tpayload->key_len;
++		memcpy(secret->raw, tpayload->key, secret->size);
++		up_read(&key->sem);
++		err = 0;
++		goto out_put;
++	}
++
+ 	if (key->type != &key_type_fscrypt_provisioning)
+ 		goto bad_key;
+ 	payload = key->payload.data[0];
+-- 
+2.43.0

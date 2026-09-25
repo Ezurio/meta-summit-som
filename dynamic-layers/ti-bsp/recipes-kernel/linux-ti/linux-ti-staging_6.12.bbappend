@@ -39,6 +39,7 @@ SRC_URI:append:summitsom = " \
     file://0061-arm64-dts-ti-k3-j722s-main-fix-the-audio-refclk-sour.patch \
     file://0067-can-m_can-m_can_get_berr_counter-dont-wake-up.patch \
     file://0068-pinctrl-mcp23s08-add-wakeup-support.patch \
+    file://0079-fs_crypt-accept-trusted-keys-via-key_id.patch \
     file://dts \
     "
 

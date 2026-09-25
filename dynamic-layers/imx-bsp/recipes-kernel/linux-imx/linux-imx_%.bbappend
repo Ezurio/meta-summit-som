@@ -26,8 +26,16 @@ SRC_URI:append:summitsom = " \
     file://0064-media-imx-isi-cap-add-pivariety-workaround.patch \
     file://0065-media-imx-isi-cap-fix-subdev-stream-default-value.patch \
     file://0070-imx93-clk-fracn-gppll-add-504mhz-rate.patch \
+    file://0071-media-imx8-media-dev-tolerate-optional-link_setup.patch \
+    file://0072-media-imx8-mipi-csi2-sam-fix-s_power-null-deref.patch \
+    file://0073-media-imx8-isi-cap-tolerate-optional-get_frame_inte.patch \
+    file://0074-media-imx8-mipi-csi2-sam-quiet-phy-reset-no-sensor.patch \
+    file://0075-media-imx7-media-csi-validate-pixelformat-against-s.patch \
+    file://0076-media-imx7-media-csi-hold-a-cpu-latency-qos-request.patch \
     file://0077-rtc-rv3028-skip-eeprom-update-if-value-unchanged.patch \
     file://0078-rtc-rv3028-add-backup-switchover-dsm-dt-property.patch \
+    file://0079-fs_crypt-accept-trusted-keys-via-key_id.patch \
+    file://0080-media-dwc-mipi-csi2-tolerate-s_power-enoioctlcmd.patch \
     file://0081-Lontium-LT9611C-UXD-UXE-LT2611UXD-UXE.patch \
     file://0082-drm-imx-dw_mipi_dsi-defer-component_add-to-host-a.patch \
     file://0085-drm-imx-sec_mipi_dsim-defer-component_add-to-host-a.patch \

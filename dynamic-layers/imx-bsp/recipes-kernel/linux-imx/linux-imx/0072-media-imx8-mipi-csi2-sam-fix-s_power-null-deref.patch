@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Wed, 15 Jul 2026 00:00:00 +0000
+Subject: [PATCH] media: imx8-mipi-csi2-sam: fix s_power NULL pointer
+ dereference
+
+mipi_csis_s_power() calls v4l2_subdev_call(sen_sd, core, s_power, on).
+Modern sensor drivers such as ov5645 only implement .video and .pad ops
+and leave .core unset, returning -ENOIOCTLCMD. Treat the optional
+-ENOIOCTLCMD return as success since s_power is not mandatory.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Upstream-Status: Inappropriate NXP proprietary driver
+---
+ drivers/staging/media/imx/imx8-mipi-csi2-sam.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index a3522f986348..654c602a64c4 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -1102,6 +1102,7 @@ static int mipi_csis_s_power(struct v4l2_subdev *mipi_sd, int on)
+ {
+ 	struct csi_state *state = mipi_sd_to_csi_state(mipi_sd);
+ 	struct v4l2_subdev *sen_sd;
++	int ret;
+ 
+ 	/* Get remote source pad subdev */
+ 	sen_sd = csis_get_remote_subdev(state, __func__);
+@@ -1110,7 +1111,8 @@ static int mipi_csis_s_power(struct v4l2_subdev *mipi_sd, int on)
+ 		return -EINVAL;
+ 	}
+ 
+-	return v4l2_subdev_call(sen_sd, core, s_power, on);
++	ret = v4l2_subdev_call(sen_sd, core, s_power, on);
++	return (ret == -ENOIOCTLCMD) ? 0 : ret;
+ }
+ 
+ static int mipi_csis_s_stream(struct v4l2_subdev *mipi_sd, int enable)
+-- 
+2.43.0

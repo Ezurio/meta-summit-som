@@ -10,7 +10,7 @@ SRC_URI = " \
     file://rootfs-additions/summit-secure/ \
     "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}"
 
 PACKAGES =+ "${PN}-mount-data ${PN}-bluetooth"
 
