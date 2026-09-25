@@ -5,14 +5,36 @@ inherit summit-kernel-dtbo-check
 SRC_URI:append:summitsom = " \
     file://0001-ts3a227-jack.patch \
     file://0006-sound_ts3a227_support.patch \
+    file://0011-lvds-codec-output-bridge.patch \
+    file://0012-lvds-codec-frequency-limit.patch \
     file://0008-fsl_aud2htx-probe.patch \
     file://0010-imx-sdma.patch \
     file://0011-fsl-sai.patch \
     file://0012-fsl-easrc.patch \
     file://0013-lcdifv3.patch \
     file://0014-phy-fsl-samsung-hdmi.patch \
+    file://0014-fsl-easrc-distinguish-debugfs-components.patch \
     file://0015-imx8mp-hdmi-pavi.patch \
     file://0019-dm-verity-partition-wait-fix.patch \
+    file://0047-media-ov5645-Add-support-for-streams.patch \
+    file://0048-media-ov5640-digient-rc-delay-compensation.patch \
+    file://0054-rtc-rv3028-fix-eeprom-device-tree-support.patch \
+    file://0055-rtc-rv3028-fix-name-collisions.patch \
+    file://0056-media-i2c-ov5645-Report-streams-using-frame-descript.patch \
+    file://0058-sn65dsi83-ignore-pll-lock-failure.patch \
+    file://0063-phy-freescale-imx8mq-usb-set-vbus-depending-on-mode.patch \
+    file://0064-media-imx-isi-cap-add-pivariety-workaround.patch \
+    file://0065-media-imx-isi-cap-fix-subdev-stream-default-value.patch \
+    file://0070-imx93-clk-fracn-gppll-add-504mhz-rate.patch \
+    file://0077-rtc-rv3028-skip-eeprom-update-if-value-unchanged.patch \
+    file://0078-rtc-rv3028-add-backup-switchover-dsm-dt-property.patch \
+    file://0081-Lontium-LT9611C-UXD-UXE-LT2611UXD-UXE.patch \
+    file://0082-drm-imx-dw_mipi_dsi-defer-component_add-to-host-a.patch \
+    file://0085-drm-imx-sec_mipi_dsim-defer-component_add-to-host-a.patch \
+    file://0086-usb-gadget-f_fs-add-capability-for-dfu-functional-de.patch \
+    file://0087-phy-freescale-imx8mq-usb-eprobe-defer.patch \
+    file://0088-tty-serial-max310x-unique-regmap-names.patch \
+    file://0089-edac-layerscape-enable-imx.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
@@ -24,13 +46,15 @@ SRC_URI:append:imx8mp-summitsom = " \
 KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if d.getVar('KERNEL_DEVICETREE').find('.dtbo') else ''}"
 
 KERNEL_CONFIG_SUMMIT:mx8mp-generic-bsp = "file://summitsom_defconfig"
+KERNEL_CONFIG_SUMMIT:mx93-generic-bsp = "file://nitrogen_imx93_defconfig"
+KERNEL_CONFIG_SUMMIT:imx8mp-summitsom = "file://summitsom_defconfig"
 KERNEL_CONFIG_SUMMIT ?= ""
 
 LOCALVERSION:summitsom = ""
 SCMVERSION:summitsom = "n"
 
 # Use our defconfig
-IMX_KERNEL_CONFIG_AARCH64:summitsom = ""
+KBUILD_DEFCONFIG:summitsom = ""
 
 # Remove kernel binary from rootfs
 RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base:summitsom = ""

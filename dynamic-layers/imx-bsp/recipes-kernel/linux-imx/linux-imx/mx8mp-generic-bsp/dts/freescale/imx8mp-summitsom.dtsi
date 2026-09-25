@@ -512,3 +512,7 @@
 		>;
 	};
 };
+
+&sec_jr2 {
+    status = "reserved";  // Job Ring 2 is used by OPTEE
+};

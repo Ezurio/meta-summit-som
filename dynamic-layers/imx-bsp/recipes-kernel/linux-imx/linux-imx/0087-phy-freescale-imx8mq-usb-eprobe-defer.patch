@@ -1,0 +1,30 @@
+bFrom 4e69b5145b41295f573c0dc2214690d7971eb0e1 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Fri, 26 Sep 2026 10:00:00 -0400
+Subject: [PATCH] phy: freescale: imx8mq-usb: use dev_err_probe in vbus notify
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Upstream-Status: Inappropriate No time for upstreaming
+---
+ drivers/phy/freescale/phy-fsl-imx8mq-usb.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/phy/freescale/phy-fsl-imx8mq-usb.c b/drivers/phy/freescale/phy-fsl-imx8mq-usb.c
+index 837ded842abb..2c9924ea59c9 100644
+--- a/drivers/phy/freescale/phy-fsl-imx8mq-usb.c
++++ b/drivers/phy/freescale/phy-fsl-imx8mq-usb.c
+@@ -1094,10 +1094,8 @@ static int imx8mq_phy_usb_vbus_notify(struct notifier_block *nb,
+ 
+ 	imx_phy->vbus_power_supply = power_supply_get_by_phandle(np,
+ 						"vbus-power-supply");
+-	if (IS_ERR_OR_NULL(imx_phy->vbus_power_supply)) {
+-		dev_err(dev, "failed to get power supply\n");
+-		return NOTIFY_DONE;
+-	}
++	if (IS_ERR_OR_NULL(imx_phy->vbus_power_supply))
++		return dev_err_probe(dev, -EPROBE_DEFER, "failed to get power supply\n");
+ 
+ 	if (val == PSY_EVENT_PROP_CHANGED && psy == imx_phy->vbus_power_supply) {
+ 
+-- 
+2.34.1

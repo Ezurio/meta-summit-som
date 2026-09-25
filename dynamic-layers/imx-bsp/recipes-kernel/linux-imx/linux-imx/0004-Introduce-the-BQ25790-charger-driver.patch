@@ -1,23 +1,11 @@
-dt-bindings: power: Add the bq25790 dt bindings
+From e8787a71a067332da74e144a1fb5f09673998522 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Wed, 18 Jan 2023 15:47:33 -0500
+Subject: [PATCH] Introduce the BQ25790 charger driver
 
-Add the bindings for the bq25790.
-
-Reviewed-by: Rob Herring <robh@kernel.org>
-Signed-off-by: Ricardo Rivera-Matos <r-rivera-matos@ti.com>
-Signed-off-by: Dan Murphy <dmurphy@ti.com>
----
- .../bindings/power/supply/bq25790.yaml        |   95 ++
- drivers/power/supply/Kconfig                  |    8 +
- drivers/power/supply/Makefile                 |    1 +
- drivers/power/supply/bq25790_charger.c        | 1099 +++++++++++++++++
- drivers/power/supply/bq25790_charger.h        |  156 +++
- 5 files changed, 1359 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/power/supply/bq25790.yaml
- create mode 100644 drivers/power/supply/bq25790_charger.c
- create mode 100644 drivers/power/supply/bq25790_charger.h
-
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
 Upstream-Status: Inappropriate No time for upstreaming
-
+---
 diff --git a/Documentation/devicetree/bindings/power/supply/bq25790.yaml b/Documentation/devicetree/bindings/power/supply/bq25790.yaml
 new file mode 100644
 index 000000000000..6d9178ce5a2b
@@ -119,25 +107,8 @@ index 000000000000..6d9178ce5a2b
 +    };
 +
 +...
-
-power: supply: bq25790: Introduce the BQ25790 charger
-
-BQ25790 is a highly integrated switch-mode buck-boost charger
-for 1-4 cell Li-ion battery and Li-polymer battery.
-
-Signed-off-by: Ricardo Rivera-Matos <r-rivera-matos@ti.com>
-Signed-off-by: Dan Murphy <dmurphy@ti.com>
----
- drivers/power/supply/Kconfig           |    8 +
- drivers/power/supply/Makefile          |    1 +
- drivers/power/supply/bq25790_charger.c | 1100 ++++++++++++++++++++++++
- drivers/power/supply/bq25790_charger.h |  148 ++++
- 4 files changed, 1257 insertions(+)
- create mode 100644 drivers/power/supply/bq25790_charger.c
- create mode 100644 drivers/power/supply/bq25790_charger.h
-
 diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
-index 006b95eca673..d0ecbe76b720 100644
+index 8070d98d08f7..01b0c52f221a 100644
 --- a/drivers/power/supply/Kconfig
 +++ b/drivers/power/supply/Kconfig
 @@ -684,6 +684,14 @@ config CHARGER_BQ2515X
@@ -156,7 +127,7 @@ index 006b95eca673..d0ecbe76b720 100644
  	tristate "TI BQ25890 battery charger driver"
  	depends on I2C
 diff --git a/drivers/power/supply/Makefile b/drivers/power/supply/Makefile
-index 5e5fdbbef531..fa18d4fa9e6a 100644
+index 02c673a3a97e..4052c85761ef 100644
 --- a/drivers/power/supply/Makefile
 +++ b/drivers/power/supply/Makefile
 @@ -90,6 +90,7 @@ obj-$(CONFIG_CHARGER_BQ24190)	+= bq24190_charger.o
@@ -166,10 +137,10 @@ index 5e5fdbbef531..fa18d4fa9e6a 100644
 +obj-$(CONFIG_CHARGER_BQ25790)	+= bq25790_charger.o
  obj-$(CONFIG_CHARGER_BQ25890)	+= bq25890_charger.o
  obj-$(CONFIG_CHARGER_BQ25980)	+= bq25980_charger.o
- obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
+ obj-$(CONFIG_CHARGER_BQ256XX)	+= bq256xx_charger.o
 diff --git a/drivers/power/supply/bq25790_charger.c b/drivers/power/supply/bq25790_charger.c
 new file mode 100644
-index 000000000000..2a2305b985df
+index 000000000000..5ca0df2c0864
 --- /dev/null
 +++ b/drivers/power/supply/bq25790_charger.c
 @@ -0,0 +1,1099 @@
@@ -1274,7 +1245,7 @@ index 000000000000..2a2305b985df
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/power/supply/bq25790_charger.h b/drivers/power/supply/bq25790_charger.h
 new file mode 100644
-index 000000000000..891104ee00a0
+index 000000000000..797190a7b337
 --- /dev/null
 +++ b/drivers/power/supply/bq25790_charger.h
 @@ -0,0 +1,156 @@

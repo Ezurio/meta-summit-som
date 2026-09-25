@@ -88,6 +88,8 @@
 		AVDD-supply = <&reg_audio_pwr>;
 		SPKVDD1-supply = <&reg_audio_pwr>;
 		SPKVDD2-supply = <&reg_audio_pwr>;
+		DBVDD-supply = <&reg_audio_pwr>;
+		DCVDD-supply = <&reg_audio_pwr>;
 	};
 
 	headset: ts3a227e@3b {

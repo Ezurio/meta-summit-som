@@ -29,6 +29,8 @@ PACKAGECONFIG:summitsom = " \
     microhttpd \
 "
 
+FILES:${PN}-journal-remote:append:summitsom = " ${exec_prefix}/lib/sysusers.d/systemd-remote.conf"
+
 do_install:append:summitsom() {
     rm -f "${D}${systemd_unitdir}/system-generators/systemd-gpt-auto-generator"
     install -D -m 644 -t "${D}${systemd_unitdir}/system/system-preset" \

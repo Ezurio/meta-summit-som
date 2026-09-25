@@ -1,0 +1,40 @@
+From: GitHub Copilot <copilot@example.com>
+Subject: [PATCH] ipa: raspberrypi: Initialize buffer IDs and process context
+
+Initialize scalar fields used by generated IPA structs so malformed or
+truncated IPC messages cannot return indeterminate values.
+
+Upstream-Status: Pending
+
+---
+ include/libcamera/ipa/raspberrypi.mojom | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/include/libcamera/ipa/raspberrypi.mojom b/include/libcamera/ipa/raspberrypi.mojom
+index 5986c436..8369b68a 100644
+--- a/include/libcamera/ipa/raspberrypi.mojom
++++ b/include/libcamera/ipa/raspberrypi.mojom
+@@ -33,9 +33,9 @@ struct InitResult {
+ };
+ 
+ struct BufferIds {
+-	uint32 bayer;
+-	uint32 embedded;
+-	uint32 stats;
++	uint32 bayer = 0;
++	uint32 embedded = 0;
++	uint32 stats = 0;
+ };
+ 
+ struct ConfigParams {
+@@ -69,7 +69,7 @@ struct PrepareParams {
+ 
+ struct ProcessParams {
+ 	BufferIds buffers;
+-	uint32 ipaContext;
++	uint32 ipaContext = 0;
+ };
+ 
+ interface IPARPiInterface {
+-- 
+2.39.2

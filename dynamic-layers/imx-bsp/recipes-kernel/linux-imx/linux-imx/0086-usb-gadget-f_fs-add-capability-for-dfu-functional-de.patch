@@ -1,0 +1,402 @@
+From e8231891057cea27b7810356b5515c4a49410d69 Mon Sep 17 00:00:00 2001
+From: David Sands <david.sands@biamp.com>
+Date: Sat, 10 Aug 2024 20:00:05 -0400
+Subject: [PATCH] usb: gadget: f_fs: add capability for dfu functional
+ descriptor
+
+Add the ability for the USB FunctionFS (FFS) gadget driver to be able
+to create Device Firmware Upgrade (DFU) functional descriptors. [1]
+
+This patch allows implementation of DFU in userspace using the
+FFS gadget. The DFU protocol uses the control pipe (ep0) for all
+messaging so only the addition of the DFU functional descriptor
+is needed in the kernel driver.
+
+The DFU functional descriptor is written to the ep0 file along with
+any other descriptors during FFS setup. DFU requires an interface
+descriptor followed by the DFU functional descriptor.
+
+This patch includes documentation of the added descriptor for DFU
+and conversion of some existing documentation to kernel-doc format
+so that it can be included in the generated docs.
+
+An implementation of DFU 1.1 that implements just the runtime descriptor
+using the FunctionFS gadget (with rebooting into u-boot for DFU mode)
+has been tested on an i.MX8 Nano.
+
+An implementation of DFU 1.1 that implements both runtime and DFU mode
+using the FunctionFS gadget has been tested on Xilinx Zynq UltraScale+.
+Note that for the best performance of firmware update file transfers, the
+userspace program should respond as quick as possible to the setup packets.
+
+[1] https://www.usb.org/sites/default/files/DFU_1.1.pdf
+
+Signed-off-by: David Sands <david.sands@biamp.com>
+Co-developed-by: Chris Wulff <crwulff@gmail.com>
+Signed-off-by: Chris Wulff <crwulff@gmail.com>
+Link: https://lore.kernel.org/r/20240811000004.1395888-2-crwulff@gmail.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ Documentation/usb/functionfs-desc.rst | 39 +++++++++++
+ Documentation/usb/functionfs.rst      |  2 +
+ Documentation/usb/index.rst           |  1 +
+ drivers/usb/gadget/function/f_fs.c    | 12 +++-
+ include/uapi/linux/usb/ch9.h          |  8 ++-
+ include/uapi/linux/usb/functionfs.h   | 97 ++++++++++++++++++++++++---
+ 6 files changed, 147 insertions(+), 12 deletions(-)
+ create mode 100644 Documentation/usb/functionfs-desc.rst
+
+diff --git a/Documentation/usb/functionfs-desc.rst b/Documentation/usb/functionfs-desc.rst
+new file mode 100644
+index 000000000000..39649774da54
+--- /dev/null
++++ b/Documentation/usb/functionfs-desc.rst
+@@ -0,0 +1,39 @@
++======================
++FunctionFS Descriptors
++======================
++
++Some of the descriptors that can be written to the FFS gadget are
++described below. Device and configuration descriptors are handled
++by the composite gadget and are not written by the user to the
++FFS gadget.
++
++Descriptors are written to the "ep0" file in the FFS gadget
++following the descriptor header.
++
++.. kernel-doc:: include/uapi/linux/usb/functionfs.h
++   :doc: descriptors
++
++Interface Descriptors
++---------------------
++
++Standard USB interface descriptors may be written. The class/subclass of the
++most recent interface descriptor determines what type of class-specific
++descriptors are accepted.
++
++Class-Specific Descriptors
++--------------------------
++
++Class-specific descriptors are accepted only for the class/subclass of the
++most recent interface descriptor. The following are some of the
++class-specific descriptors that are supported.
++
++DFU Functional Descriptor
++~~~~~~~~~~~~~~~~~~~~~~~~~
++
++When the interface class is USB_CLASS_APP_SPEC and the interface subclass
++is USB_SUBCLASS_DFU, a DFU functional descriptor can be provided.
++The DFU functional descriptor is a described in the USB specification for
++Device Firmware Upgrade (DFU), version 1.1 as of this writing.
++
++.. kernel-doc:: include/uapi/linux/usb/functionfs.h
++   :doc: usb_dfu_functional_descriptor
+diff --git a/Documentation/usb/functionfs.rst b/Documentation/usb/functionfs.rst
+index 7fdc6d840ac5..3bcac9da6520 100644
+--- a/Documentation/usb/functionfs.rst
++++ b/Documentation/usb/functionfs.rst
+@@ -22,6 +22,8 @@ interface numbers starting from zero).  The FunctionFS changes
+ them as needed also handling situation when numbers differ in
+ different configurations.
+ 
++For more information about FunctionFS descriptors see :doc:`functionfs-desc`
++
+ When descriptors and strings are written "ep#" files appear
+ (one for each declared endpoint) which handle communication on
+ a single endpoint.  Again, FunctionFS takes care of the real
+diff --git a/Documentation/usb/index.rst b/Documentation/usb/index.rst
+index b656c9be23ed..e91ef4f9885d 100644
+--- a/Documentation/usb/index.rst
++++ b/Documentation/usb/index.rst
+@@ -11,6 +11,7 @@ USB support
+     dwc3
+     ehci
+     functionfs
++    functionfs-desc
+     gadget_configfs
+     gadget_hid
+     gadget_multi
+diff --git a/drivers/usb/gadget/function/f_fs.c b/drivers/usb/gadget/function/f_fs.c
+index 3e59055aa504..ed12ca7e035f 100644
+--- a/drivers/usb/gadget/function/f_fs.c
++++ b/drivers/usb/gadget/function/f_fs.c
+@@ -2058,7 +2058,7 @@ typedef int (*ffs_os_desc_callback)(enum ffs_os_desc_type entity,
+ 
+ static int __must_check ffs_do_single_desc(char *data, unsigned len,
+ 					   ffs_entity_callback entity,
+-					   void *priv, int *current_class)
++					   void *priv, int *current_class, int *current_subclass)
+ {
+ 	struct usb_descriptor_header *_ds = (void *)data;
+ 	u8 length;
+@@ -2117,6 +2117,7 @@ static int __must_check ffs_do_single_desc(char *data, unsigned len,
+ 		if (ds->iInterface)
+ 			__entity(STRING, ds->iInterface);
+ 		*current_class = ds->bInterfaceClass;
++		*current_subclass = ds->bInterfaceSubClass;
+ 	}
+ 		break;
+ 
+@@ -2141,6 +2142,12 @@ static int __must_check ffs_do_single_desc(char *data, unsigned len,
+ 			if (length != sizeof(struct ccid_descriptor))
+ 				goto inv_length;
+ 			break;
++		} else if (*current_class == USB_CLASS_APP_SPEC &&
++			   *current_subclass == USB_SUBCLASS_DFU) {
++			pr_vdebug("dfu functional descriptor\n");
++			if (length != sizeof(struct usb_dfu_functional_descriptor))
++				goto inv_length;
++			break;
+ 		} else {
+ 			pr_vdebug("unknown descriptor: %d for class %d\n",
+ 			      _ds->bDescriptorType, *current_class);
+@@ -2203,6 +2210,7 @@ static int __must_check ffs_do_descs(unsigned count, char *data, unsigned len,
+ 	const unsigned _len = len;
+ 	unsigned long num = 0;
+ 	int current_class = -1;
++	int current_subclass = -1;
+ 
+ 	ENTER();
+ 
+@@ -2224,7 +2232,7 @@ static int __must_check ffs_do_descs(unsigned count, char *data, unsigned len,
+ 			return _len - len;
+ 
+ 		ret = ffs_do_single_desc(data, len, entity, priv,
+-			&current_class);
++			&current_class, &current_subclass);
+ 		if (ret < 0) {
+ 			pr_debug("%s returns %d\n", __func__, ret);
+ 			return ret;
+diff --git a/include/uapi/linux/usb/ch9.h b/include/uapi/linux/usb/ch9.h
+index 31fcfa084e63..8c8e0b979611 100644
+--- a/include/uapi/linux/usb/ch9.h
++++ b/include/uapi/linux/usb/ch9.h
+@@ -257,6 +257,9 @@ struct usb_ctrlrequest {
+ #define USB_DT_DEVICE_CAPABILITY	0x10
+ #define USB_DT_WIRELESS_ENDPOINT_COMP	0x11
+ #define USB_DT_WIRE_ADAPTER		0x21
++/* From USB Device Firmware Upgrade Specification, Revision 1.1 */
++#define USB_DT_DFU_FUNCTIONAL		0x21
++/* these are from the Wireless USB spec */
+ #define USB_DT_RPIPE			0x22
+ #define USB_DT_CS_RADIO_CONTROL		0x23
+ /* From the T10 UAS specification */
+@@ -332,9 +335,10 @@ struct usb_device_descriptor {
+ #define USB_CLASS_USB_TYPE_C_BRIDGE	0x12
+ #define USB_CLASS_MISC			0xef
+ #define USB_CLASS_APP_SPEC		0xfe
+-#define USB_CLASS_VENDOR_SPEC		0xff
++#define USB_SUBCLASS_DFU			0x01
+ 
+-#define USB_SUBCLASS_VENDOR_SPEC	0xff
++#define USB_CLASS_VENDOR_SPEC		0xff
++#define USB_SUBCLASS_VENDOR_SPEC		0xff
+ 
+ /*-------------------------------------------------------------------------*/
+ 
+diff --git a/include/uapi/linux/usb/functionfs.h b/include/uapi/linux/usb/functionfs.h
+index d77ee6b65328..cd72f567cffd 100644
+--- a/include/uapi/linux/usb/functionfs.h
++++ b/include/uapi/linux/usb/functionfs.h
+@@ -3,6 +3,7 @@
+ #define _UAPI__LINUX_FUNCTIONFS_H__
+ 
+ 
++#include <linux/const.h>
+ #include <linux/types.h>
+ #include <linux/ioctl.h>
+ 
+@@ -37,6 +38,31 @@ struct usb_endpoint_descriptor_no_audio {
+ 	__u8  bInterval;
+ } __attribute__((packed));
+ 
++/**
++ * struct usb_dfu_functional_descriptor - DFU Functional descriptor
++ * @bLength:		Size of the descriptor (bytes)
++ * @bDescriptorType:	USB_DT_DFU_FUNCTIONAL
++ * @bmAttributes:	DFU attributes
++ * @wDetachTimeOut:	Maximum time to wait after DFU_DETACH (ms, le16)
++ * @wTransferSize:	Maximum number of bytes per control-write (le16)
++ * @bcdDFUVersion:	DFU Spec version (BCD, le16)
++ */
++struct usb_dfu_functional_descriptor {
++	__u8  bLength;
++	__u8  bDescriptorType;
++	__u8  bmAttributes;
++	__le16 wDetachTimeOut;
++	__le16 wTransferSize;
++	__le16 bcdDFUVersion;
++} __attribute__ ((packed));
++
++/* from DFU functional descriptor bmAttributes */
++#define DFU_FUNC_ATT_CAN_DOWNLOAD	_BITUL(0)
++#define DFU_FUNC_ATT_CAN_UPLOAD		_BITUL(1)
++#define DFU_FUNC_ATT_MANIFEST_TOLERANT	_BITUL(2)
++#define DFU_FUNC_ATT_WILL_DETACH	_BITUL(3)
++
++
+ struct usb_functionfs_descs_head_v2 {
+ 	__le32 magic;
+ 	__le32 length;
+@@ -86,23 +112,38 @@ struct usb_ext_prop_desc {
+ 
+ #ifndef __KERNEL__
+ 
+-/*
++/**
++ * DOC: descriptors
++ *
+  * Descriptors format:
+  *
++ * +-----+-----------+--------------+--------------------------------------+
+  * | off | name      | type         | description                          |
+- * |-----+-----------+--------------+--------------------------------------|
++ * +-----+-----------+--------------+--------------------------------------+
+  * |   0 | magic     | LE32         | FUNCTIONFS_DESCRIPTORS_MAGIC_V2      |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |   4 | length    | LE32         | length of the whole data chunk       |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |   8 | flags     | LE32         | combination of functionfs_flags      |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | eventfd   | LE32         | eventfd file descriptor              |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | fs_count  | LE32         | number of full-speed descriptors     |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | hs_count  | LE32         | number of high-speed descriptors     |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | ss_count  | LE32         | number of super-speed descriptors    |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | os_count  | LE32         | number of MS OS descriptors          |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | fs_descrs | Descriptor[] | list of full-speed descriptors       |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | hs_descrs | Descriptor[] | list of high-speed descriptors       |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | ss_descrs | Descriptor[] | list of super-speed descriptors      |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | os_descrs | OSDesc[]     | list of MS OS descriptors            |
++ * +-----+-----------+--------------+--------------------------------------+
+  *
+  * Depending on which flags are set, various fields may be missing in the
+  * structure.  Any flags that are not recognised cause the whole block to be
+@@ -110,71 +151,111 @@ struct usb_ext_prop_desc {
+  *
+  * Legacy descriptors format (deprecated as of 3.14):
+  *
++ * +-----+-----------+--------------+--------------------------------------+
+  * | off | name      | type         | description                          |
+- * |-----+-----------+--------------+--------------------------------------|
++ * +-----+-----------+--------------+--------------------------------------+
+  * |   0 | magic     | LE32         | FUNCTIONFS_DESCRIPTORS_MAGIC         |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |   4 | length    | LE32         | length of the whole data chunk       |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |   8 | fs_count  | LE32         | number of full-speed descriptors     |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |  12 | hs_count  | LE32         | number of high-speed descriptors     |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |  16 | fs_descrs | Descriptor[] | list of full-speed descriptors       |
++ * +-----+-----------+--------------+--------------------------------------+
+  * |     | hs_descrs | Descriptor[] | list of high-speed descriptors       |
++ * +-----+-----------+--------------+--------------------------------------+
+  *
+  * All numbers must be in little endian order.
+  *
+  * Descriptor[] is an array of valid USB descriptors which have the following
+  * format:
+  *
++ * +-----+-----------------+------+--------------------------+
+  * | off | name            | type | description              |
+- * |-----+-----------------+------+--------------------------|
++ * +-----+-----------------+------+--------------------------+
+  * |   0 | bLength         | U8   | length of the descriptor |
++ * +-----+-----------------+------+--------------------------+
+  * |   1 | bDescriptorType | U8   | descriptor type          |
++ * +-----+-----------------+------+--------------------------+
+  * |   2 | payload         |      | descriptor's payload     |
++ * +-----+-----------------+------+--------------------------+
+  *
+  * OSDesc[] is an array of valid MS OS Feature Descriptors which have one of
+  * the following formats:
+  *
++ * +-----+-----------------+------+--------------------------+
+  * | off | name            | type | description              |
+- * |-----+-----------------+------+--------------------------|
++ * +-----+-----------------+------+--------------------------+
+  * |   0 | inteface        | U8   | related interface number |
++ * +-----+-----------------+------+--------------------------+
+  * |   1 | dwLength        | U32  | length of the descriptor |
++ * +-----+-----------------+------+--------------------------+
+  * |   5 | bcdVersion      | U16  | currently supported: 1   |
++ * +-----+-----------------+------+--------------------------+
+  * |   7 | wIndex          | U16  | currently supported: 4   |
++ * +-----+-----------------+------+--------------------------+
+  * |   9 | bCount          | U8   | number of ext. compat.   |
++ * +-----+-----------------+------+--------------------------+
+  * |  10 | Reserved        | U8   | 0                        |
++ * +-----+-----------------+------+--------------------------+
+  * |  11 | ExtCompat[]     |      | list of ext. compat. d.  |
++ * +-----+-----------------+------+--------------------------+
+  *
++ * +-----+-----------------+------+--------------------------+
+  * | off | name            | type | description              |
+- * |-----+-----------------+------+--------------------------|
++ * +-----+-----------------+------+--------------------------+
+  * |   0 | inteface        | U8   | related interface number |
++ * +-----+-----------------+------+--------------------------+
+  * |   1 | dwLength        | U32  | length of the descriptor |
++ * +-----+-----------------+------+--------------------------+
+  * |   5 | bcdVersion      | U16  | currently supported: 1   |
++ * +-----+-----------------+------+--------------------------+
+  * |   7 | wIndex          | U16  | currently supported: 5   |
++ * +-----+-----------------+------+--------------------------+
+  * |   9 | wCount          | U16  | number of ext. compat.   |
++ * +-----+-----------------+------+--------------------------+
+  * |  11 | ExtProp[]       |      | list of ext. prop. d.    |
++ * +-----+-----------------+------+--------------------------+
+  *
+  * ExtCompat[] is an array of valid Extended Compatiblity descriptors
+  * which have the following format:
+  *
++ * +-----+-----------------------+------+-------------------------------------+
+  * | off | name                  | type | description                         |
+- * |-----+-----------------------+------+-------------------------------------|
++ * +-----+-----------------------+------+-------------------------------------+
+  * |   0 | bFirstInterfaceNumber | U8   | index of the interface or of the 1st|
++ * +-----+-----------------------+------+-------------------------------------+
+  * |     |                       |      | interface in an IAD group           |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |   1 | Reserved              | U8   | 1                                   |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |   2 | CompatibleID          | U8[8]| compatible ID string                |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |  10 | SubCompatibleID       | U8[8]| subcompatible ID string             |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |  18 | Reserved              | U8[6]| 0                                   |
++ * +-----+-----------------------+------+-------------------------------------+
+  *
+  * ExtProp[] is an array of valid Extended Properties descriptors
+  * which have the following format:
+  *
++ * +-----+-----------------------+------+-------------------------------------+
+  * | off | name                  | type | description                         |
+- * |-----+-----------------------+------+-------------------------------------|
++ * +-----+-----------------------+------+-------------------------------------+
+  * |   0 | dwSize                | U32  | length of the descriptor            |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |   4 | dwPropertyDataType    | U32  | 1..7                                |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |   8 | wPropertyNameLength   | U16  | bPropertyName length (NL)           |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |  10 | bPropertyName         |U8[NL]| name of this property               |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |10+NL| dwPropertyDataLength  | U32  | bPropertyData length (DL)           |
++ * +-----+-----------------------+------+-------------------------------------+
+  * |14+NL| bProperty             |U8[DL]| payload of this property            |
++ * +-----+-----------------------+------+-------------------------------------+
+  */
+ 
+ struct usb_functionfs_strings_head {
+-- 
+2.55.0
+

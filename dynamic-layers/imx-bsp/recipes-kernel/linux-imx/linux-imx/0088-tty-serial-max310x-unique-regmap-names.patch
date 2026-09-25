@@ -1,0 +1,55 @@
+Subject: [PATCH] serial: max310x: give SPI regmaps unique debugfs names
+
+The MAX14830 exposes four UART ports through one SPI device. The driver
+creates one regmap per port, but all four regmaps currently use the same
+device name in debugfs. Give each map a port-specific name so the debugfs
+directories do not collide. Use a per-probe config copy while setting the
+port masks, and propagate regmap initialization failures.
+
+---
+ drivers/tty/serial/max310x.c | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/tty/serial/max310x.c b/drivers/tty/serial/max310x.c
+--- a/drivers/tty/serial/max310x.c
++++ b/drivers/tty/serial/max310x.c
+@@ -1503,7 +1503,7 @@ static const struct of_device_id __maybe_unused max310x_dt_ids[] = {
+ };
+ MODULE_DEVICE_TABLE(of, max310x_dt_ids);
+ 
+-static struct regmap_config regcfg = {
++static const struct regmap_config regcfg = {
+ 	.reg_bits = 8,
+ 	.val_bits = 8,
+ 	.write_flag_mask = MAX310X_WRITE_BIT,
+@@ -1534,8 +1534,12 @@ static const struct max310x_if_cfg __maybe_unused max310x_spi_if_cfg = {
+ 
+ static int max310x_spi_probe(struct spi_device *spi)
+ {
++	static const char * const regmap_names[] = {
++		"uart0", "uart1", "uart2", "uart3",
++	};
+ 	const struct max310x_devtype *devtype;
+ 	struct regmap *regmaps[4];
++	struct regmap_config config;
+ 	unsigned int i;
+ 	int ret;
+ 
+@@ -1553,9 +1557,14 @@ static int max310x_spi_probe(struct spi_device *spi)
+ 
+ 	for (i = 0; i < devtype->nr; i++) {
+ 		u8 port_mask = i * 0x20;
+-		regcfg.read_flag_mask = port_mask;
+-		regcfg.write_flag_mask = port_mask | MAX310X_WRITE_BIT;
+-		regmaps[i] = devm_regmap_init_spi(spi, &regcfg);
++
++		config = regcfg;
++		config.read_flag_mask = port_mask;
++		config.write_flag_mask = port_mask | MAX310X_WRITE_BIT;
++		config.name = regmap_names[i];
++		regmaps[i] = devm_regmap_init_spi(spi, &config);
++		if (IS_ERR(regmaps[i]))
++			return PTR_ERR(regmaps[i]);
+ 	}
+ 
+ 	return max310x_probe(&spi->dev, devtype, &max310x_spi_if_cfg, regmaps, spi->irq);

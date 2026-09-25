@@ -1,0 +1,26 @@
+From: GitHub Copilot <copilot@github.com>
+Subject: [PATCH] EDAC: layerscape: Allow building on i.MX SoCs
+
+The Layerscape EDAC driver supports the i.MX9 memory controller, but its
+Kconfig dependency currently prevents the option from being enabled on
+NXP i.MX platforms. Allow ARCH_MXC, the i.MX family symbol used by this
+kernel, so the i.MX93 defconfig can enable EDAC_LAYERSCAPE.
+
+---
+ drivers/edac/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/edac/Kconfig b/drivers/edac/Kconfig
+--- a/drivers/edac/Kconfig
++++ b/drivers/edac/Kconfig
+@@ -290,7 +290,7 @@
+ 
+ config EDAC_LAYERSCAPE
+ 	tristate "Freescale Layerscape DDR"
+-	depends on ARCH_LAYERSCAPE || SOC_LS1021A
++	depends on ARCH_LAYERSCAPE || SOC_LS1021A || ARCH_MXC
+ 	help
+ 	  Support for error detection and correction on Freescale memory
+ 	  controllers on Layerscape SoCs.
+-- 
+2.43.0
