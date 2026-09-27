@@ -43,9 +43,17 @@ SRC_URI:append:summitsom = " \
     file://0087-phy-freescale-imx8mq-usb-eprobe-defer.patch \
     file://0088-tty-serial-max310x-unique-regmap-names.patch \
     file://0089-edac-layerscape-enable-imx.patch \
+    file://0090-media-staging-dwc-mipi-csi2-uyvy-continuous-clock.patch \
+    file://0091-media-v4l2-subdev-support-implicit-stream-0.patch \
+    file://0092-media-v4l2-subdev-s-stream-helper-non-routing.patch \
+    file://0093-media-i2c-ov5645-Remove-software-reset-entry-from-ov.patch \
+    file://0094-LF-16618-1-arm64-dts-imx93-relocate-media-clock-assi.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
+
+#    file://0089-edac-layerscape-enable-imx.patch \
+#
 
 SRC_URI:append:imx8mp-summitsom = " \
     file://0004-Introduce-the-BQ25790-charger-driver.patch \

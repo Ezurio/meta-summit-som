@@ -1,4 +1,4 @@
-From: GitHub Copilot <copilot@github.com>
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
 Subject: [PATCH] EDAC: layerscape: Allow building on i.MX SoCs
 
 The Layerscape EDAC driver supports the i.MX9 memory controller, but its

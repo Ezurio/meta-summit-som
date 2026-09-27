@@ -1,55 +1,80 @@
-Subject: [PATCH] serial: max310x: give SPI regmaps unique debugfs names
+From 609aabb259d497578ffa2d66ced57c22044f821c Mon Sep 17 00:00:00 2001
+From: Hugo Villeneuve <hvilleneuve@dimonoff.com>
+Date: Thu, 18 Jan 2024 10:22:04 -0500
+Subject: [PATCH] serial: max310x: use separate regmap name for each port
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-The MAX14830 exposes four UART ports through one SPI device. The driver
-creates one regmap per port, but all four regmaps currently use the same
-device name in debugfs. Give each map a port-specific name so the debugfs
-directories do not collide. Use a per-probe config copy while setting the
-port masks, and propagate regmap initialization failures.
+Use a separate regmap name for each port so they can each have their own
+debugfs entry, allowing to access each port registers independently.
 
+For example, a four channels/ports device like the MAX14830 will have four
+entries in its regmap debugfs:
+
+$ find /sys/kernel/debug/regmap -type d | grep spi0.0
+/sys/kernel/debug/regmap/spi0.0-port0
+/sys/kernel/debug/regmap/spi0.0-port1
+/sys/kernel/debug/regmap/spi0.0-port2
+/sys/kernel/debug/regmap/spi0.0-port3
+
+Cc: Jan Kundrát <jan.kundrat@cesnet.cz>
+Link: https://lore.kernel.org/all/77f101f1-897d-4e6d-a8fd-27b818caf768@cesnet.cz/
+Reviewed-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Signed-off-by: Hugo Villeneuve <hvilleneuve@dimonoff.com>
+Link: https://lore.kernel.org/r/20240118152213.2644269-9-hugo@hugovil.com
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 ---
- drivers/tty/serial/max310x.c | 17 +++++++++++++----
- 1 file changed, 13 insertions(+), 4 deletions(-)
+ drivers/tty/serial/max310x.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
 
 diff --git a/drivers/tty/serial/max310x.c b/drivers/tty/serial/max310x.c
 --- a/drivers/tty/serial/max310x.c
 +++ b/drivers/tty/serial/max310x.c
-@@ -1503,7 +1503,7 @@ static const struct of_device_id __maybe_unused max310x_dt_ids[] = {
+@@ -1486,6 +1486,19 @@ static struct regmap_config regcfg = {
+ 	.max_raw_write = MAX310X_FIFO_SIZE,
  };
- MODULE_DEVICE_TABLE(of, max310x_dt_ids);
  
--static struct regmap_config regcfg = {
-+static const struct regmap_config regcfg = {
- 	.reg_bits = 8,
- 	.val_bits = 8,
- 	.write_flag_mask = MAX310X_WRITE_BIT,
-@@ -1534,8 +1534,12 @@ static const struct max310x_if_cfg __maybe_unused max310x_spi_if_cfg = {
- 
- static int max310x_spi_probe(struct spi_device *spi)
++static const char *max310x_regmap_name(u8 port_id)
++{
++	switch (port_id) {
++	case 0:	return "port0";
++	case 1:	return "port1";
++	case 2:	return "port2";
++	case 3:	return "port3";
++	default:
++		WARN_ON(true);
++		return NULL;
++	}
++}
++
+ #ifdef CONFIG_SPI_MASTER
+ static int max310x_spi_extended_reg_enable(struct device *dev, bool enable)
  {
-+	static const char * const regmap_names[] = {
-+		"uart0", "uart1", "uart2", "uart3",
-+	};
- 	const struct max310x_devtype *devtype;
- 	struct regmap *regmaps[4];
-+	struct regmap_config config;
- 	unsigned int i;
- 	int ret;
- 
-@@ -1553,9 +1557,14 @@ static int max310x_spi_probe(struct spi_device *spi)
- 
+@@ -1521,6 +1534,8 @@ static int max310x_spi_probe(struct spi_device *spi)
  	for (i = 0; i < devtype->nr; i++) {
  		u8 port_mask = i * 0x20;
--		regcfg.read_flag_mask = port_mask;
--		regcfg.write_flag_mask = port_mask | MAX310X_WRITE_BIT;
--		regmaps[i] = devm_regmap_init_spi(spi, &regcfg);
 +
-+		config = regcfg;
-+		config.read_flag_mask = port_mask;
-+		config.write_flag_mask = port_mask | MAX310X_WRITE_BIT;
-+		config.name = regmap_names[i];
-+		regmaps[i] = devm_regmap_init_spi(spi, &config);
-+		if (IS_ERR(regmaps[i]))
-+			return PTR_ERR(regmaps[i]);
++		regcfg.name = max310x_regmap_name(i);
+ 		regcfg.read_flag_mask = port_mask;
+ 		regcfg.write_flag_mask = port_mask | MAX310X_WRITE_BIT;
+ 		regmaps[i] = devm_regmap_init_spi(spi, &regcfg);
  	}
+@@ -1620,6 +1635,7 @@ static int max310x_i2c_probe(struct i2c_client *client)
+ 				     client->addr,
+ 				     devtype->slave_addr.min,
+ 				     devtype->slave_addr.max);
  
- 	return max310x_probe(&spi->dev, devtype, &max310x_spi_if_cfg, regmaps, spi->irq);
++	regcfg_i2c.name = max310x_regmap_name(0);
+ 	regmaps[0] = devm_regmap_init_i2c(client, &regcfg_i2c);
+ 
+@@ -1628,6 +1644,7 @@ static int max310x_i2c_probe(struct i2c_client *client)
+ 		port_addr = max310x_i2c_slave_addr(client->addr, i);
+ 		port_client = devm_i2c_new_dummy_device(&client->dev,
+ 							client->adapter,
+ 							port_addr);
+ 
++		regcfg_i2c.name = max310x_regmap_name(i);
+ 		regmaps[i] = devm_regmap_init_i2c(port_client, &regcfg_i2c);
+-- 
+2.43.0

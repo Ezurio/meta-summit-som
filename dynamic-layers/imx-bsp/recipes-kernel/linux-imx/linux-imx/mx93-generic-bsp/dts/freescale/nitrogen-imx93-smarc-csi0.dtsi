@@ -62,6 +62,10 @@
 	};
 };
 
+&epxp {
+	status = "okay";
+};
+
 &iomuxc {
 	pinctrl_cam_csi0: pinctrl-cam-csi0 {
 		fsl,pins = <

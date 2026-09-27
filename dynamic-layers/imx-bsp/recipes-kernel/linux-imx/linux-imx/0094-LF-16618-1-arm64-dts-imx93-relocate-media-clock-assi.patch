@@ -1,0 +1,76 @@
+From 7259fdf035545265eb3c8a6d28cda5d2688d2db4 Mon Sep 17 00:00:00 2001
+From: "Oliver F. Brown" <oliver.brown@oss.nxp.com>
+Date: Sat, 26 Sep 2026 17:27:20 -0400
+Subject: [PATCH] LF-16618-1: arm64: dts: imx93: relocate media clock
+ assignments
+
+Move MEDIA_AXI, MEDIA_APB, and MEDIA_DISP_PIX default assignments to the media block controller and remove per-child defaults. This follows NXP LF-16618-1 for the i.MX93 DTS layout in the 6.6 tree.
+
+Upstream reference: fa917d36707c785abd27e080aee8b902c19337c6
+---
+ arch/arm64/boot/dts/freescale/imx93.dtsi | 28 +++++++++---------------
+ 1 file changed, 10 insertions(+), 18 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93.dtsi b/arch/arm64/boot/dts/freescale/imx93.dtsi
+index d22908e21dfd..aecdb6093e71 100644
+--- a/arch/arm64/boot/dts/freescale/imx93.dtsi
++++ b/arch/arm64/boot/dts/freescale/imx93.dtsi
+@@ -1275,11 +1275,6 @@ isi_0: isi@4ae40000{
+ 					clocks = <&clk IMX93_CLK_ISI_GATE>,
+ 						 <&clk IMX93_CLK_MEDIA_AXI>;
+ 					clock-names = "per", "axi";
+-					assigned-clocks = <&clk IMX93_CLK_MEDIA_AXI>,
+-							  <&clk IMX93_CLK_MEDIA_APB>;
+-					assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD1>,
+-								 <&clk IMX93_CLK_SYS_PLL_PFD1_DIV2>;
+-					assigned-clock-rates = <400000000>, <133333333>;
+ 					interface = <2 0 2>;
+ 					no-reset-control;
+ 					power-domains = <&media_blk_ctrl IMX93_MEDIABLK_PD_ISI>;
+@@ -1437,6 +1432,13 @@ media_blk_ctrl: system-controller@4ac10000 {
+ 				 <&clk IMX93_CLK_MIPI_DSI_GATE>;
+ 			clock-names = "apb", "axi", "nic", "disp", "cam",
+ 				      "pxp", "lcdif", "isi", "csi", "dsi";
++			assigned-clocks = <&clk IMX93_CLK_MEDIA_AXI>,
++					  <&clk IMX93_CLK_MEDIA_APB>,
++					  <&clk IMX93_CLK_MEDIA_DISP_PIX>;
++			assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD1>,
++					   <&clk IMX93_CLK_SYS_PLL_PFD1_DIV2>,
++					   <&clk IMX93_CLK_VIDEO_PLL>;
++			assigned-clock-rates = <400000000>, <133333333>;
+ 			#power-domain-cells = <1>;
+ 
+ 			dphy: dphy {
+@@ -1502,11 +1504,9 @@ dsi: dsi@4ae10000 {
+ 				 <&clk IMX93_CLK_MIPI_DSI_GATE>,
+ 				 <&clk IMX93_CLK_MEDIA_DISP_PIX>;
+ 			clock-names = "byte", "pclk", "pixel";
+-			assigned-clocks = <&clk IMX93_CLK_MIPI_TEST_BYTE>,
+-					  <&clk IMX93_CLK_MEDIA_APB>;
+-			assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD0>,
+-						 <&clk IMX93_CLK_SYS_PLL_PFD1_DIV2>;
+-			assigned-clock-rates = <20000000>, <133333333>;
++			assigned-clocks = <&clk IMX93_CLK_MIPI_TEST_BYTE>;
++			assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD0>;
++			assigned-clock-rates = <20000000>;
+ 			phys = <&dphy>;
+ 			phy-names = "dphy";
+ 			power-domains = <&media_blk_ctrl IMX93_MEDIABLK_PD_MIPI_DSI>;
+@@ -1541,14 +1541,6 @@ lcdif: lcd-controller@4ae30000 {
+ 				 <&clk IMX93_CLK_MEDIA_AXI>,
+ 				 <&clk IMX93_CLK_LCDIF_GATE>;
+ 			clock-names = "pix", "disp-axi", "disp-apb";
+-			assigned-clocks = <&clk IMX93_CLK_VIDEO_PLL>,
+-					  <&clk IMX93_CLK_MEDIA_DISP_PIX>,
+-					  <&clk IMX93_CLK_MEDIA_AXI>,
+-					  <&clk IMX93_CLK_MEDIA_APB>;
+-			assigned-clock-parents = <&clk IMX93_CLK_24M>,
+-						 <&clk IMX93_CLK_VIDEO_PLL>,
+-						 <&clk IMX93_CLK_SYS_PLL_PFD1>,
+-						 <&clk IMX93_CLK_SYS_PLL_PFD1_DIV2>;
+ 			power-domains = <&media_blk_ctrl IMX93_MEDIABLK_PD_LCDIF>;
+ 			status = "disabled";
+ 
+-- 
+2.55.0
+
