@@ -45,6 +45,7 @@ FIT_EXTERNAL_DTB_OVERLAYS ?= "1"
 # .scr file - it's only copied to DEPLOY_DIR_IMAGE by do_image_complete,
 # which runs after do_compile_fit.
 FIT_UBOOT_ENV ?= "${IMGDEPLOYDIR}/${IMAGE_ROOTFS_VERITY_NAME}.scr"
+FIT_SUPPORTED_INITRAMFS_FSTYPES ?= "squashfs-zst squashfs"
 
 require conf/image-fitimage.conf
 

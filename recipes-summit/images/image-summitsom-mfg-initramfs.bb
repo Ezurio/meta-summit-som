@@ -13,7 +13,7 @@ export IMAGE_BASENAME = "${PN}"
 REQUIRED_DISTRO_FEATURES += "summitsom-mfg-initramfs"
 
 # Required for use as INITRAMFS_IMAGE
-INITRAMFS_FSTYPES = "cpio.zst"
+INITRAMFS_FSTYPES = "squashfs-zst"
 INITRAMFS_MAXSIZE ??= "262144"
 IMAGE_FSTYPES = "${INITRAMFS_FSTYPES}"
 IMAGE_NAME_SUFFIX ?= ""

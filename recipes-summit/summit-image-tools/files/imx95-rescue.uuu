@@ -13,7 +13,7 @@ SDPS: boot -f flash-rescue.bin
 
 # SPL/SDP stage: push the second container (TF-A + OP-TEE + U-Boot proper) into
 # the SDP gadget that SPL brings up, then jump to it.
-SDPV: delay 1000
+SDPV: delay 2000
 SDPV: write -f flash-rescue.bin -skipspl
 SDPV: jump
 
