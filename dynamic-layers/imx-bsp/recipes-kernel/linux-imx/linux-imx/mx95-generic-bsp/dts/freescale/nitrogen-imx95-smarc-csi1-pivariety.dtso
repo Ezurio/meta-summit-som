@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * ArduCam Pivariety camera module
+ *
+ * Copyright (C) 2025 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+// CSI1 is disabled on SMARC module by default,
+// requires switching 0 Ohm resistors to enable
+
+#include "nitrogen-imx95-smarc-csi1.dtsi"
+
+&cam_csi1 {
+	reg = <0x0c>;
+	compatible = "arducam,arducam-pivariety";
+
+	VANA-supply = <&reg_vdd_3v3>;
+	VDIG-supply = <&reg_vdd_3v3>;
+	VDDL-supply = <&reg_vdd_3v3>;
+
+	reset-gpios = <&gpio3 26 GPIO_ACTIVE_HIGH>;
+	enable-gpios = <&gpio5 9 GPIO_ACTIVE_HIGH>;
+};
+
+&cam_csi1_ep {
+	data-lanes = <1 2 3 4>;
+};
+
+&mipi_csi1_in_ep {
+	data-lanes = <1 2 3 4>;
+};

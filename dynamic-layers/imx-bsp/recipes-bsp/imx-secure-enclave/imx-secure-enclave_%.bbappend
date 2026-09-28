@@ -13,6 +13,6 @@ FILES:${PN}:append:mx93-generic-bsp:summit-secure = " \
 
 do_install:append:mx93-generic-bsp:summit-secure() {
 	install -D -m 0644 \
-		"${UNPACKDIR}/10-summit-persistent-storage.conf" \
+		"${WORKDIR}/10-summit-persistent-storage.conf" \
 		"${D}${systemd_system_unitdir}/nvm_daemon.service.d/10-summit-persistent-storage.conf"
 }

@@ -1,0 +1,137 @@
+From 4b3b0f7dc5aefc2a5be01dddc6e29bdc734cf31e Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Sun, 27 Sep 2026 12:00:00 +0000
+Subject: [PATCH] staging: neutron: use DMA barriers for coherent buffers
+
+Neutron allocates its shared buffers with dma_alloc_coherent(). Cache
+maintenance is not required for coherent mappings, and the arm64
+arch_sync_dma_for_* hooks are not exported to modules. Use DMA ordering
+barriers around device ownership transitions instead.
+
+Upstream-Status: Pending
+---
+ drivers/staging/neutron/neutron_device.c    | 13 +++----------
+ drivers/staging/neutron/neutron_inference.c | 14 ++++----------
+ 2 files changed, 7 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/staging/neutron/neutron_device.c b/drivers/staging/neutron/neutron_device.c
+--- a/drivers/staging/neutron/neutron_device.c
++++ b/drivers/staging/neutron/neutron_device.c
+@@ -6,7 +6,6 @@
+ 
+ #include <linux/dma-mapping.h>
+ #include <linux/dma-map-ops.h>
+-#include <linux/dma-direct.h>
+ #include <linux/bitmap.h>
+ #include <linux/interrupt.h>
+ #include <linux/mutex.h>
+@@ -184,7 +182,6 @@ static int neutron_firmw_request(struct neutron_device *ndev, struct neutron_buffer *buf,
+ 	int ret = 0;
+ 	struct device *dev;
+ 	struct rproc *rproc = ndev->rproc;
+-	phys_addr_t paddr;
+ 
+ 	if (!buf) {
+ 		dev_err(dev, "%s: invalid neutron bufffer\n", __func__);
+@@ -215,11 +212,7 @@ static int neutron_firmw_request(struct neutron_device *ndev, struct neutron_buffer *buf,
+ 		dev_err(dev, "neutron_elf_load failed\n");
+ 		return ret;
+ 	}
+ 
+-	/* Sync the data for device */
+-	paddr = dma_to_phys(ndev->dev, buf->dma_addr);
+-	arch_sync_dma_for_device(paddr, buf->size, DMA_TO_DEVICE);
+-
+ 	/* Firmware is changed, it should be reloaded on next job */
+ 	ndev->firmw_id = 0;
+ 
+@@ -246,7 +239,8 @@ int neutron_firmw_reload(struct neutron_device *ndev, struct neutron_buffer *buf)
+ 	ret = neutron_rproc_elf_load(rproc, buf->firmware_p, data_ddr, 0x1);
+ 	if (ret)
+ 		dev_err(dev, "neutron_rproc_elf_load failed\n");
+ 
++	dma_wmb();
+ 	rproc->ops->start(rproc);
+ 
+ 	return ret;
+@@ -503,7 +497,6 @@ static long neutron_ioctl(struct file *file,
+ 	case NEUTRON_IOCTL_CACHE_SYNC: {
+ 		struct neutron_uapi_cache_sync uapi;
+ 		struct neutron_buffer *buf;
+-		phys_addr_t paddr;
+ 
+ 		ret = copy_from_user(&uapi, udata, sizeof(uapi));
+ 		if (ret)
+@@ -524,13 +517,12 @@ static long neutron_ioctl(struct file *file,
+ 				"CACHE_SYNC: Out of range: fd %d, 0x%x + 0x%x > 0x%lx\n",
+ 				uapi.fd, uapi.offset, uapi.size, buf->size);
+ 			ret = -EINVAL;
+ 		}
+ 
+-		paddr = dma_to_phys(ndev->dev, buf->dma_addr + uapi.offset);
+ 		if (uapi.direction)
+-			arch_sync_dma_for_cpu(paddr, uapi.size, DMA_FROM_DEVICE);
++			dma_rmb();
+ 		else
+-			arch_sync_dma_for_device(paddr, uapi.size, DMA_TO_DEVICE);
++			dma_wmb();
+ 
+ 		break;
+ 	}
+diff --git a/drivers/staging/neutron/neutron_inference.c b/drivers/staging/neutron/neutron_inference.c
+--- a/drivers/staging/neutron/neutron_inference.c
++++ b/drivers/staging/neutron/neutron_inference.c
+@@ -10,3 +10,2 @@
+-#include <linux/dma-direct.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/anon_inodes.h>
+@@ -89,6 +88,5 @@ int neutron_inference_run(struct neutron_inference *inf)
+ 	struct neutron_device *ndev;
+ 	struct neutron_mbox_tx_msg msg;
+-	phys_addr_t paddr;
+ 	u32 i, val;
+ 	int ret = 0;
+ 
+@@ -103,11 +101,7 @@ int neutron_inference_run(struct neutron_inference *inf)
+ 		return 0;
+ 
+ 	ndev = inf->ndev;
+ 
+-	/* Sync the input data for device before running inference job */
+-	paddr = dma_to_phys(ndev->dev, inf->buf->dma_addr + inf->args.input_offset);
+-	arch_sync_dma_for_device(paddr, inf->args.input_size, DMA_TO_DEVICE);
+-
+ 	// reload only when firmware was changed
+ 	if (ndev->firmw_id  != inf->args.firmw_id) {
+ 		mutex_lock(&ndev->mutex);
+@@ -177,6 +171,8 @@ int neutron_inference_run(struct neutron_inference *inf)
+ 	}
+ 
+ 	mutex_lock(&ndev->mutex);
++	/* Ensure coherent-buffer writes are visible before notifying the device. */
++	dma_wmb();
+ 	for (int i = 0; i < 3; i++) {
+ 		ret = ndev->mbox->ops->send_data(ndev->mbox, &msg);
+ 		if (ret == 0)
+@@ -266,7 +262,6 @@ static void inference_done_callback(struct work_struct *work)
+ 	struct neutron_inference *inf;
+ 	struct neutron_device *ndev;
+ 	struct neutron_mbox *mbox;
+-	phys_addr_t paddr;
+ 
+ 	spin_lock_bh(&queue->lock);
+ 	inf = queue->cur_inf;
+@@ -284,9 +279,8 @@ static void inference_done_callback(struct work_struct *work)
+ 	ndev = inf->ndev;
+ 	mbox = ndev->mbox;
+ 
+-	/* Sync the output data for cpu after inference is done */
+-	paddr = dma_to_phys(ndev->dev, inf->buf->dma_addr + inf->args.output_offset);
+-	arch_sync_dma_for_cpu(paddr, inf->args.output_size, DMA_FROM_DEVICE);
++	/* Ensure device writes are visible before the CPU reads the output. */
++	dma_rmb();
+ 
+ 	/* Wake up the waiting process */
+ 	wake_up_interruptible(&inf->waitq);
+-- 
+2.43.0

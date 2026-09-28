@@ -1,0 +1,59 @@
+From 2173ed4b6a2d9706010a3633790afedc6c817226 Mon Sep 17 00:00:00 2001
+From: Denis Burkov <hitechshell@mail.ru>
+Date: Fri, 17 Jan 2025 23:06:11 +0500
+Subject: [PATCH 2/2] shared/shell: add proper line clean to bt_shell_printf
+
+In some terminals (or all?) the line is not cleared before a new one
+is output (for example, if you turn on scanning and then try to write
+something to the terminal, the output will be mixed - you will get
+something like this:
+
+[JBL T450BT]# h[NEW] Device ****
+[JBL T450BT]# he[NEW] Device ****
+[JBL T450BT]# hell[NEW] Device ****
+[JBL T450BT]# hello[NEW] Device ****
+[JBL T450BT]# hello[NEW] Device ****
+
+Where "Device ****" is the line that was actually fed to
+bt_shell_printf.
+
+(cherry picked from commit 628c15a5b1f6f1db9f4534b609c3732b592b0536)
+Upstream-Status: Backport
+---
+ client/display.c   | 4 ++--
+ src/shared/shell.c | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/client/display.c b/client/display.c
+index 5d132e1..4004fc0 100644
+--- a/client/display.c
++++ b/client/display.c
+@@ -44,8 +44,8 @@ void rl_printf(const char *fmt, ...)
+ 		saved_point = rl_point;
+ 		saved_line = rl_copy_text(0, rl_end);
+ 		rl_save_prompt();
+-		rl_replace_line("", 0);
+-		rl_redisplay();
++		rl_clear_visible_line();
++		rl_reset_line_state();
+ 	}
+ 
+ 	va_start(args, fmt);
+diff --git a/src/shared/shell.c b/src/shared/shell.c
+index 49c34f0..d1088f9 100644
+--- a/src/shared/shell.c
++++ b/src/shared/shell.c
+@@ -562,8 +562,8 @@ void bt_shell_printf(const char *fmt, ...)
+ 		saved_line = rl_copy_text(0, rl_end);
+ 		if (!data.saved_prompt)
+ 			rl_save_prompt();
+-		rl_replace_line("", 0);
+-		rl_redisplay();
++		rl_clear_visible_line();
++		rl_reset_line_state();
+ 	}
+ 
+ 	va_start(args, fmt);
+-- 
+2.55.0
+

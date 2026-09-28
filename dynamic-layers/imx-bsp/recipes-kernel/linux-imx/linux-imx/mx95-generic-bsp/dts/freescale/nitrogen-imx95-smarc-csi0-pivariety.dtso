@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * ArduCam Pivariey camera module
+ *
+ * Copyright (C) 2025 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "nitrogen-imx95-smarc-csi0.dtsi"
+
+&cam_csi0 {
+	reg = <0x0c>;
+	compatible = "arducam,arducam-pivariety";
+
+	VANA-supply = <&reg_vdd_3v3>;
+	VDIG-supply = <&reg_vdd_3v3>;
+	VDDL-supply = <&reg_vdd_3v3>;
+
+	reset-gpios = <&gpio5 7 GPIO_ACTIVE_HIGH>;
+	enable-gpios = <&gpio2 19 GPIO_ACTIVE_HIGH>;
+};
+
+&cam_csi0_ep {
+	data-lanes = <1 2 3 4>;
+};
+
+&mipi_csi0_in_ep {
+	data-lanes = <1 2 3 4>;
+};

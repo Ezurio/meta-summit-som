@@ -21,7 +21,10 @@ SRC_URI:append:summitsom = " \
     file://0054-rtc-rv3028-fix-eeprom-device-tree-support.patch \
     file://0055-rtc-rv3028-fix-name-collisions.patch \
     file://0056-media-i2c-ov5645-Report-streams-using-frame-descript.patch \
+    file://0057-media-nxp-dwc-mipi-csi2.patch \
     file://0058-sn65dsi83-ignore-pll-lock-failure.patch \
+    file://0061-mxc-viv-disable-vg-fix.patch \
+    file://0062-gpio-Add-GPIO-fanout-driver.patch \
     file://0063-phy-freescale-imx8mq-usb-set-vbus-depending-on-mode.patch \
     file://0064-media-imx-isi-cap-add-pivariety-workaround.patch \
     file://0065-media-imx-isi-cap-fix-subdev-stream-default-value.patch \
@@ -48,12 +51,12 @@ SRC_URI:append:summitsom = " \
     file://0092-media-v4l2-subdev-s-stream-helper-non-routing.patch \
     file://0093-media-i2c-ov5645-Remove-software-reset-entry-from-ov.patch \
     file://0094-LF-16618-1-arm64-dts-imx93-relocate-media-clock-assi.patch \
+    file://0095-staging-neutron-use-dma-barriers-for-coherent-buffers.patch \
+    file://0096-media-mxc-csi-select-input-endpoint.patch \
+    file://0097-media-mxc-csi-ov5645-uyvy-format.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
-
-#    file://0089-edac-layerscape-enable-imx.patch \
-#
 
 SRC_URI:append:imx8mp-summitsom = " \
     file://0004-Introduce-the-BQ25790-charger-driver.patch \
@@ -61,8 +64,10 @@ SRC_URI:append:imx8mp-summitsom = " \
 
 KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if d.getVar('KERNEL_DEVICETREE').find('.dtbo') else ''}"
 
-KERNEL_CONFIG_SUMMIT:mx8mp-generic-bsp = "file://summitsom_defconfig"
+KERNEL_CONFIG_SUMMIT:mx8mm-generic-bsp = "file://nitrogen_imx8mm_defconfig"
+KERNEL_CONFIG_SUMMIT:mx8mp-generic-bsp = "file://nitrogen_imx8mp_defconfig"
 KERNEL_CONFIG_SUMMIT:mx93-generic-bsp = "file://nitrogen_imx93_defconfig"
+KERNEL_CONFIG_SUMMIT:mx95-generic-bsp = "file://nitrogen_imx95_defconfig"
 KERNEL_CONFIG_SUMMIT:imx8mp-summitsom = "file://summitsom_defconfig"
 KERNEL_CONFIG_SUMMIT ?= ""
 

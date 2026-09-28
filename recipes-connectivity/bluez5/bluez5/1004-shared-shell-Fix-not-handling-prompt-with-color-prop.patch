@@ -1,0 +1,420 @@
+From e90e195481bde8741c52b05aaf00ed89061be08f Mon Sep 17 00:00:00 2001
+From: Luiz Augusto von Dentz <luiz.von.dentz@intel.com>
+Date: Tue, 15 Oct 2024 16:40:58 -0400
+Subject: [PATCH 1/2] shared/shell: Fix not handling prompt with color properly
+
+Colors use escape sequence that needs to be enveloped with
+RL_PROMPT_START_IGNORE (\001) and RL_PROMPT_END_IGNORE (\002) in order
+for readline to properly calculate the prompt length.
+
+Fixes: https://github.com/bluez/bluez/issues/965
+(cherry picked from commit ee6f3a837e325184ea1009b94dee20411480844e)
+Upstream-Status: Backport
+---
+ client/main.c            | 16 ++++++++-----Upstream-Status: Backport
+---
+ client/mgmt.c            | 10 ++++---Upstream-Status: Backport
+---
+ src/shared/shell.c       | 17 ++++++++++----Upstream-Status: Backport
+---
+ src/shared/shell.h       |  2 +-
+ tools/bluetooth-player.c |  9 ++++--Upstream-Status: Backport
+---
+ tools/btpclientctl.c     |  2 +-
+ tools/mesh-cfgclient.c   |  6 +++Upstream-Status: Backport
+---
+ tools/mesh-gatt/util.c   |  4 ++--
+ tools/mesh/util.c        |  4 ++--
+ tools/meshctl.c          | 10 +++++--Upstream-Status: Backport
+---
+ tools/obexctl.c          | 15 +++++++-----Upstream-Status: Backport
+---
+ 11 files changed, 47 insertions(+), 48 deletions(-)
+
+diff --git a/client/main.c b/client/main.c
+index 51d08a6..397fa1e 100644
+--- a/client/main.c
++++ b/client/main.c
+@@ -40,7 +40,7 @@
+ #define COLORED_CHG	COLOR_YELLOW "CHG" COLOR_OFF
+ #define COLORED_DEL	COLOR_RED "DEL" COLOR_OFF
+ 
+-#define PROMPT_ON	COLOR_BLUE "[bluetooth]" COLOR_OFF "# "
++#define PROMPT_ON	"[bluetooth]# "
+ #define PROMPT_OFF	"Waiting to connect to bluetoothd..."
+ 
+ static DBusConnection *dbus_conn;
+@@ -103,14 +103,14 @@ static void setup_standard_input(void)
+ 
+ static void connect_handler(DBusConnection *connection, void *user_data)
+ {
+-	bt_shell_set_prompt(PROMPT_ON);
++	bt_shell_set_prompt(PROMPT_ON, COLOR_BLUE);
+ }
+ 
+ static void disconnect_handler(DBusConnection *connection, void *user_data)
+ {
+ 	bt_shell_detach();
+ 
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT_OFF, NULL);
+ 
+ 	g_list_free_full(ctrl_list, proxy_leak);
+ 	g_list_free_full(battery_proxies, proxy_leak);
+@@ -357,12 +357,12 @@ static void set_default_device(GDBusProxy *proxy, const char *attribute)
+ 	path = g_dbus_proxy_get_path(proxy);
+ 
+ 	dbus_message_iter_get_basic(&iter, &desc);
+-	desc = g_strdup_printf(COLOR_BLUE "[%s%s%s]" COLOR_OFF "# ", desc,
++	desc = g_strdup_printf("[%s%s%s]# ", desc,
+ 				attribute ? ":" : "",
+ 				attribute ? attribute + strlen(path) : "");
+ 
+ done:
+-	bt_shell_set_prompt(desc ? desc : PROMPT_ON);
++	bt_shell_set_prompt(desc ? desc : PROMPT_ON, COLOR_BLUE);
+ 	g_free(desc);
+ }
+ 
+@@ -2105,9 +2105,9 @@ static void set_default_local_attribute(char *attr)
+ 	default_local_attr = attr;
+ 	default_attr = NULL;
+ 
+-	desc = g_strdup_printf(COLOR_BLUE "[%s]" COLOR_OFF "# ", attr);
++	desc = g_strdup_printf("[%s]# ", attr);
+ 
+-	bt_shell_set_prompt(desc);
++	bt_shell_set_prompt(desc, COLOR_BLUE);
+ 	free(desc);
+ }
+ 
+@@ -3181,7 +3181,7 @@ int main(int argc, char *argv[])
+ 	bt_shell_add_submenu(&advertise_monitor_menu);
+ 	bt_shell_add_submenu(&scan_menu);
+ 	bt_shell_add_submenu(&gatt_menu);
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT_OFF, NULL);
+ 
+ 	if (agent_option)
+ 		auto_register_agent = g_strdup(agent_option);
+diff --git a/client/mgmt.c b/client/mgmt.c
+index e9ebb3d..49737a8 100644
+--- a/client/mgmt.c
++++ b/client/mgmt.c
+@@ -77,13 +77,11 @@ static void update_prompt(uint16_t index)
+ 	char str[32];
+ 
+ 	if (index == MGMT_INDEX_NONE)
+-		snprintf(str, sizeof(str), "%s# ",
+-					COLOR_BLUE "[mgmt]" COLOR_OFF);
++		snprintf(str, sizeof(str), "[mgmt]# ");
+ 	else
+-		snprintf(str, sizeof(str),
+-				COLOR_BLUE "[hci%u]" COLOR_OFF "# ", index);
++		snprintf(str, sizeof(str), "[hci%u]# ", index);
+ 
+-	bt_shell_set_prompt(str);
++	bt_shell_set_prompt(str, COLOR_BLUE);
+ }
+ 
+ void mgmt_set_index(const char *arg)
+@@ -857,7 +855,7 @@ static void prompt_input(const char *input, void *user_data)
+ 						&prompt.addr);
+ 		} else {
+ 			mgmt_confirm_neg_reply(prompt.index, &prompt.addr);
+-			bt_shell_set_prompt(PROMPT_ON);
++			bt_shell_set_prompt(PROMPT_ON, COLOR_BLUE);
+ 		}
+ 		break;
+ 	}
+diff --git a/src/shared/shell.c b/src/shared/shell.c
+index 58f25de..49c34f0 100644
+--- a/src/shared/shell.c
++++ b/src/shared/shell.c
+@@ -594,15 +594,13 @@ void bt_shell_echo(const char *fmt, ...)
+ 
+ 	va_start(args, fmt);
+ 	ret = vasprintf(&str, fmt, args);
+-	if (ret >= 0)
+-		ret = asprintf(&str, COLOR_HIGHLIGHT "%s " COLOR_OFF "#", str);
+ 	va_end(args);
+ 
+ 	if (ret < 0)
+ 		return;
+ 
+ 	rl_save_prompt();
+-	bt_shell_set_prompt(str);
++	bt_shell_set_prompt(str, COLOR_HIGHLIGHT);
+ 	rl_restore_prompt();
+ }
+ 
+@@ -659,7 +657,7 @@ static void prompt_input(const char *str, bt_shell_prompt_input_func func,
+ 	data.saved_user_data = user_data;
+ 
+ 	rl_save_prompt();
+-	bt_shell_set_prompt(str);
++	bt_shell_set_prompt(str, COLOR_HIGHLIGHT);
+ }
+ 
+ void bt_shell_prompt_input(const char *label, const char *msg,
+@@ -1421,16 +1419,21 @@ bool bt_shell_add_submenu(const struct bt_shell_menu *menu)
+ 	return true;
+ }
+ 
+-void bt_shell_set_prompt(const char *string)
++void bt_shell_set_prompt(const char *string, const char *color)
+ {
+ 	char *prompt;
+ 
+ 	if (!data.init || data.mode)
+ 		return;
+ 
+-	if (asprintf(&prompt, "\001%s\002", string) < 0)
++	/* Envelope color within RL_PROMPT_START_IGNORE (\001) and
++	 * RL_PROMPT_END_IGNORE (\002) so readline can properly calculate the
++	 * prompt length.
++	 */
++	if (!color || asprintf(&prompt, "\001%s\002%s\001%s\002", color, string,
++				COLOR_OFF) < 0) {
+ 		rl_set_prompt(string);
+-	else {
++	} else {
+ 		rl_set_prompt(prompt);
+ 		free(prompt);
+ 	}
+diff --git a/src/shared/shell.h b/src/shared/shell.h
+index a9a635b..42e62d2 100644
+--- a/src/shared/shell.h
++++ b/src/shared/shell.h
+@@ -66,7 +66,7 @@ bool bt_shell_add_submenu(const struct bt_shell_menu *menu);
+ 
+ bool bt_shell_remove_submenu(const struct bt_shell_menu *menu);
+ 
+-void bt_shell_set_prompt(const char *string);
++void bt_shell_set_prompt(const char *string, const char *color);
+ 
+ void bt_shell_printf(const char *fmt,
+ 				...) __attribute__((format(printf, 1, 2)));
+diff --git a/tools/bluetooth-player.c b/tools/bluetooth-player.c
+index eba104d..83045ca 100644
+--- a/tools/bluetooth-player.c
++++ b/tools/bluetooth-player.c
+@@ -33,21 +33,20 @@
+ #include "src/shared/shell.h"
+ #include "client/player.h"
+ 
+-#define PROMPT_ON	COLOR_BLUE "[bluetooth]" COLOR_OFF "# "
+-#define PROMPT_OFF	"[bluetooth]# "
++#define PROMPT	"[bluetooth]# "
+ 
+ static DBusConnection *dbus_conn;
+ 
+ static void connect_handler(DBusConnection *connection, void *user_data)
+ {
+ 	bt_shell_attach(fileno(stdin));
+-	bt_shell_set_prompt(PROMPT_ON);
++	bt_shell_set_prompt(PROMPT, COLOR_BLUE);
+ }
+ 
+ static void disconnect_handler(DBusConnection *connection, void *user_data)
+ {
+ 	bt_shell_detach();
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT, NULL);
+ }
+ 
+ int main(int argc, char *argv[])
+@@ -56,7 +55,7 @@ int main(int argc, char *argv[])
+ 	int status;
+ 
+ 	bt_shell_init(argc, argv, NULL);
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT, NULL);
+ 
+ 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
+ 
+diff --git a/tools/btpclientctl.c b/tools/btpclientctl.c
+index c30d5bd..eb97463 100644
+--- a/tools/btpclientctl.c
++++ b/tools/btpclientctl.c
+@@ -2340,7 +2340,7 @@ int main(int argc, char *argv[])
+ 	mainloop_add_fd(btpclientctl->server_fd, EPOLLIN, server_callback,
+ 			btpclientctl, NULL);
+ 
+-	bt_shell_set_prompt(PROMPT_ON);
++	bt_shell_set_prompt(PROMPT_ON, COLOR_BLUE);
+ 
+ 	status = bt_shell_run();
+ 
+diff --git a/tools/mesh-cfgclient.c b/tools/mesh-cfgclient.c
+index 6d2d344..dcf145c 100644
+--- a/tools/mesh-cfgclient.c
++++ b/tools/mesh-cfgclient.c
+@@ -38,7 +38,7 @@
+ #include "tools/mesh/model.h"
+ #include "tools/mesh/remote.h"
+ 
+-#define PROMPT_ON	COLOR_BLUE "[mesh-cfgclient]" COLOR_OFF "# "
++#define PROMPT_ON	"[mesh-cfgclient]# "
+ #define PROMPT_OFF	"Waiting to connect to bluetooth-meshd..."
+ 
+ #define CFG_SRV_MODEL	0x0000
+@@ -2483,7 +2483,7 @@ static void client_ready(struct l_dbus_client *client, void *user_data)
+ static void client_connected(struct l_dbus *dbus, void *user_data)
+ {
+ 	bt_shell_printf("D-Bus client connected\n");
+-	bt_shell_set_prompt(PROMPT_ON);
++	bt_shell_set_prompt(PROMPT_ON, COLOR_BLUE);
+ }
+ 
+ static void client_disconnected(struct l_dbus *dbus, void *user_data)
+@@ -2643,7 +2643,7 @@ int main(int argc, char *argv[])
+ 		return EXIT_FAILURE;
+ 	}
+ 
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT_OFF, NULL);
+ 
+ 	dbus = l_dbus_new_default(L_DBUS_SYSTEM_BUS);
+ 
+diff --git a/tools/mesh-gatt/util.c b/tools/mesh-gatt/util.c
+index eb8b8eb..58f240a 100644
+--- a/tools/mesh-gatt/util.c
++++ b/tools/mesh-gatt/util.c
+@@ -29,9 +29,9 @@ void set_menu_prompt(const char *name, const char *id)
+ {
+ 	char *prompt;
+ 
+-	prompt = g_strdup_printf(COLOR_BLUE "[%s%s%s]" COLOR_OFF "# ", name,
++	prompt = g_strdup_printf("[%s%s%s]# ", name,
+ 					id ? ": Target = " : "", id ? id : "");
+-	bt_shell_set_prompt(prompt);
++	bt_shell_set_prompt(prompt, COLOR_BLUE);
+ 	g_free(prompt);
+ }
+ 
+diff --git a/tools/mesh/util.c b/tools/mesh/util.c
+index dea496d..310aae0 100644
+--- a/tools/mesh/util.c
++++ b/tools/mesh/util.c
+@@ -28,9 +28,9 @@ void set_menu_prompt(const char *name, const char *id)
+ {
+ 	char *prompt;
+ 
+-	prompt = l_strdup_printf(COLOR_BLUE "[%s%s%s]" COLOR_OFF "# ", name,
++	prompt = l_strdup_printf("[%s%s%s]# ", name,
+ 					id ? ": Target = " : "", id ? id : "");
+-	bt_shell_set_prompt(prompt);
++	bt_shell_set_prompt(prompt, COLOR_BLUE);
+ 	l_free(prompt);
+ }
+ 
+diff --git a/tools/meshctl.c b/tools/meshctl.c
+index 38ffd35..00a68a3 100644
+--- a/tools/meshctl.c
++++ b/tools/meshctl.c
+@@ -54,7 +54,7 @@
+ #define COLORED_CHG	COLOR_YELLOW "CHG" COLOR_OFF
+ #define COLORED_DEL	COLOR_RED "DEL" COLOR_OFF
+ 
+-#define PROMPT_ON	COLOR_BLUE "[meshctl]" COLOR_OFF "# "
++#define PROMPT_ON	"[meshctl]# "
+ #define PROMPT_OFF	"Waiting to connect to bluetoothd..."
+ 
+ #define MESH_PROV_DATA_IN_UUID_STR	"00002adb-0000-1000-8000-00805f9b34fb"
+@@ -172,14 +172,14 @@ static void proxy_leak(gpointer data)
+ 
+ static void connect_handler(DBusConnection *connection, void *user_data)
+ {
+-	bt_shell_set_prompt(PROMPT_ON);
++	bt_shell_set_prompt(PROMPT_ON, COLOR_BLUE);
+ }
+ 
+ static void disconnect_handler(DBusConnection *connection, void *user_data)
+ {
+ 	bt_shell_detach();
+ 
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT_OFF, NULL);
+ 
+ 	g_list_free_full(ctrl_list, proxy_leak);
+ 	ctrl_list = NULL;
+@@ -608,7 +608,7 @@ static void set_connected_device(GDBusProxy *proxy)
+ 				mesh ? buf : "");
+ 
+ done:
+-	bt_shell_set_prompt(desc ? desc : PROMPT_ON);
++	bt_shell_set_prompt(desc ? desc : PROMPT_ON, COLOR_BLUE);
+ 	g_free(desc);
+ 
+ 	/* If disconnected, return to main menu */
+@@ -1901,7 +1901,7 @@ int main(int argc, char *argv[])
+ 
+ 	bt_shell_init(argc, argv, &opt);
+ 	bt_shell_set_menu(&main_menu);
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT_OFF, NULL);
+ 
+ 	if (!config_dir) {
+ 		char *home;
+diff --git a/tools/obexctl.c b/tools/obexctl.c
+index 56a7691..6ca1b74 100644
+--- a/tools/obexctl.c
++++ b/tools/obexctl.c
+@@ -33,8 +33,7 @@
+ #define COLORED_CHG	COLOR_YELLOW "CHG" COLOR_OFF
+ #define COLORED_DEL	COLOR_RED "DEL" COLOR_OFF
+ 
+-#define PROMPT_ON	COLOR_BLUE "[obex]" COLOR_OFF "# "
+-#define PROMPT_OFF	"[obex]# "
++#define PROMPT		"[obex]# "
+ 
+ #define OBEX_SESSION_INTERFACE "org.bluez.obex.Session1"
+ #define OBEX_TRANSFER_INTERFACE "org.bluez.obex.Transfer1"
+@@ -64,13 +63,13 @@ struct transfer_data {
+ static void connect_handler(DBusConnection *connection, void *user_data)
+ {
+ 	bt_shell_attach(fileno(stdin));
+-	bt_shell_set_prompt(PROMPT_ON);
++	bt_shell_set_prompt(PROMPT, COLOR_BLUE);
+ }
+ 
+ static void disconnect_handler(DBusConnection *connection, void *user_data)
+ {
+ 	bt_shell_detach();
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT, NULL);
+ }
+ 
+ static char *generic_generator(const char *text, int state, GList *source)
+@@ -404,15 +403,15 @@ static void set_default_session(GDBusProxy *proxy)
+ 	default_session = proxy;
+ 
+ 	if (!g_dbus_proxy_get_property(proxy, "Destination", &iter)) {
+-		desc = g_strdup(PROMPT_ON);
++		desc = g_strdup(PROMPT);
+ 		goto done;
+ 	}
+ 
+ 	dbus_message_iter_get_basic(&iter, &desc);
+-	desc = g_strdup_printf(COLOR_BLUE "[%s]" COLOR_OFF "# ", desc);
++	desc = g_strdup_printf("[%s] #", desc);
+ 
+ done:
+-	bt_shell_set_prompt(desc);
++	bt_shell_set_prompt(desc, COLOR_BLUE);
+ 	g_free(desc);
+ }
+ 
+@@ -2152,7 +2151,7 @@ int main(int argc, char *argv[])
+ 
+ 	bt_shell_init(argc, argv, NULL);
+ 	bt_shell_set_menu(&main_menu);
+-	bt_shell_set_prompt(PROMPT_OFF);
++	bt_shell_set_prompt(PROMPT, NULL);
+ 
+ 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SESSION, NULL, NULL);
+ 
+-- 
+2.55.0
+

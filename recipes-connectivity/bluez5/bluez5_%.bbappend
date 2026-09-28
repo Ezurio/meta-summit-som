@@ -5,10 +5,13 @@ SRC_URI:append = "\
     file://1001-bluetooth-get_conn_info-auto_connect-disconnect_reason.patch \
     file://1002-btattach-Use-cfsetspeed-instead-of-c_cflag-baud-OR.patch \
     file://1003-use-libedit-instead-of-readline.patch \
+    file://1004-shared-shell-Fix-not-handling-prompt-with-color-prop.patch \
+    file://1005-shared-shell-add-proper-line-clean-to-bt_shell_print.patch \
     "
 
-PACKAGECONFIG[readline] = "--enable-client --with-readline=readline,--disable-client,readline,"
-PACKAGECONFIG[libedit] = "--enable-client --with-readline=libedit,--disable-client,libedit,"
+PACKAGECONFIG[readline] = "--with-readline=readline,,readline,"
+PACKAGECONFIG[libedit] = "--with-readline=libedit,,libedit,"
+PACKAGECONFIG_CONFARGS:append = " ${@bb.utils.contains_any('PACKAGECONFIG', 'readline libedit', '--enable-client', '--disable-client', d)}"
 
 PACKAGECONFIG:remove:summitsom = "readline"
 PACKAGECONFIG:append:summitsom = " libedit"

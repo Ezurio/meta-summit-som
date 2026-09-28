@@ -31,8 +31,8 @@ Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
 
 Upstream-Status: Inappropriate NXP proprietary driver
 ---
- drivers/media/platform/nxp/imx7-media-csi.c | 66 ++++++++++++++--------------
- 1 file changed, 34 insertions(+), 32 deletions(-)
+ drivers/media/platform/nxp/imx7-media-csi.c | 82 ++++++++++++++--------------
+ 1 file changed, 42 insertions(+), 40 deletions(-)
 
 diff --git a/drivers/media/platform/nxp/imx7-media-csi.c b/drivers/media/platform/nxp/imx7-media-csi.c
 index b15e841509f3..7ecdf210ee2a 100644
@@ -56,7 +56,7 @@ index b15e841509f3..7ecdf210ee2a 100644
 +	sd_state = v4l2_subdev_lock_and_get_active_state(&csi->sd);
 +	if (sd_state) {
 +		const struct v4l2_mbus_framefmt *fmt =
-+			v4l2_subdev_state_get_format(sd_state, IMX7_CSI_PAD_SINK);
++			v4l2_subdev_state_get_stream_format(sd_state, IMX7_CSI_PAD_SINK, 0);
 +
 +		if (fmt)
 +			cc = imx7_csi_find_mbus_format(fmt->code);

@@ -58,6 +58,7 @@ IMX_DEFAULT_BSP = "nxp"
 MACHINE_EXTRA_RRECOMMENDS:remove = "imx-m33-demos"  
 
 KERNEL_CLASSES = "kernel-fit-extra-artifacts"
+KERNEL_IMAGETYPES = "Image"
 
 KERNEL_IMAGETYPE = "Image"
 KERNEL_IMAGETYPE:mx9-generic-bsp = "Image"

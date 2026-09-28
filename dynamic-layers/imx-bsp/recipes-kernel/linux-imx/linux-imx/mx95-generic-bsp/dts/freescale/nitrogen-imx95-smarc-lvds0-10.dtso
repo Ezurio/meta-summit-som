@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright 2024 Ezurio LLC
+ *
+ */
+
+// LVDS0 is disabled on SMARC module by default
+// requires switching 0 Ohm resistors to enable
+
+#include "nitrogen-imx95-smarc-lvds0-7.dtso"
+
+&backlight_lvds0 {
+	pwms = <&tpm4 2 100000 0>;
+};
+
+&display_lvds0 {
+	width-mm = <217>;
+	height-mm = <136>;
+};
+
+&touchscreen_lvds {
+	compatible = "goodix,gt9271";
+};

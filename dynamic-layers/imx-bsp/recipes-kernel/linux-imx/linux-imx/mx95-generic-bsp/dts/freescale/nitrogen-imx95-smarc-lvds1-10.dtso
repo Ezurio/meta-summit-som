@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright 2024 Ezurio LLC
+ *
+ */
+
+#include "nitrogen-imx95-smarc-lvds1-7.dtso"
+
+&backlight_lvds1 {
+	pwms = <&tpm3 2 100000 0>;
+};
+
+&display_lvds1 {
+	width-mm = <217>;
+	height-mm = <136>;
+};
+
+&touchscreen_lvds {
+	compatible = "goodix,gt9271";
+};
