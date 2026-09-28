@@ -7,8 +7,9 @@ SRC_URI:append = "\
     file://1003-use-libedit-instead-of-readline.patch \
     "
 
-PACKAGECONFIG[readline] = "--enable-client --with-readline=readline,--disable-client,readline,"
-PACKAGECONFIG[libedit] = "--enable-client --with-readline=libedit,--disable-client,libedit,"
+PACKAGECONFIG[readline] = "--with-readline=readline,,readline,"
+PACKAGECONFIG[libedit] = "--with-readline=libedit,,libedit,"
+PACKAGECONFIG_CONFARGS:append = " ${@bb.utils.contains_any('PACKAGECONFIG', 'readline libedit', '--enable-client', '--disable-client', d)}"
 
 PACKAGECONFIG:remove:summitsom = "readline"
 PACKAGECONFIG:append:summitsom = " libedit"
