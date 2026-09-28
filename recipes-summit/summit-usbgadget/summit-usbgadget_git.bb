@@ -18,8 +18,6 @@ export SWUPDATE_INCLUDE_DIR = "${STAGING_INCDIR}"
 SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/summit-usbgadget.git;${SUMMIT_EXTERNAL_GIT_SUFFIX}"
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_apps-summit-usbgadget.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"
 
-SUMMIT_PLATFORM_VERSION = "lrd-14.25.0.x"
-
 SRC_URI:append = " \
     file://summit-usbgadget.service \
     file://summit-usbgadget.init \
