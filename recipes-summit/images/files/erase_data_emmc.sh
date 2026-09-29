@@ -68,7 +68,7 @@ migrate_data() {
 		die "Mounting ${1} to ${MOUNT_POINT} Failed"
 	}
 
-	find ${DATA_SRC} -maxdepth 1 -path ${DATA_SRC}/lost+found -prune -o \
+	find "${DATA_SRC}" -mindepth 1 -maxdepth 1 -path "${DATA_SRC}/lost+found" -prune -o \
 		-exec cp -fav -t ${MOUNT_POINT} {} \; || {
 		/bin/umount ${MOUNT_POINT} || true
 		/usr/sbin/dmsetup remove data_enc_o
