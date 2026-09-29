@@ -1,0 +1,30 @@
+uuu_version 1.5.233
+
+# Host-side uuu provisioning script for the i.MX95 Nitrogen rescue image.
+
+CFG: SDPS: -vid 0x1fc9 -pid 0x015c -chip MX95
+CFG: SDPS: -vid 0x1fc9 -pid 0x015d -chip MX95
+CFG: SDPV: -vid 0x3016 -pid 0x1000 -chip SPL1
+
+# ROM/SDP stage: stream the bootloader. flash-rescue.bin is a multi-container
+# image (OEI/DDR + System Manager + SPL, then TF-A/OP-TEE/U-Boot proper); the
+# boot ROM consumes the first container set and jumps to SPL.
+SDPS: boot -f flash-rescue.bin
+
+# SPL/SDP stage: push the second container (TF-A + OP-TEE + U-Boot proper) into
+# the SDP gadget that SPL brings up, then jump to it.
+SDPV: delay 2000
+SDPV: write -f flash-rescue.bin -skipspl
+SDPV: jump
+
+# Boot a temporary recovery Linux image. `download` only copies the FIT into
+# DDR; U-Boot still needs an explicit boot command to start it.
+FB: ucmd setenv fastboot_buffer ${loadaddr}
+FB: download -f fitImage-rescue
+FB: acmd bootm ${fastboot_buffer}
+FB: done
+
+# Stream the SWU payload over FBK file-upload and let the gadget side
+# forward it directly into SWUpdate.
+#FBK: ucp image-XYZ-weston-imxXXX-XYZ.swu  t:-
+#FBK: done

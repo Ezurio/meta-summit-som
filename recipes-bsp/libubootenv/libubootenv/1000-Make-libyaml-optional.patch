@@ -1,0 +1,88 @@
+From 0052cdc11ab826192fa08779266073ee132f3940 Mon Sep 17 00:00:00 2001
+From: Stefano Babic <stefano.babic@swupdate.org>
+Date: Tue, 29 Oct 2024 09:23:20 +0100
+Subject: [PATCH] Make libyaml optional for libubootenv 0.3.5
+
+Allow building without libyaml. Keep the 0.3.5 YAML parser in place when
+YAML support is enabled, and fall back to fw_env.config when it is disabled.
+
+Upstream-Status: Pending
+---
+ CMakeLists.txt     | 6 ++++++
+ src/CMakeLists.txt | 3 +++
+ src/uboot_env.c    | 8 ++++++++
+ 3 files changed, 17 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,6 +18,12 @@ if(DEFAULT_ENV_FILE)
+     add_definitions(-DDEFAULT_ENV_FILE="${DEFAULT_ENV_FILE}")
+ endif(DEFAULT_ENV_FILE)
+ 
++option(NO_YML_SUPPORT "Disable YAML support" OFF)
++
++if(NO_YML_SUPPORT)
++    add_definitions(-DNO_YAML_SUPPORT)
++endif()
++
+ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+ 
+ #set(CMAKE_C_FLAGS_DEBUG "-g")
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -21,6 +21,9 @@ ADD_LIBRARY(ubootenv_static STATIC ${libubootenv_SOURCES} ${include_HEADERS})
+ SET_TARGET_PROPERTIES(ubootenv_static PROPERTIES OUTPUT_NAME ubootenv)
+ add_executable(fw_printenv fw_printenv.c)
+-target_link_libraries(ubootenv z yaml)
++target_link_libraries(ubootenv z)
++if (NOT NO_YML_SUPPORT)
++target_link_libraries(ubootenv yaml)
++endif(NOT NO_YML_SUPPORT)
+ target_link_libraries(fw_printenv ubootenv)
+ add_custom_target(fw_setenv ALL ${CMAKE_COMMAND} -E create_symlink fw_printenv fw_setenv)
+ 
+diff --git a/src/uboot_env.c b/src/uboot_env.c
+--- a/src/uboot_env.c
++++ b/src/uboot_env.c
+@@ -28,7 +28,9 @@
+ #include <sys/wait.h>
+ #include <sys/ioctl.h>
+ #include <zlib.h>
++#if !defined(NO_YAML_SUPPORT)
+ #include <yaml.h>
++#endif
+ #include <mtd/mtd-user.h>
+ #include <mtd/ubi-user.h>
+ 
+@@ -62,0 +63,1 @@
++#if !defined(NO_YAML_SUPPORT)
+@@ -96,6 +99,7 @@ struct parser_state {
+ 	yaml_parse_error_type_t error;	/* error causing parser to stop */
+ 	yaml_event_type_t event_type;	/* event type causing error */
+ };
++#endif
+ 
+ /*
+  * The default lockfile is the same as defined in U-Boot for
+@@ -1321,6 +1325,7 @@ static int libuboot_load(struct uboot_ctx *ctx)
+ 	return ctx->valid ? 0 : -ENODATA;
+ }
+ 
++#if !defined(NO_YAML_SUPPORT)
+ int consume_event(struct parser_state *s, yaml_event_t *event)
+ {
+ 	char *value;
+@@ -1621,6 +1626,9 @@ int parse_yaml_config(struct uboot_ctx **ctxlist, FILE *fp)
+ 	*ctxlist = state.ctxsets;
+ 	return status;
+ }
++#else
++#define parse_yaml_config(ctxlist, fp) -1
++#endif
+ 
+ #define LINE_LENGTH 1024
+ int libuboot_load_file(struct uboot_ctx *ctx, const char *filename)
+-- 
+2.43.0

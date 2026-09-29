@@ -3,14 +3,8 @@
 
 Upstream-Status: Inappropriate No time for upstreaming
 
-@@ -32,7 +32,6 @@
- #include <sys/stat.h>
- #include <sys/wait.h>
- #include <sys/ioctl.h>
+@@ -35,1 +35,0 @@
 -#include <zlib.h>
- #include <yaml.h>
- #include <mtd/mtd-user.h>
- #include <mtd/ubi-user.h>
 @@ -1115,6 +1116,19 @@
  	return &libinfo;
  }
@@ -33,15 +27,9 @@ Upstream-Status: Inappropriate No time for upstreaming
  	struct var_entry *entry;
 --- a/src/CMakeLists.txt	2022-03-29 01:36:47.000000000 
 +++ b/src/CMakeLists.txt	2022-03-29 12:21:41.000000000 
-@@ -21,7 +21,7 @@
- ADD_LIBRARY(ubootenv_static STATIC ${libubootenv_SOURCES} ${include_HEADERS})
- SET_TARGET_PROPERTIES(ubootenv_static PROPERTIES OUTPUT_NAME ubootenv)
- add_executable(fw_printenv fw_printenv.c)
--target_link_libraries(ubootenv z yaml)
-+target_link_libraries(ubootenv yaml)
- target_link_libraries(fw_printenv ubootenv)
- add_custom_target(fw_setenv ALL ${CMAKE_COMMAND} -E create_symlink fw_printenv fw_setenv)
- 
+@@ -24,1 +24,1 @@
+-target_link_libraries(ubootenv z)
++target_link_libraries(ubootenv)
 --- a/src/libubootenv.pc.in	2021-11-02 11:11:40.000000000 
 +++ b/src/libubootenv.pc.in	2022-08-26 12:36:07.000000000 
 @@ -10,5 +10,5 @@

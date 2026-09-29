@@ -1,4 +1,4 @@
-RPMB_FS_DEV_ID ?= "2"
+RPMB_FS_DEV_ID ?= "${EMMC_DEVICE}"
 
 EXTRA_OEMAKE:append:summitsom:mx8mm-generic-bsp = " \
     CFG_CORE_LARGE_PHYS_ADDR=y \

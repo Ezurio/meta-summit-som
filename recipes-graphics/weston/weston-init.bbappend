@@ -16,4 +16,7 @@ do_install:append:summitsom() {
     sed -i -E -e '/^#?\[shell\]/ s/^#//' \
         -e "/\[shell\]/a\background-image=${datadir}/backgrounds/Ezurio_logo-White_Red.png\nbackground-type=centered\nbackground-color=0xFF000000" \
         "${D}${sysconfdir}/xdg/weston/weston.ini"
+
+   grep -q '^require-outputs=' "${D}${sysconfdir}/xdg/weston/weston.ini" || \
+        sed -i -e "/^\[core\]/a require-outputs=none" "${D}${sysconfdir}/xdg/weston/weston.ini"
 }
