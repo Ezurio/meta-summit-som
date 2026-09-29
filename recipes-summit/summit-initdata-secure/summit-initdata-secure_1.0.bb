@@ -33,6 +33,7 @@ RDEPENDS:${PN} = " \
     keyutils \
     fscryptctl \
     libdevmapper \
+    lvm2-udevrules \
     e2fsprogs-mke2fs \
     ${PN}-mount-data \
     ${@bb.utils.contains('COMBINED_FEATURES', 'bluetooth', '${PN}-bluetooth', '', d)} \
