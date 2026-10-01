@@ -132,7 +132,7 @@ fi
 
 [ -n "${BR2_DL_DIR}" ] && DL_DIR="${BR2_DL_DIR}" || DL_DIR="${HOME}/.br2_dl_dir"
 export DL_DIR
-BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} DL_DIR SSTATE_DIR VIGILES_KEY_FILE BSP_VENDOR"
+BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} DL_DIR SSTATE_DIR VIGILES_KEY_FILE CCACHE_DIR BSP_VENDOR"
 
 BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} SIG_DATA_PATH SECURE_BOOT"
 
@@ -165,6 +165,9 @@ if ${build_dir_setup_enabled}; then
 
         ${setup_vigiles} || printf '# '
         echo 'INHERIT += "vigiles"'
+
+        [ -n "${CCACHE_DIR}" ] || printf '# '
+        echo 'INHERIT += "ccache"'
     } >> conf/local.conf
 fi
 
