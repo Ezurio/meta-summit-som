@@ -1,5 +1,5 @@
 SUMMARY = "Summit Remote Control Manager (Rust/Axum port)"
-HOMEPAGE = "https://github.com/rfpros/cp_apps-summit-rcm-rust"
+HOMEPAGE = "https://github.com/Ezurio/summit-rcm-rust"
 DESCRIPTION = "Rust/Axum port of the Summit RCM remote configuration manager"
 LICENSE = "Ezurio-Clause"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
