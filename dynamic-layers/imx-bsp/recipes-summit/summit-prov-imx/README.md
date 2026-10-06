@@ -41,24 +41,29 @@ and protect all associated private key material.
 4. The image contains only the signed message, OEM public key, wrapped-key TLV,
    encrypted payload, and checksums. Temporary derived keys are deleted during
    the build.
-5. The helper first attempts to import the volatile fleet key using persistent
-  master ID 1. If the master is absent, it authenticates the signed message,
-  performs one strict key-exchange operation to create the master, and retries
-  the import. ELE persistence blobs are backed by `nvm_daemon` storage.
+5. The helper reads the device lifecycle from ELE and stops before touching the
+   key store unless the device is OEM Closed or OEM Locked. It then attempts to
+   import the volatile fleet key using persistent master ID 1. If the master is
+   absent, it authenticates the signed message, performs one strict
+   key-exchange operation to create the master, and retries the import. ELE
+   persistence blobs are backed by `nvm_daemon` storage.
 6. The helper uses the imported volatile key to authenticate and decrypt the
-  provisioning payload. The volatile key disappears when its key store is
-  closed or the device reboots.
+   provisioning payload. The volatile key disappears when its key store is
+   closed or the device reboots.
 7. On first boot, `summit-prov-imx.service` waits for `/data`, the ELE NVM
-  daemon, and the TEE supplicant. Its wrapper verifies `SHA256SUMS`, decrypts
-  the archive into a private temporary directory, initializes the OP-TEE
-  PKCS#11 token, and imports the archive's certificates and private keys.
+   daemon, and the TEE supplicant. Its wrapper verifies `SHA256SUMS`, decrypts
+   the archive into a private temporary directory, initializes the OP-TEE
+   PKCS#11 token, and imports the archive's certificates and private keys.
 8. The wrapper copies optional `data/` content to `/data/prov`, removes all
-  temporary plaintext, and creates `/data/.provisioned` only after every step
-  succeeds. Later boots skip provisioning when that persistent marker exists.
+   temporary plaintext, and creates `/data/.provisioned` only after every step
+   succeeds. Later boots skip provisioning when that persistent marker exists.
 
 The helper also accepts `--reuse-only`. This mode requires the key store and
 persistent master ID 1 to exist, verifies the master's attributes, and never
 attempts to create either one.
+
+This flow is used when `SECURE_BOOT = "1"`. Other builds use the non-secure
+flow described below.
 
 ## Input layout
 
@@ -75,6 +80,7 @@ example, when `SIG_DATA_PATH` is `/path/to/keys/nitrogen/ahab`, it reads:
     │   ├── keystore/
     │   └── data/                 # optional
     └── summit-prov-imx/
+        ├── nxp-prod-ka-public.bin
         ├── oem-ka-private.pem
         └── fleet-aes-256.bin
 
@@ -109,22 +115,70 @@ Configure only the common parent path:
 
     SIG_DATA_PATH = "/secure/build-inputs/product/nitrogen/ahab"
 
-## Recipe-provided platform input
+Non-secure builds only read `prov_data/`; the other inputs are not required.
 
-### NXP production key-agreement public key
+## Device lifecycle
 
-Each supported i.MX 9 family requires the NXP production key-agreement public
-key corresponding to the private key available to ELE as key ID `0x70000000`.
-This is public, NXP-owned key material rather than a customer secret, so the
-recipe supplies the appropriate key for the target platform and decodes it only
-in the temporary SPSDK workspace.
+Secure provisioning requires the device to have the product SRK table hash
+fused and to be in OEM Closed or OEM Locked. ELE only performs the signed key
+exchange when the SRK table hash is fused, and the NXP production
+key-agreement key used to build the artifacts is the one ELE reports in OEM
+Closed and OEM Locked. The helper reads the lifecycle from ELE, logs the raw
+value, and refuses to create or use the key store in any other lifecycle.
 
-The keys supplied by the recipe are kept separate by processor family. For each
-supported target, the recipe selects the NXP production key-agreement public key
-qualified for that family. A key for one processor family must not be assumed
-valid for another.
+Fusing the SRK table hash is irreversible. A device that boots a secured image
+with the SRK table hash fused is moved to OEM Closed by U-Boot, so only fuse
+devices intended to be closed. For evaluation, use a non-secure build instead.
+
+## Non-secure builds
+
+When `SECURE_BOOT` is not `1`, the recipe does not use ELE. It encrypts the
+provisioning archive with AES-256-CBC using a random key and IV generated for
+each build, and writes that key and IV into the installed
+`summit-prov-imx.sh`. On first boot the wrapper decrypts the archive with
+`openssl` and then imports it exactly as in the secure flow. This works on
+devices in any lifecycle, including OEM Open with no fuses written.
+
+The decryption key is stored in cleartext in the root filesystem, so this mode
+only obscures `prov_data`; it does not protect it. It is intended for
+evaluation and development and must only be used with test provisioning data.
+The customer `fleet-aes-256.bin` and other secret inputs are never used or
+installed by a non-secure build.
 
 ## Customer-provided cryptographic inputs
+
+### `nxp-prod-ka-public.bin`
+
+The NXP production key-agreement public key corresponding to the private key
+available to ELE as key ID `0x70000000`. It is public key material, but it is
+not a fixed per-family constant. In the OEM Open lifecycle, every device
+reports the same generic key, whether or not the SRK table hash is fused. Once
+the device is OEM Closed, ELE reports a key bound to the fused SRK table hash;
+OEM Closed and OEM Locked devices with the same SRK table hash report the same
+key. A key exported in one state derives a different import master in another,
+and the key-import TLV is then rejected on the target. Because this is public
+key material, it does not need the protection required for
+`oem-ka-private.pem` and `fleet-aes-256.bin`.
+
+Export this key from a device fused with the product SRK table hash and moved
+to OEM Closed (or later), for example from U-Boot with SPSDK:
+
+    nxpele --family mx93 --device uboot_serial --port /dev/ttyUSB0,115200 \
+        export-nxp-prod-ka-puk --key-id 0x70000000 \
+        --output summit-prov-imx/nxp-prod-ka-public.bin
+
+The recipe accepts the raw 64-byte `X || Y` form produced by this command or
+the 65-byte uncompressed SEC1 form with a leading `0x04` byte, and rejects
+values that are not valid P-256 points.
+
+Devices must be provisioned after they are OEM Closed.
+The generated master and fleet keys use the `CURRENT` lifecycle attribute,
+which ELE resolves when the key is created. Devices provisioned in OEM Closed
+continue to work after they are moved to OEM Locked.
+
+The development input in `keys/nitrogen/ahab` was exported from devices fused
+with the development SRK table in the OEM Closed and OEM Locked lifecycles, and
+is valid only for devices in those states.
 
 ### `oem-ka-private.pem`
 
@@ -200,20 +254,27 @@ package.
 
 ## Recipe output
 
-The recipe creates a deterministic `prov_data.tar.gz`, encrypts it with
-AES-256-GCM using a fresh 12-byte (96-bit) nonce, and packages:
+The recipe creates a deterministic `prov-data.tar.gz`, which must not exceed
+65,520 bytes. ELE decrypts the payload in a single operation, and the kernel ELE
+driver's 128 KiB per-user shared memory must hold both the ciphertext and the
+plaintext. The same limit applies to non-secure builds.
+
+Secure builds encrypt the archive with AES-256-GCM using a fresh 12-byte
+(96-bit) nonce and package:
 
     nonce || ciphertext || 16-byte authentication tag
 
-The unencrypted archive must not exceed 1 MiB.
-
-The target package contains only:
+The target package of a secure build contains only:
 
 - `key-exchange.bin`
 - `oem-ka-public.bin`
 - `key-import-tlv.bin`
 - `prov-data.tar.gz.aes-gcm`
 - a generated target-side `SHA256SUMS` covering the four files above
+
+A non-secure build instead contains `prov-data.tar.gz.aes-cbc` and a
+`SHA256SUMS` covering it, and its decryption key and IV are in
+`summit-prov-imx.sh`.
 
 It also installs and enables `summit-prov-imx.service` and its orchestration
 wrapper. The service is a systemd oneshot ordered after `mount_data.service`,
@@ -226,7 +287,8 @@ wrapped key, and AES-GCM payload provides the cryptographic authenticity checks.
 
 It does not contain the plaintext provisioning archive, fleet AES key, derived
 master, shared secret, OEM key-agreement private key, or OEM signing private
-keys.
+keys. Non-secure builds contain none of the customer secret inputs either, but
+do contain the per-build key that decrypts the archive.
 
 The decrypted archive exists only in a mode-0700 temporary directory. An exit
 trap removes that directory on success, failure, or termination. The persistent

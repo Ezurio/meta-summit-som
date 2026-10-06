@@ -18,6 +18,13 @@
 #define EXPECTED_TLV_SIZE     141u
 #define GCM_IV_SIZE           12u
 #define GCM_TAG_SIZE          16u
+/*
+ * The kernel ELE driver gives each user 128 KiB of shared memory
+ * (MAX_DATA_SIZE_PER_USER), which must hold the IV and tag (each padded to
+ * 16 bytes) plus the input and output buffers. Larger requests can reset the
+ * SoC instead of failing cleanly, so reject them before calling ELE.
+ */
+#define MAX_PLAINTEXT_SIZE    65520u
 
 static uint8_t *read_file(const char *path, size_t *size)
 {
@@ -89,6 +96,45 @@ static int report_hsm_error(const char *operation, hsm_err_t err)
     return -1;
 }
 
+/*
+ * The artifacts are generated for the SRK-bound NXP KA key reported in OEM
+ * Closed and OEM Locked. Refuse to touch the key store in any other lifecycle
+ * so that no unusable persistent master is created.
+ */
+static int check_lifecycle(hsm_hdl_t session_hdl)
+{
+    op_get_info_args_t info_args = {0};
+    const char *name = NULL;
+    hsm_err_t err;
+
+    err = hsm_get_info(session_hdl, &info_args);
+    free(info_args.chip_unique_id);
+    if (report_hsm_error("get ELE device info", err))
+        return -1;
+
+    switch (info_args.chip_life_cycle) {
+    case SOC_LF_CLOSED:
+        name = "OEM Closed";
+        break;
+    case SOC_LF_CLOSED_LOCKED:
+        name = "OEM Locked";
+        break;
+    case SOC_LF_OPEN:
+        fprintf(stderr, "[FAIL] device lifecycle: 0x%x (OEM Open); "
+                "provisioning requires OEM Closed or OEM Locked\n",
+                info_args.chip_life_cycle);
+        return -1;
+    default:
+        fprintf(stderr, "[FAIL] device lifecycle: 0x%x (unknown); "
+                "provisioning requires OEM Closed or OEM Locked\n",
+                info_args.chip_life_cycle);
+        return -1;
+    }
+    printf("[INFO] device lifecycle: 0x%x (%s)\n",
+           info_args.chip_life_cycle, name);
+    return 0;
+}
+
 static void usage(const char *program)
 {
     fprintf(stderr,
@@ -150,8 +196,10 @@ int main(int argc, char **argv)
                 import_tlv_size, EXPECTED_TLV_SIZE);
         goto cleanup;
     }
-    if (payload_size <= GCM_IV_SIZE + GCM_TAG_SIZE || payload_size > UINT32_MAX) {
-        fprintf(stderr, "[FAIL] invalid encrypted payload size: %zu\n", payload_size);
+    if (payload_size <= GCM_IV_SIZE + GCM_TAG_SIZE ||
+        payload_size > GCM_IV_SIZE + MAX_PLAINTEXT_SIZE + GCM_TAG_SIZE) {
+        fprintf(stderr, "[FAIL] invalid encrypted payload size: %zu (plaintext limit %u)\n",
+                payload_size, MAX_PLAINTEXT_SIZE);
         goto cleanup;
     }
     plaintext_size = payload_size - GCM_IV_SIZE - GCM_TAG_SIZE;
@@ -164,6 +212,9 @@ int main(int argc, char **argv)
     session_args.mu_type = HSM1;
     err = hsm_open_session(&session_args, &session_hdl);
     if (report_hsm_error("open HSM session", err))
+        goto cleanup;
+
+    if (check_lifecycle(session_hdl))
         goto cleanup;
 
     key_store_args.key_store_identifier = KEY_STORE_ID;

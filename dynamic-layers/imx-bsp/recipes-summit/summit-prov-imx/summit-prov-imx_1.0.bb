@@ -1,5 +1,5 @@
 SUMMARY = "Summit ELE provisioning helper for NXP i.MX93"
-DESCRIPTION = "Installs the ELE provisioning helper and offline-generated, non-secret provisioning artifacts used to derive a persistent OEM import master key, import a wrapped volatile fleet key, and decrypt an AES-GCM provisioning payload."
+DESCRIPTION = "Installs the ELE provisioning helper and offline-generated, non-secret provisioning artifacts used to derive a persistent OEM import master key, import a wrapped volatile fleet key, and decrypt an AES-GCM provisioning payload. Builds without SECURE_BOOT instead install an AES-CBC payload decrypted with a per-build key stored in the image."
 
 LICENSE = "Ezurio"
 NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
@@ -29,14 +29,11 @@ inherit ${@oe.utils.ifelse( \
 
 require conf/machine/include/summit-spsdk-family.inc
 
-SUMMIT_PROV_IMX_NXP_PROD_KA_PUBLIC:mx93-generic-bsp = "imx93-nxp-prod-ka-public.bin.b64"
-
 SRC_URI = " \
     file://LICENSE.ezurio \
     file://summit-prov-imx.c \
     file://encrypt_prov_data.py \
     file://generate_ele_artifacts.py \
-    file://${SUMMIT_PROV_IMX_NXP_PROD_KA_PUBLIC} \
     file://summit-prov-imx.sh \
     file://summit-prov-imx.service \
     "
@@ -57,14 +54,20 @@ SUMMIT_PROV_IMX_PUBLIC_INPUTS = " \
     key-import-tlv.bin \
     "
 SUMMIT_PROV_IMX_CRYPTO_INPUTS = " \
+    nxp-prod-ka-public.bin \
     oem-ka-private.pem \
     fleet-aes-256.bin \
     "
 
-do_install[file-checksums] += "${@' '.join('%s/%s:True' % (d.expand('${SIG_DATA_PATH}/summit-prov-imx'), name) for name in d.getVar('SUMMIT_PROV_IMX_CRYPTO_INPUTS').split())}"
-do_install[file-checksums] += "${SIG_DATA_PATH}/spsdk_ahab.yaml:True"
-
 python __anonymous () {
+    # Only secure builds use ELE and need the crypto and AHAB signing inputs.
+    if d.getVar("SECURE_BOOT") == "1":
+        crypto_dir = d.expand("${SIG_DATA_PATH}/summit-prov-imx")
+        checksums = ["%s/%s:True" % (crypto_dir, name)
+                     for name in d.getVar("SUMMIT_PROV_IMX_CRYPTO_INPUTS").split()]
+        checksums.append(d.expand("${SIG_DATA_PATH}/spsdk_ahab.yaml:True"))
+        d.appendVarFlag("do_install", "file-checksums", " " + " ".join(checksums))
+
     prov_data_dir = d.expand("${SIG_DATA_PATH}/prov_data")
     checksums = []
     if os.path.isdir(prov_data_dir):
@@ -92,6 +95,38 @@ do_install () {
         bbfatal "i.MX provisioning data directory not found: $prov_data_dir"
     [ -d "$prov_data_dir/keystore" ] || \
         bbfatal "No keystore directory found in $prov_data_dir"
+
+    # Build a deterministic archive from the product's prov_data directory.
+    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
+        -C "$prov_data_dir" -czf "${B}/prov-data.tar.gz" .
+    # ELE decrypts the payload in one operation, limited by the kernel driver's
+    # 128 KiB shared-memory buffer. The same limit applies to non-secure builds
+    # so a prov_data that works there also works in a secure build.
+    [ "$(stat -c %s "${B}/prov-data.tar.gz")" -le 65520 ] || \
+        bbfatal "Provisioning archive exceeds the 65520-byte ELE limit"
+
+    install -D -m 0755 "${B}/summit-prov-imx" \
+        "${D}${sbindir}/summit-prov-imx"
+    install -D -m 0755 "${S}/summit-prov-imx.sh" \
+        "${D}${sbindir}/summit-prov-imx.sh"
+    install -D -m 0644 "${S}/summit-prov-imx.service" \
+        "${D}${systemd_system_unitdir}/summit-prov-imx.service"
+    install -d -m 0755 "${D}${SUMMIT_PROV_IMX_DATADIR}"
+
+    case "${SECURE_BOOT}" in
+    1)
+        summit_prov_imx_install_secure
+        ;;
+    *)
+        summit_prov_imx_install_nonsecure
+        ;;
+    esac
+    rm -f "${B}/prov-data.tar.gz"
+}
+
+# Wrap the fleet key for ELE and encrypt the archive with AES-256-GCM. Only
+# public or wrapped material is installed; the fleet key never enters the image.
+summit_prov_imx_install_secure () {
     [ -d "$crypto_dir" ] || \
         bbfatal "i.MX provisioning crypto directory not found: $crypto_dir"
     [ -f "${SIG_DATA_PATH}/spsdk_ahab.yaml" ] || \
@@ -121,7 +156,7 @@ do_install () {
     ${PYTHON} "${S}/generate_ele_artifacts.py" \
         --sig-data-path "${SIG_DATA_PATH}" \
         --crypto-dir "$crypto_dir" \
-        --nxp-prod-ka-public "${S}/${SUMMIT_PROV_IMX_NXP_PROD_KA_PUBLIC}" \
+        --nxp-prod-ka-public "$crypto_dir/nxp-prod-ka-public.bin" \
         --output-dir "${B}/generated-ele" \
         --work-dir "${B}/ele-generation-work" \
         --family "${SPSDK_FAMILY}" \
@@ -136,28 +171,11 @@ do_install () {
     [ "$(stat -c %s "${B}/generated-ele/key-import-tlv.bin")" -eq 141 ] || \
         bbfatal "Generated key-import-tlv.bin must be 141 bytes"
 
-    # Build a deterministic archive from the product's prov_data directory, then
-    # encrypt it with a fresh 96-bit GCM nonce. The fleet key itself is never
-    # installed into the target image.
-    tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
-        -C "$prov_data_dir" -czf "${B}/prov-data.tar.gz" .
     ${PYTHON} "${S}/encrypt_prov_data.py" \
         "$crypto_dir/fleet-aes-256.bin" \
         "${B}/prov-data.tar.gz" \
         "${B}/prov-data.tar.gz.aes-gcm"
-    rm -f "${B}/prov-data.tar.gz"
 
-    [ "$(stat -c %s "${B}/prov-data.tar.gz.aes-gcm")" -le 1048604 ] || \
-        bbfatal "Encrypted provisioning payload exceeds the 1 MiB plaintext limit"
-
-    install -D -m 0755 "${B}/summit-prov-imx" \
-        "${D}${sbindir}/summit-prov-imx"
-    install -D -m 0755 "${S}/summit-prov-imx.sh" \
-        "${D}${sbindir}/summit-prov-imx.sh"
-    install -D -m 0644 "${S}/summit-prov-imx.service" \
-        "${D}${systemd_system_unitdir}/summit-prov-imx.service"
-
-    install -d -m 0755 "${D}${SUMMIT_PROV_IMX_DATADIR}"
     for artifact in ${SUMMIT_PROV_IMX_PUBLIC_INPUTS}; do
         install -m 0644 "${B}/generated-ele/$artifact" \
             "${D}${SUMMIT_PROV_IMX_DATADIR}/$artifact"
@@ -167,7 +185,32 @@ do_install () {
 
     cd "${D}${SUMMIT_PROV_IMX_DATADIR}" || \
         bbfatal "Unable to enter installed provisioning data directory"
-    openssl dgst -sha256 -r key-exchange.bin oem-ka-public.bin \
-        key-import-tlv.bin prov-data.tar.gz.aes-gcm > \
+    openssl dgst -sha256 -r ${SUMMIT_PROV_IMX_PUBLIC_INPUTS} \
+        prov-data.tar.gz.aes-gcm > "${D}${SUMMIT_PROV_IMX_DATADIR}/SHA256SUMS"
+}
+
+# Without secure boot, encrypt the archive with a random per-build AES-256-CBC
+# key that is embedded in the wrapper script. The key is in cleartext in the
+# rootfs, so this does not protect prov_data and is not for production. A
+# per-build key is used so that no customer key is ever exposed this way.
+summit_prov_imx_install_nonsecure () {
+    key=$(openssl rand -hex 32)
+    iv=$(openssl rand -hex 16)
+    openssl enc -aes-256-cbc -K "$key" -iv "$iv" \
+        -in "${B}/prov-data.tar.gz" \
+        -out "${B}/prov-data.tar.gz.aes-cbc"
+
+    sed -i -E \
+        -e "s/^(DECRYPT_KEY=).*/\1\"$key\"/" \
+        -e "s/^(DECRYPT_IV=).*/\1\"$iv\"/" \
+        "${D}${sbindir}/summit-prov-imx.sh"
+    chmod 0700 "${D}${sbindir}/summit-prov-imx.sh"
+
+    install -m 0644 "${B}/prov-data.tar.gz.aes-cbc" \
+        "${D}${SUMMIT_PROV_IMX_DATADIR}/prov-data.tar.gz.aes-cbc"
+
+    cd "${D}${SUMMIT_PROV_IMX_DATADIR}" || \
+        bbfatal "Unable to enter installed provisioning data directory"
+    openssl dgst -sha256 -r prov-data.tar.gz.aes-cbc > \
         "${D}${SUMMIT_PROV_IMX_DATADIR}/SHA256SUMS"
 }

@@ -41,6 +41,11 @@ SO_PIN="1234567890"
 PIN="12345"
 WORKDIR_TMP=""
 
+# Decryption key and IV, populated by the recipe only for builds without
+# SECURE_BOOT. Secure builds leave these empty and decrypt with ELE.
+DECRYPT_KEY=""
+DECRYPT_IV=""
+
 cleanup() {
     if [ -n "${WORKDIR_TMP}" ]; then
         rm -rf "${WORKDIR_TMP}"
@@ -126,8 +131,16 @@ if [ -f "${PROVISIONED_FLAG}" ]; then
     exit 0
 fi
 
-for artifact in key-exchange.bin oem-ka-public.bin key-import-tlv.bin \
-                prov-data.tar.gz.aes-gcm SHA256SUMS; do
+if [ -n "${DECRYPT_KEY}" ]; then
+    PAYLOAD="prov-data.tar.gz.aes-cbc"
+    ARTIFACTS="${PAYLOAD} SHA256SUMS"
+    echo "Non-secure build: decrypting the provisioning archive with the key stored in this image"
+else
+    PAYLOAD="prov-data.tar.gz.aes-gcm"
+    ARTIFACTS="key-exchange.bin oem-ka-public.bin key-import-tlv.bin ${PAYLOAD} SHA256SUMS"
+fi
+
+for artifact in ${ARTIFACTS}; do
     if [ ! -f "${INPUT_DIR}/${artifact}" ]; then
         echo "Provisioning artifact ${INPUT_DIR}/${artifact} not found!"
         exit 1
@@ -146,15 +159,26 @@ umask 077
 WORKDIR_TMP=$(mktemp -d -t summit-prov-imx.XXXXXX)
 OUTPUT_FILE="${WORKDIR_TMP}/prov_data.tar.gz"
 
-/usr/sbin/summit-prov-imx \
-    "${INPUT_DIR}/key-exchange.bin" \
-    "${INPUT_DIR}/oem-ka-public.bin" \
-    "${INPUT_DIR}/key-import-tlv.bin" \
-    "${INPUT_DIR}/prov-data.tar.gz.aes-gcm" \
-    "${OUTPUT_FILE}" || {
-    echo "Failed to authenticate and decrypt the provisioning archive!"
-    exit 1
-}
+if [ -n "${DECRYPT_KEY}" ]; then
+    openssl enc -d -aes-256-cbc \
+        -K "${DECRYPT_KEY}" \
+        -iv "${DECRYPT_IV}" \
+        -in "${INPUT_DIR}/${PAYLOAD}" \
+        -out "${OUTPUT_FILE}" || {
+        echo "Failed to decrypt the provisioning archive!"
+        exit 1
+    }
+else
+    /usr/sbin/summit-prov-imx \
+        "${INPUT_DIR}/key-exchange.bin" \
+        "${INPUT_DIR}/oem-ka-public.bin" \
+        "${INPUT_DIR}/key-import-tlv.bin" \
+        "${INPUT_DIR}/${PAYLOAD}" \
+        "${OUTPUT_FILE}" || {
+        echo "Failed to authenticate and decrypt the provisioning archive!"
+        exit 1
+    }
+fi
 
 # Extract the certificates and private keys from decrypted keystore tar.gz
 tar -xzpf "${OUTPUT_FILE}" -C "${WORKDIR_TMP}" || {

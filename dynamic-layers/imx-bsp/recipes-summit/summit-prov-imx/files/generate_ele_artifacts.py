@@ -2,12 +2,12 @@
 """Generate the matched ELE provisioning artifacts from secured-build inputs."""
 
 import argparse
-import base64
 import os
 from pathlib import Path
 import shutil
 import subprocess
 
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 import yaml
 
@@ -71,12 +71,25 @@ def main() -> None:
         public_numbers.x.to_bytes(32, "big")
         + public_numbers.y.to_bytes(32, "big")
     )
-    nxp_public_key.write_bytes(
-        base64.b64decode(
-            nxp_prod_ka_public.read_bytes().strip(),
-            validate=True,
+    # Accept raw X || Y (SPSDK export-nxp-prod-ka-puk) or uncompressed SEC1
+    # 0x04 || X || Y.
+    nxp_public_bytes = nxp_prod_ka_public.read_bytes()
+    if len(nxp_public_bytes) == 65 and nxp_public_bytes[0] == 0x04:
+        nxp_public_bytes = nxp_public_bytes[1:]
+    if len(nxp_public_bytes) != 64:
+        raise SystemExit(
+            f"{nxp_prod_ka_public}: expected a 64-byte raw or 65-byte "
+            f"uncompressed P-256 public key, got {len(nxp_public_bytes)} bytes"
         )
-    )
+    try:
+        ec.EllipticCurvePublicKey.from_encoded_point(
+            ec.SECP256R1(), b"\x04" + nxp_public_bytes
+        )
+    except ValueError as error:
+        raise SystemExit(
+            f"{nxp_prod_ka_public}: not a valid P-256 public key"
+        ) from error
+    nxp_public_key.write_bytes(nxp_public_bytes)
 
     key_exchange = {
         "family": args.family,
