@@ -23,6 +23,7 @@ IMAGE_FEATURES = "\
     allow-empty-password \
     allow-root-login \
     empty-root-password \
+    read-only-rootfs \
     serial-autologin-root \
     "
 
