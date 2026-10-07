@@ -20,7 +20,7 @@ SDPV: jump
 # Boot a temporary recovery Linux image. `download` only copies the FIT into
 # DDR; U-Boot still needs an explicit boot command to start it.
 FB: ucmd setenv fastboot_buffer ${loadaddr}
-FB: download -f fitImage
+FB: download -f kernel.itb
 FB: acmd bootm ${fastboot_buffer}
 FB: done
 

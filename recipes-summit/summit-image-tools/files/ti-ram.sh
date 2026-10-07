@@ -59,8 +59,8 @@ dfu-util "$@" -d "${GADGET_DFU_DEVICE}" -a u-boot.img -e || true
 # U-Boot proper runs 'fastboot -l ${loadaddr}', so the download lands at
 # loadaddr. U-Boot commands can be sent before 'continue' with
 # 'fastboot oem run:<command>', e.g. to set 'conf' as set-mode does.
-printf '%s\n' "Waiting for U-Boot fastboot and downloading fitImage"
-fb stage "${SCRIPT_DIR}/fitImage"
+printf '%s\n' "Waiting for U-Boot fastboot and downloading kernel.itb"
+fb stage "${SCRIPT_DIR}/kernel.itb"
 
 # 'continue' makes the U-Boot 'fastboot' command return; bootcmd then boots
 # the downloaded FIT with bootm.
