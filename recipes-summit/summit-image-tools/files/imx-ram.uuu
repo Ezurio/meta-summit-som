@@ -1,18 +1,14 @@
-uuu_version 1.5.0
+uuu_version 1.4.165
 
-# Host-side uuu provisioning script for the i.MX8MM Nitrogen rescue image.
-
-CFG: SDPV: -vid 0x0525 -pid 0xb4a4 -chip SPL1
-
-SDP: boot -f flash-rescue.bin
-SDPV: delay 1000
-SDPV: write -f flash-rescue.bin -skipspl
-SDPV: jump
+# ROM/SDP stage: i.MX8MN/8MP/9x expose the ROM's bulk SDPS protocol, so the ROM
+# streams the whole image and starts SPL, which then uses the ROM API to fetch
+# U-Boot proper out of the already-downloaded flash.bin.
+SDPS: boot -f flash.bin
 
 # Boot a temporary recovery Linux image. `download` only copies the FIT into
 # DDR; U-Boot still needs an explicit boot command to start it.
 FB: ucmd setenv fastboot_buffer ${loadaddr}
-FB: download -f fitImage-rescue
+FB: download -f fitImage
 FB: acmd bootm ${fastboot_buffer}
 FB: done
 

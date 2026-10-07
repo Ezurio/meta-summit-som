@@ -2,7 +2,7 @@ SUMMARY = "Summit SOM Rescue USB Boot initramfs Helper Image"
 DESCRIPTION = "Summit SOM Rescue Manufacturing Provisioning USB Boot initramfs Helper Image"
 
 ## WARNING: This recipe is not intended to be built directly. 
-# It is used as a helper for the summitsom-rescue-initramfs-main image.
+# It is used as a helper for the summitsom-initramfs-main image.
 
 LICENSE = "Ezurio-Clause"
 

@@ -6,11 +6,11 @@ LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
 SRC_URI = " \
     file://LICENSE.ezurio \
     file://mksdcard.sh \
-    file://imx-rescue.uuu \
-    file://imx8mm-rescue.uuu \
-    file://imx95-rescue.uuu \
-    file://ti-rescue.sh \
-    file://70-ezurio-am6xx-dfu.rules \
+    file://imx-ram.uuu \
+    file://imx8mm-ram.uuu \
+    file://imx95-ram.uuu \
+    file://ti-ram.sh \
+    file://70-ezurio-usb.rules \
     "
 
 S = "${UNPACKDIR}"
@@ -29,19 +29,15 @@ do_deploy () {
     install -D -m 0755 -t "${DEPLOYDIR}" "${S}/mksdcard.sh"
 }
 
-UUU_FILE:imx-generic-bsp = "${S}/imx-rescue.uuu"
-UUU_FILE:mx8mm-generic-bsp = "${S}/imx8mm-rescue.uuu"
-UUU_FILE:mx95-generic-bsp = "${S}/imx95-rescue.uuu"
+UUU_FILE:imx-generic-bsp = "${S}/imx-ram.uuu"
+UUU_FILE:mx8mm-generic-bsp = "${S}/imx8mm-ram.uuu"
+UUU_FILE:mx95-generic-bsp = "${S}/imx95-ram.uuu"
 
-do_deploy:imx-generic-bsp:summitsom-rescue-initramfs () {
-    install -D -m 0644 "${UUU_FILE}" "${DEPLOYDIR}/imx-rescue.uuu"
+do_deploy:imx-generic-bsp:summitsom-initramfs () {
+    install -D -m 0644 "${UUU_FILE}" "${DEPLOYDIR}/imx-ram.uuu"
 }
 
-do_deploy:imx-generic-bsp:summitsom-mfg-initramfs () {
-    sed 's/rescue/mfg/g' "${UUU_FILE}" > "${DEPLOYDIR}/imx-mfg.uuu"
-}
-
-do_deploy:ti-soc:summitsom-rescue-initramfs () {
-    install -D -m 0755 -t "${DEPLOYDIR}" "${S}/ti-rescue.sh"
-    install -D -m 0644 -t "${DEPLOYDIR}" "${S}/70-ezurio-am6xx-dfu.rules"
+do_deploy:ti-soc:summitsom-initramfs () {
+    install -D -m 0755 -t "${DEPLOYDIR}" "${S}/ti-ram.sh"
+    install -D -m 0644 -t "${DEPLOYDIR}" "${S}/70-ezurio-usb.rules"
 }

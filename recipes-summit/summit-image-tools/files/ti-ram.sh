@@ -11,7 +11,7 @@ ROM_DFU_DEVICE=0451:6165,0451:6165
 GADGET_DFU_DEVICE=1fa3:0003,1fa3:0003
 
 die() {
-    printf 'ti-rescue: %s\n' "$*" >&2
+    printf 'ti-ram: %s\n' "$*" >&2
     exit 1
 }
 
@@ -39,7 +39,7 @@ fb() {
     fi
 }
 
-(cd "${SCRIPT_DIR}" && sha256sum -c rescue-manifest.sha256) || \
+(cd "${SCRIPT_DIR}" && sha256sum -c manifest.sha256) || \
     die "rescue archive integrity check failed"
 
 printf '%s\n' "Waiting for ROM DFU and downloading tiboot3.bin"
@@ -59,11 +59,11 @@ dfu-util "$@" -d "${GADGET_DFU_DEVICE}" -a u-boot.img -e || true
 # U-Boot proper runs 'fastboot -l ${loadaddr}', so the download lands at
 # loadaddr. U-Boot commands can be sent before 'continue' with
 # 'fastboot oem run:<command>', e.g. to set 'conf' as set-mode does.
-printf '%s\n' "Waiting for U-Boot fastboot and downloading fitImage-rescue"
-fb stage "${SCRIPT_DIR}/fitImage-rescue"
+printf '%s\n' "Waiting for U-Boot fastboot and downloading fitImage"
+fb stage "${SCRIPT_DIR}/fitImage"
 
 # 'continue' makes the U-Boot 'fastboot' command return; bootcmd then boots
 # the downloaded FIT with bootm.
 fb continue
 
-printf '%s\n' "Rescue FIT transferred; target is booting"
+printf '%s\n' "FIT transferred; target is booting"
