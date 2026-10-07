@@ -16,9 +16,9 @@ DEPENDS += "summit-image-tools"
 # No rootfs/dm-verity on this initramfs image, so there's no boot script to embed.
 FIT_UBOOT_ENV = ""
 
-ARCHIVE_NAME ?= "${IMAGE_BASENAME}-${MACHINE}-summit${IMAGE_VERSION_SUFFIX}"
-ARCHIVE_DIR_NAME ?= "${DISTRO}"
-
+ARCHIVE_NAME ?= "${INITRAMFS_IMAGE}-${MACHINE}-summit${IMAGE_VERSION_SUFFIX}"
+ARCHIVE_DIR_NAME ?= "${INITRAMFS_IMAGE}"
+ARCHIVE_PATH = "${DEPLOY_DIR_IMAGE}/${ARCHIVE_DIR_NAME}"
 
 RESCUE_FILES:imx-generic-bsp = "flash.bin kernel.itb imx-ram.uuu"
 RESCUE_FILES:k3 = "tiboot3.bin ${SPL_BINARYNAME} u-boot.${UBOOT_SUFFIX} kernel.itb ti-ram.sh 70-ezurio-usb.rules"
@@ -32,8 +32,8 @@ do_create_archive[depends] += "\
     summit-image-tools:do_deploy \
 "
 
-prepare_rescue_archive_files:imx-generic-bsp() {
-    cat > "${DEPLOY_DIR_IMAGE}/${ARCHIVE_DIR_NAME}/manifest" <<EOF
+do_create_archive:prepend:imx-generic-bsp() {
+    cat > "${ARCHIVE_PATH}/manifest" <<EOF
 machine=${MACHINE}
 arch=imx
 fit=kernel.itb
@@ -41,8 +41,8 @@ bootloaders=flash.bin
 EOF
 }
 
-prepare_rescue_archive_files:k3() {
-    cat > "${DEPLOY_DIR_IMAGE}/${ARCHIVE_DIR_NAME}/manifest" <<EOF
+do_create_archive:prepend:k3() {
+    cat > "${ARCHIVE_PATH}/manifest" <<EOF
 machine=${MACHINE}
 arch=k3
 security=HS-FS
@@ -53,21 +53,20 @@ udev-rules=70-ezurio-usb.rules
 EOF
 }
 
-do_create_archive() {
-    archive_dir="${DEPLOY_DIR_IMAGE}/${ARCHIVE_DIR_NAME}"
-    rm -rf "${archive_dir}"
-    install -d "${archive_dir}"
+do_create_archive:prepend() {
+    rm -rf "${ARCHIVE_PATH}"
+    install -d "${ARCHIVE_PATH}"
     for file in ${RESCUE_FILES}; do
-        cp -fL "${DEPLOY_DIR_IMAGE}/${file}" "${archive_dir}/${file}"
+        cp -fL -t "${ARCHIVE_PATH}" "${DEPLOY_DIR_IMAGE}/${file}"
     done
+}
 
-    prepare_rescue_archive_files()
-
-    (cd "${archive_dir}" && sha256sum ${RESCUE_FILES} >> manifest.sha256)
+do_create_archive() {
+    (cd "${ARCHIVE_PATH}" && sha256sum ${RESCUE_FILES} >> manifest.sha256)
 
     if echo "${IMAGE_VERSION_SUFFIX}" | grep -xEq '\-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' ; then
         tar -cvjhf "${DEPLOY_DIR_IMAGE}/${ARCHIVE_NAME}.tar.bz2" \
-            --transform="s,^${ARCHIVE_DIR_NAME}$,${ARCHIVE_NAME}," \
+            --transform="s,^${ARCHIVE_DIR_NAME},${ARCHIVE_NAME}," \
             -C "${DEPLOY_DIR_IMAGE}" "${ARCHIVE_DIR_NAME}"
     fi
 }
