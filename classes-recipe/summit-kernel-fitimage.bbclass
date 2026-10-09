@@ -32,6 +32,10 @@ FIT_DEPLOY_FITIMAGE_NAME ?= "fitImage-${PN}"
 FIT_DEPLOY_KERNEL_ITB_NAME ?= "kernel-${PN}.itb"
 FIT_DEPLOY_ITS_NAME ?= "fit-image-${PN}.its"
 
+# Image recipes normally use B = S, but do_rootfs clears S. Keep this
+# class's FIT build products at the WORKDIR root, outside the source tree.
+B = "${WORKDIR}/build"
+
 # Set to "0" to skip pulling in virtual/dtb (and its .dtbo overlays) even
 # when PREFERRED_PROVIDER_virtual/dtb is set machine/distro-wide.
 FIT_EXTERNAL_DTB_OVERLAYS ?= "1"
@@ -326,8 +330,21 @@ python do_compile_fit() {
     # FIT 'default' is set), add the deferred bare fdt-only configurations
     # for .dtbo overlays collected above.
     for conf_name, fdt_name in overlay_confs:
-        oe.fitimage.ItsNodeConfiguration(conf_name, root_node.configurations, "FDT blob",
+        conf_node = oe.fitimage.ItsNodeConfiguration(conf_name, root_node.configurations, "FDT blob",
             opt_props={"fdt": fdt_name})
+        if root_node._hash_algo:
+            oe.fitimage.ItsNodeHash("hash-1", conf_node, root_node._hash_algo)
+        if root_node._sign_enable:
+            oe.fitimage.ItsNodeConfigurationSignature(
+                "signature-1",
+                conf_node,
+                f"{root_node._hash_algo},{root_node._sign_algo}",
+                root_node._sign_keyname_conf,
+                opt_props={
+                    "padding": root_node._pad_algo,
+                    "sign-images": ["fdt"]
+                }
+            )
 
     # Write the its file
     root_node.write_its_file(itsfile)
@@ -338,6 +355,7 @@ python do_compile_fit() {
     # Sign the FIT image if required
     root_node.run_mkimage_sign(fitname)
 }
+
 do_compile_fit[dirs] = "${B}"
 do_compile_fit[depends] += "virtual/kernel:do_deploy"
 
