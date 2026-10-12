@@ -32,6 +32,10 @@ FIT_DEPLOY_FITIMAGE_NAME ?= "fitImage-${PN}"
 FIT_DEPLOY_KERNEL_ITB_NAME ?= "kernel-${PN}.itb"
 FIT_DEPLOY_ITS_NAME ?= "fit-image-${PN}.its"
 
+# Image recipes normally use B = S, but do_rootfs clears S. Keep this
+# class's FIT build products at the WORKDIR root, outside the source tree.
+B = "${WORKDIR}/build"
+
 # Set to "0" to leave the .dtbo overlays out of the FIT; base DTBs are still
 # taken from virtual/dtb.
 FIT_EXTERNAL_DTB_OVERLAYS ?= "1"
