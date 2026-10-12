@@ -1,0 +1,26 @@
+Subject: [PATCH] ipa: initialize stage gain for exposure fallback
+
+Initialize stageGain to the value already used when there are no gain stages.
+This makes the fallback path explicit and avoids GCC's maybe-uninitialized
+warning, which is fatal because libcamera builds with -Werror.
+
+Upstream-Status: Pending
+
+---
+ src/ipa/libipa/exposure_mode_helper.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ipa/libipa/exposure_mode_helper.cpp b/src/ipa/libipa/exposure_mode_helper.cpp
+--- a/src/ipa/libipa/exposure_mode_helper.cpp
++++ b/src/ipa/libipa/exposure_mode_helper.cpp
+@@ -166,7 +166,7 @@ ExposureModeHelper::splitExposure(utils::Duration exposure) const
+ 		return { minShutter_, minGain_, exposure / (minShutter_ * minGain_) };
+ 
+ 	utils::Duration shutter;
+-	double stageGain;
++	double stageGain = 1.0;
+ 	double gain;
+ 
+ 	for (unsigned int stage = 0; stage < gains_.size(); stage++) {
+-- 
+2.43.0

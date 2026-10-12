@@ -5,6 +5,10 @@ DEPENDS += "u-boot-mkenvimage-native"
 FILES:${PN}-env += "${sysconfdir}/fw_env*.config"
 
 do_compile:append() {
+    if [ -z "${UBOOT_INITIAL_ENV}" ]; then
+        return
+    fi
+
     ENV_SIZE=$(sed -rn 's,^CONFIG_ENV_SIZE=(.*),\1,p' "${B}/.config")
     ENV_OFFSET=$(sed -rn 's,^CONFIG_ENV_OFFSET=(.*),\1,p' "${B}/.config")
 
@@ -23,11 +27,19 @@ do_compile:append() {
 }
 
 do_install:append() {
+    if [ -z "${UBOOT_INITIAL_ENV}" ]; then
+        return
+    fi
+
     install -D -m 644 "${B}/${UBOOT_INITIAL_ENV}.bin" "${D}/boot/uboot.env"
     install -D -m 644 -t "${D}/${sysconfdir}" "${B}"/fw_env*.config
 }
 
 do_deploy:append() {
+    if [ -z "${UBOOT_INITIAL_ENV}" ]; then
+        return
+    fi
+
     install -D -m 644 "${B}/${UBOOT_INITIAL_ENV}.bin" "${DEPLOYDIR}/u-boot-${UBOOT_CONFIG}.env"
     ln -sf "u-boot-${UBOOT_CONFIG}.env" "${DEPLOYDIR}/uboot.env"
 }

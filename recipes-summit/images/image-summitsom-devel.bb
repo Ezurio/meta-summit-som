@@ -1,6 +1,6 @@
 DESCRIPTION = "Summit SOM Devel Image"
 
-inherit image-summitsom-gen image-summitsom-sd-gen
+inherit image-summitsom-gen ${@oe.utils.ifelse('mtk' in (d.getVar('OVERRIDES') or '').split(':'), '', 'image-summitsom-sd-gen')}
 
 # Data partition size
 WIC_ROOTFS_DATA_FIXED_SIZE = "5G"

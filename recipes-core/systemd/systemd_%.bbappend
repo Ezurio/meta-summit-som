@@ -11,7 +11,6 @@ PACKAGECONFIG:summitsom = " \
     ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'xkbcommon', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'sysvinit', 'sysvinit', 'link-udev-shared', d)} \
     backlight \
-    binfmt \
     hibernate \
     hostnamed \
     idn \
@@ -35,4 +34,10 @@ do_install:append:summitsom() {
     rm -f "${D}${systemd_unitdir}/system-generators/systemd-gpt-auto-generator"
     install -D -m 644 -t "${D}${systemd_unitdir}/system/system-preset" \
         "${WORKDIR}/95-network-generator.preset"
+
+    # Scarthgap systemd leaves predictable naming enabled when pni-names is absent.
+    if ! ${@bb.utils.contains('PACKAGECONFIG', 'pni-names', 'true', 'false', d)}; then
+        sed -i 's/^NamePolicy=.*/NamePolicy=/;s/^AlternativeNamesPolicy=.*/AlternativeNamesPolicy=/' \
+            "${D}${rootlibexecdir}/systemd/network/99-default.link"
+    fi
 }

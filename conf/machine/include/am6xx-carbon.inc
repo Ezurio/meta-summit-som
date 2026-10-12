@@ -6,6 +6,16 @@
 
 MACHINEOVERRIDES =. "summitsom:"
 
+PREFERRED_VERSION_hwdata = "0.393"
+PREFERRED_VERSION_hwdata-native = "0.393"
+PREFERRED_VERSION_libdisplay-info = "0.2.0"
+PREFERRED_VERSION_wayland = "1.24.0"
+PREFERRED_VERSION_wayland-native = "1.24.0"
+PREFERRED_VERSION_wayland-protocols = "1.47"
+PREFERRED_VERSION_wayland-protocols-native = "1.47"
+PREFERRED_VERSION_wayland-utils = "1.3.0"
+PREFERRED_VERSION_weston = "15.0.1"
+
 # for better sstate cache reuse
 DEFAULTTUNE = "armv8a-crc-crypto"
 

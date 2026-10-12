@@ -13,14 +13,14 @@ FILES:${PN}:append:summitsom:imx8mp-summitsom = " ${systemd_system_unitdir}"
 do_install:append:summitsom:summitsom_smarc() {
     if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)}; then
         install -D -m 0644 -t ${D}${systemd_system_unitdir}/alsa-restore.service.d/ \
-            ${UNPACKDIR}/sound-drv.conf
+            ${WORKDIR}/sound-drv.conf
     fi
 }
 
 do_install:append:summitsom:summitsom_osm() {
     if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)}; then
         install -D -m 0644 -t ${D}${systemd_system_unitdir}/alsa-restore.service.d/ \
-            ${UNPACKDIR}/sound-drv.conf
+            ${WORKDIR}/sound-drv.conf
     fi
 }
 

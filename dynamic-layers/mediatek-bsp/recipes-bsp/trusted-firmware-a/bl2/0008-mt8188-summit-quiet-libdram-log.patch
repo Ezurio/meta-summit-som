@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Thu, 8 Oct 2026 00:00:00 +0000
+Subject: [PATCH] mt8188: hide the libdram boot trace below LOG_LEVEL_INFO
+
+The prebuilt libdram prints its [MEM]/[EMI]/[PMIC] trace with plain printf.
+Override putchar() in BL2 to drop those lines when LOG_LEVEL is below
+LOG_LEVEL_INFO; at INFO or higher everything is passed through unchanged.
+
+Upstream-Status: Inappropriate [Summit SoM specific]
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/plat/mediatek/mt8188/bl2_console_filter.c b/plat/mediatek/mt8188/bl2_console_filter.c
+--- /dev/null
++++ b/plat/mediatek/mt8188/bl2_console_filter.c
+@@ -0,0 +1,85 @@
++/*
++ * Copyright (c) 2026, Ezurio LLC. All rights reserved.
++ *
++ * SPDX-License-Identifier: BSD-3-Clause
++ */
++
++#include <stdbool.h>
++#include <stdio.h>
++
++#include <common/debug.h>
++#include <drivers/console.h>
++
++/* libdram prints through printf(); below LOG_LEVEL_INFO lines starting with these tags are dropped. */
++static const char *const quiet_tags[] = { "[MEM]", "[EMI]", "[PMIC]" };
++#define NUM_TAGS	(sizeof(quiet_tags) / sizeof(quiet_tags[0]))
++#define MAX_TAG_LEN	6U
++
++static char held[MAX_TAG_LEN];
++static unsigned int nheld;
++static bool mid_line;
++static bool dropping;
++
++static void emit(char c)
++{
++	(void)console_putc((unsigned char)c);
++}
++
++/* Returns 1 if held[] is a strict prefix of a tag, 2 if it is a whole tag, else 0. */
++static int match_tag(void)
++{
++	unsigned int t, i;
++
++	for (t = 0; t < NUM_TAGS; t++) {
++		for (i = 0; i < nheld && quiet_tags[t][i] == held[i]; i++) {
++		}
++		if (i == nheld)
++			return (quiet_tags[t][i] == '\0') ? 2 : 1;
++	}
++
++	return 0;
++}
++
++/* Replaces the libc putchar(), which would pass every character straight to the console. */
++int putchar(int ch)
++{
++	char c = (char)ch;
++	unsigned int i;
++	int m;
++
++	if (LOG_LEVEL >= LOG_LEVEL_INFO) {
++		emit(c);
++		return ch;
++	}
++
++	if (dropping) {
++		if (c == '\n') {
++			dropping = false;
++			mid_line = false;
++		}
++		return ch;
++	}
++
++	if (mid_line) {
++		emit(c);
++		if (c == '\n')
++			mid_line = false;
++		return ch;
++	}
++
++	held[nheld++] = c;
++	m = match_tag();
++	if (m == 1)
++		return ch;
++
++	if (m == 2) {
++		dropping = true;
++	} else {
++		for (i = 0; i < nheld; i++)
++			emit(held[i]);
++		mid_line = (c != '\n');
++	}
++	nheld = 0;
++
++	return ch;
++}
+diff --git a/plat/mediatek/mt8188/platform_bl2.mk b/plat/mediatek/mt8188/platform_bl2.mk
+--- a/plat/mediatek/mt8188/platform_bl2.mk
++++ b/plat/mediatek/mt8188/platform_bl2.mk
+@@ -71,6 +71,8 @@
+ BL2_LIBS += ${LIBDRAM} \
+ 	    ${LIBBASE}
+ 
++BL2_SOURCES += ${MTK_PLAT_SOC}/bl2_console_filter.c
++
+ ifeq (${PLAT_HW_CRYPTO},1)
+ BL2_LIBS += ${MTK_PLAT}/lib/crypt/libarmcrypt.a
+ $(eval $(call add_define,PLAT_HW_CRYPTO))

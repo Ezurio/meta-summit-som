@@ -1,0 +1,92 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] camsys: fit sensor setting timers to the measured SOF period
+
+The sensor setting deadline timer is armed on every SOF with a length
+derived from the sensor's g_frame_interval; sensors that do not implement
+it are treated as 30fps (18ms). With a faster stream (e.g. 90fps, 11ms
+period) the timer is re-armed before it expires, the sensor setting of
+request 3 and later is never applied, the request state machine stalls
+and capture stops after the first frames.
+
+Measure the SOF period and shorten the timers when they do not fit in it.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Inappropriate [MediaTek out-of-tree driver]
+---
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.c
+index 573126b..62329b3 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.c
+@@ -1593,12 +1593,50 @@ static enum hrtimer_restart sensor_deadline_timer_handler(struct hrtimer *t)
+ 	return HRTIMER_RESTART;
+ }
+ 
++/*
++ * The sensor setting deadline timers are derived from the frame rate
++ * reported by the sensor (g_frame_interval). Sensors that do not implement
++ * it are treated as 30fps, so with a faster stream the deadline is longer
++ * than the frame period and the timer, re-armed on every SOF, never expires.
++ * Shorten the timers to fit the measured SOF period in that case.
++ */
++static void mtk_cam_sof_timer_fit_period(struct mtk_cam_ctx *ctx)
++{
++	struct mtk_camsys_sensor_ctrl *sensor_ctrl = &ctx->sensor_ctrl;
++	u64 now = ktime_get_boottime_ns();
++	u64 prev = sensor_ctrl->last_sof_ns;
++	int period_ms, event_ms, sensor_ms;
++
++	sensor_ctrl->last_sof_ns = now;
++	if (!prev || mtk_cam_is_subsample(ctx))
++		return;
++
++	period_ms = DIV_ROUND_CLOSEST_ULL(now - prev, NSEC_PER_MSEC);
++	if (period_ms < 4 || period_ms > 100)
++		return;
++	if (sensor_ctrl->timer_req_event + sensor_ctrl->timer_req_sensor < period_ms)
++		return;
++
++	event_ms = max(1, period_ms * 4 / 10);
++	sensor_ms = max(1, period_ms * 3 / 10);
++	dev_info(ctx->cam->dev,
++		 "[%s] ctx:%d sof period %dms, drained/sensor %d/%d -> %d/%d\n",
++		 __func__, ctx->stream_id, period_ms,
++		 sensor_ctrl->timer_req_event, sensor_ctrl->timer_req_sensor,
++		 event_ms, sensor_ms);
++	sensor_ctrl->timer_req_event = event_ms;
++	sensor_ctrl->timer_req_sensor = sensor_ms;
++}
++
+ static void mtk_cam_sof_timer_setup(struct mtk_cam_ctx *ctx)
+ {
+ 	struct mtk_camsys_sensor_ctrl *sensor_ctrl = &ctx->sensor_ctrl;
+ 	ktime_t m_kt;
+ 	struct mtk_seninf_sof_notify_param param;
+-	int after_sof_ms = ktime_get_boottime_ns() / 1000000
++	int after_sof_ms;
++
++	mtk_cam_sof_timer_fit_period(ctx);
++	after_sof_ms = ktime_get_boottime_ns() / 1000000
+ 			- sensor_ctrl->sof_time;
+ 
+ 	/*notify sof to sensor*/
+@@ -4329,6 +4367,7 @@ int mtk_camsys_ctrl_start(struct mtk_cam_ctx *ctx)
+ 	atomic_set(&camsys_sensor_ctrl->last_drained_seq_no, 0);
+ 	camsys_sensor_ctrl->initial_cq_done = 0;
+ 	camsys_sensor_ctrl->sof_time = 0;
++	camsys_sensor_ctrl->last_sof_ns = 0;
+ 	if (ctx->used_raw_num) {
+ 		if (is_first_request_sync(ctx))
+ 			atomic_set(&camsys_sensor_ctrl->initial_drop_frame_cnt,
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.h b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.h
+index fccd98d..7c15b93 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.h
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-ctrl.h
+@@ -108,6 +108,7 @@ struct mtk_camsys_sensor_ctrl {
+ 	struct kthread_work work;
+ 	struct hrtimer sensor_deadline_timer;
+ 	u64 sof_time;
++	u64 last_sof_ns;
+ 	int timer_req_sensor;
+ 	int timer_req_event;
+ 	atomic_t sensor_enq_seq_no;

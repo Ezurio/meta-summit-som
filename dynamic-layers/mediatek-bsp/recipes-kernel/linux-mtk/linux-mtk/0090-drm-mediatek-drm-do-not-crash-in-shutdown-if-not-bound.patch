@@ -1,0 +1,27 @@
+From: summit <summit@localhost>
+Subject: [PATCH] drm/mediatek: do not crash in shutdown if not bound
+
+If display subcomponents fail to probe, probe is deferred, or the device
+is a secondary MMSYS instance, private or private->drm may be NULL, and
+private->drm_master may be false. Calling drm_atomic_helper_shutdown()
+under these conditions causes a NULL pointer dereference.
+
+Add checks to ensure mtk_drm_shutdown() only runs on the bound master
+DRM device with a valid drm pointer.
+
+Upstream-Status: Pending
+---
+diff --git a/drivers/gpu/drm/mediatek/mtk_drm_drv.c b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+index 37d8113..69a4c52 100644
+--- a/drivers/gpu/drm/mediatek/mtk_drm_drv.c
++++ b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+@@ -1348,6 +1348,9 @@ static void mtk_drm_shutdown(struct platform_device *pdev)
+ {
+ 	struct mtk_drm_private *private = platform_get_drvdata(pdev);
+ 
++	if (!private || !private->drm_master || !private->drm)
++		return;
++
+ 	drm_atomic_helper_shutdown(private->drm);
+ }
+ 

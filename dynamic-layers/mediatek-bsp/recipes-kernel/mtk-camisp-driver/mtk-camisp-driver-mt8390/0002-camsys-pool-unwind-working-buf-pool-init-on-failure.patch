@@ -1,0 +1,109 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] camsys: unwind mtk_cam_working_buf_pool_init() on failure
+
+Free the CCD buffers and dma-buf fds already obtained when a later
+allocation fails, and check mtk_ccd_get_buffer_fd() for errors. The
+caller does not call the pool release on init failure.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Inappropriate [MediaTek out-of-tree driver]
+---
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-pool.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-pool.c
+index f4fdbe6..716ce64 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-pool.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-pool.c
+@@ -23,9 +23,18 @@
+ #include <uapi/linux/mtk_ccd_controls.h>
+ #endif
+ 
++static void mtk_cam_pool_buf_put(struct mtk_ccd *ccd, void *va, u32 len, int fd)
++{
++	struct mem_obj smem = { .va = va, .len = len };
++
++	if (fd >= 0)
++		mtk_ccd_put_buffer_fd(ccd, &smem, fd);
++	mtk_ccd_put_buffer(ccd, &smem);
++}
++
+ int mtk_cam_working_buf_pool_init(struct mtk_cam_ctx *ctx)
+ {
+-	int i;
++	int i, ret;
+ 	struct mem_obj smem;
+ 	struct mtk_ccd *ccd;
+ 	void *mem_priv;
+@@ -46,6 +55,10 @@ int mtk_cam_working_buf_pool_init(struct mtk_cam_ctx *ctx)
+ 	if (IS_ERR(mem_priv))
+ 		return PTR_ERR(mem_priv);
+ 	dmabuf_fd = mtk_ccd_get_buffer_fd(ccd, mem_priv);
++	if (dmabuf_fd < 0) {
++		mtk_cam_pool_buf_put(ccd, smem.va, smem.len, -1);
++		return dmabuf_fd;
++	}
+ 	ctx->buf_pool.working_buf_va = smem.va;
+ 	ctx->buf_pool.working_buf_iova = smem.iova;
+ 	ctx->buf_pool.working_buf_fd = dmabuf_fd;
+@@ -53,9 +66,16 @@ int mtk_cam_working_buf_pool_init(struct mtk_cam_ctx *ctx)
+ 	/* msg buffer */
+ 	smem.len = ctx->buf_pool.msg_buf_size;
+ 	mem_priv = mtk_ccd_get_buffer(ccd, &smem);
+-	if (IS_ERR(mem_priv))
+-		return PTR_ERR(mem_priv);
++	if (IS_ERR(mem_priv)) {
++		ret = PTR_ERR(mem_priv);
++		goto fail_working_buf;
++	}
+ 	dmabuf_fd = mtk_ccd_get_buffer_fd(ccd, mem_priv);
++	if (dmabuf_fd < 0) {
++		ret = dmabuf_fd;
++		mtk_cam_pool_buf_put(ccd, smem.va, smem.len, -1);
++		goto fail_working_buf;
++	}
+ 	ctx->buf_pool.msg_buf_va = smem.va;
+ 	ctx->buf_pool.msg_buf_fd = dmabuf_fd;
+ 
+@@ -80,9 +100,16 @@ int mtk_cam_working_buf_pool_init(struct mtk_cam_ctx *ctx)
+ 		/* meta buffer */
+ 		smem.len = mtk_cam_get_meta_size(MTKCAM_IPI_RAW_META_STATS_1);
+ 		mem_priv = mtk_ccd_get_buffer(ccd, &smem);
+-		if (IS_ERR(mem_priv))
+-			return PTR_ERR(mem_priv);
++		if (IS_ERR(mem_priv)) {
++			ret = PTR_ERR(mem_priv);
++			goto fail_meta_buf;
++		}
+ 		buf->meta_buffer.fd = mtk_ccd_get_buffer_fd(ccd, mem_priv);
++		if (buf->meta_buffer.fd < 0) {
++			ret = buf->meta_buffer.fd;
++			mtk_cam_pool_buf_put(ccd, smem.va, smem.len, -1);
++			goto fail_meta_buf;
++		}
+ 		buf->meta_buffer.va = smem.va;
+ 		buf->meta_buffer.iova = smem.iova;
+ 		buf->meta_buffer.size = smem.len;
+@@ -102,6 +129,24 @@ int mtk_cam_working_buf_pool_init(struct mtk_cam_ctx *ctx)
+ 		dmabuf_fd);
+ 
+ 	return 0;
++
++fail_meta_buf:
++	while (i--) {
++		struct mtk_cam_working_buf_entry *b = &ctx->buf_pool.working_buf[i];
++
++		mtk_cam_pool_buf_put(ccd, b->meta_buffer.va, b->meta_buffer.size,
++				     b->meta_buffer.fd);
++		b->meta_buffer.size = 0;
++	}
++	INIT_LIST_HEAD(&ctx->buf_pool.cam_freelist.list);
++	ctx->buf_pool.cam_freelist.cnt = 0;
++	mtk_cam_pool_buf_put(ccd, ctx->buf_pool.msg_buf_va,
++			     ctx->buf_pool.msg_buf_size, ctx->buf_pool.msg_buf_fd);
++fail_working_buf:
++	mtk_cam_pool_buf_put(ccd, ctx->buf_pool.working_buf_va,
++			     ctx->buf_pool.working_buf_size,
++			     ctx->buf_pool.working_buf_fd);
++	return ret;
+ }
+ 
+ void mtk_cam_working_buf_pool_release(struct mtk_cam_ctx *ctx)

@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * On-board SDIO TI3xx module
+ */
+
+/dts-v1/;
+/plugin/;
+
+&reg_wifi_en {
+	startup-delay-us = <10000>;
+	off-on-delay-us = <100>;
+};
+
+&mmc2 {
+	status = "okay";
+	cap-power-off-card;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	bt@1 {
+		reg = <1>;
+		compatible = "ti,cc33xxbt";
+	};
+
+	wifi@2 {
+		reg = <2>;
+		compatible = "ti,cc33xx";
+	};
+};

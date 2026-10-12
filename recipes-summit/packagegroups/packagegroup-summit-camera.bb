@@ -16,3 +16,5 @@ RDEPENDS:${PN} = " \
     libcamera \
     kernel-module-pivariety \
     "
+
+RDEPENDS:${PN}:append:mtk = " mtk-camisp-driver-mt8390"

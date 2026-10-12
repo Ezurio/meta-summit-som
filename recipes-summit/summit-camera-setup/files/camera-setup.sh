@@ -39,7 +39,7 @@ while [ -n "${NODE_NEXT}" ]; do
 	media-ctl -d "${ID}" -p -e "${NODE}" | grep -q 'V4L2 subdev' || break
 	media-ctl -d "${ID}" --set-v4l2 "${NODE_NEXT} ${OV564x_CAM_FMT}"
 
-	NODE_NEXT=$(media-ctl -d "${ID}" -p -e "${NODE}" | sed -rn '/^\s*->/{s/\s*-> (".*"[^ ]*).*/\1/p;q}')
+	NODE_NEXT=$(media-ctl -d "${ID}" -p -e "${NODE}" | sed -rn '/^\s*->/{/mtk-cam raw/!{s/\s*-> (".*"[^ ]*).*/\1/p;q}}')
 done
 
 CAM_SUBDEV=$(media-ctl -d "${ID}" -p -e "${SENSOR}" | sed -rn 's/\s+device node name ([^ ]+)/\1/p')

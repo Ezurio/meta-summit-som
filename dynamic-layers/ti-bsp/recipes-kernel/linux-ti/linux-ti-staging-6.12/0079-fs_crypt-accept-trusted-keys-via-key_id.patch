@@ -36,8 +36,7 @@ Upstream-Status: Inappropriate Local requirement
  
  #include "fscrypt_private.h"
  
-@@ -639,7 +640,32 @@
- 	if (IS_ERR(ref))
+@@ -662,6 +663,31 @@ static int get_keyring_key(u32 key_id, u32 type,
  		return PTR_ERR(ref);
  	key = key_ref_to_ptr(ref);
  

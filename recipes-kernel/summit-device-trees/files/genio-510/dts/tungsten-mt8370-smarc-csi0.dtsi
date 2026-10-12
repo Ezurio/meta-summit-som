@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2026 Ezurio LLC
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/mediatek,mt8188-pinfunc.h>
+
+&camisp { status = "okay"; };
+&camisp_l13 { status = "okay"; };
+&camisp_l14 { status = "okay"; };
+&cam_raw_a { status = "okay"; };
+&cam_yuv_a { status = "okay"; };
+&remoteproc_ccd { status = "okay"; };
+&seninf_top { status = "okay"; };
+&camsv1 { status = "okay"; };
+
+&{/} {
+	clk_cam_csi0_int: clk-cam-csi0-int {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+};
+
+&i2c3 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	cam_csi0: cam-csi0 {
+		clocks = <&clk_cam_csi0_int>;
+		clock-names = "xclk";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_cam_csi0>;
+
+		port {
+			cam_csi0_ep: endpoint {
+				remote-endpoint = <&seninf_csi0_in_ep>;
+				bus-type = <4>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};
+
+&seninf_csi_port_0 {
+	status = "okay";
+
+	port {
+		seninf_csi0_in_ep: endpoint {
+			remote-endpoint = <&cam_csi0_ep>;
+			bus-type = <4>;
+			clock-lanes = <0>;
+			data-lanes = <1 2>;
+		};
+	};
+};
+
+&pio {
+	pinctrl_cam_csi0: pinctrl-cam-csi0 {
+		pins {
+			pinmux = <PINMUX_GPIO0__FUNC_B_GPIO0>,
+				 <PINMUX_GPIO10__FUNC_B_GPIO10>;
+		};
+	};
+};

@@ -1,7 +1,7 @@
 SUMMARY = "Summit SOM Rescue SD Card Boot Image"
 DESCRIPTION = "Summit SOM Rescue Manufacturing Provisioning SD Card Boot Image"
 
-inherit image-summitsom-gen image-summitsom-sd-gen image-summitsom-swu-gen
+inherit image-summitsom-gen ${@oe.utils.ifelse('mtk' in (d.getVar('OVERRIDES') or '').split(':'), '', 'image-summitsom-sd-gen')} image-summitsom-swu-gen
 REQUIRED_DISTRO_FEATURES += "summitsom-rescue"
 
 

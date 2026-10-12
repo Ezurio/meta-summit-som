@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * On-board SDIO MT320 radio-only module
+ *
+ * Copyright (C) 2024 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+&reg_wifi_en {
+	startup-delay-us = <50000>;
+	off-on-delay-us = <100>;
+};
+
+&mmc2 {
+	status = "okay";
+
+	sd-uhs-sdr104;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	wifi@1 {
+		compatible = "mediatek,mt7921s";
+		reg = <1>;
+	};
+
+	bluetooth@2 {
+		compatible = "mediatek,mt7921s-bluetooth";
+		reg = <2>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&bt_en_pins>;
+		reset-gpios = <&pio 145 GPIO_ACTIVE_LOW>;
+	}; 
+};

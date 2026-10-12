@@ -15,14 +15,6 @@ BBLAYERS = " \
   ${BSPDIR}/sources/meta-openembedded/meta-multimedia \
   ${BSPDIR}/sources/meta-openembedded/meta-python \
   \
-  ${BSPDIR}/sources/meta-freescale \
-  ${BSPDIR}/sources/meta-freescale-3rdparty \
-  ${BSPDIR}/sources/meta-freescale-distro \
-  \
-  ${BSPDIR}/sources/meta-imx/meta-imx-bsp \
-  ${BSPDIR}/sources/meta-imx/meta-imx-sdk \
-  ${BSPDIR}/sources/meta-imx/meta-imx-ml \
-  \
   ${BSPDIR}/sources/meta-arm/meta-arm \
   ${BSPDIR}/sources/meta-arm/meta-arm-toolchain \
   \
@@ -38,3 +30,12 @@ BBLAYERS = " \
   ${BSPDIR}/sources/meta-summit-radio/meta-summit-radio \
 "
 
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-freescale \
+  ${BSPDIR}/sources/meta-freescale-3rdparty \
+  ${BSPDIR}/sources/meta-freescale-distro \
+  \
+  ${BSPDIR}/sources/meta-imx/meta-imx-bsp \
+  ${BSPDIR}/sources/meta-imx/meta-imx-sdk \
+  ${BSPDIR}/sources/meta-imx/meta-imx-ml \
+"

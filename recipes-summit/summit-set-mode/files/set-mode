@@ -124,9 +124,9 @@ case "${1}" in
             esac
 
             case "${name}" in
-                *ifx*)
+                *ifx*|*mt320*)
                     [ -n "$(fw_printenv -n 'RegDomain')" ] || \
-                        die 'Regulatory Domain not set for IFX overlay'
+                        die "Regulatory Domain not set for ${name} overlay"
                     ;;
             esac
 

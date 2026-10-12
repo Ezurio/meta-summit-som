@@ -1,0 +1,45 @@
+From: Tomi Valkeinen <tomi.valkeinen@ideasonboard.com>
+Subject: [PATCH] media: subdev: Support non-routing subdevs in s_stream helper
+
+For subdevices without V4L2_SUBDEV_FL_STREAMS, use the implicit stream 0
+instead of consulting active routing state.
+
+Backport of upstream commit 93c726f41afb8407d43e0bea66d716f6446c9e46.
+
+---
+ drivers/media/v4l2-core/v4l2-subdev.c | 23 ++++++++++++++++-------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/v4l2-core/v4l2-subdev.c b/drivers/media/v4l2-core/v4l2-subdev.c
+index 000000000000..000000000000 100644
+--- a/drivers/media/v4l2-core/v4l2-subdev.c
++++ b/drivers/media/v4l2-core/v4l2-subdev.c
+@@ -2185,15 +2185,21 @@ int v4l2_subdev_s_stream_helper(struct v4l2_subdev *sd, int enable)
+ 	if (WARN_ON(pad_index == -1))
+ 		return -EINVAL;
+ 
+-	/*
+-	 * As there's a single source pad, just collect all the source streams.
+-	 */
+-	state = v4l2_subdev_lock_and_get_active_state(sd);
++	if (sd->flags & V4L2_SUBDEV_FL_STREAMS) {
++		/*
++		 * As there's a single source pad, just collect all the source
++		 * streams.
++		 */
++		state = v4l2_subdev_lock_and_get_active_state(sd);
+ 
+-	for_each_active_route(&state->routing, route)
+-		source_mask |= BIT_ULL(route->source_stream);
++		for_each_active_route(&state->routing, route)
++			source_mask |= BIT_ULL(route->source_stream);
+ 
+-	v4l2_subdev_unlock_state(state);
++		v4l2_subdev_unlock_state(state);
++	} else {
++		/* Non-streams subdevices have an implicit stream 0 per pad. */
++		source_mask = BIT_ULL(0);
++	}
+ 
+ 	if (enable)
+ 		return v4l2_subdev_enable_streams(sd, pad_index, source_mask);

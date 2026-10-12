@@ -1,6 +1,6 @@
 SUMMARY = "Summit SOM Manufacturing and Regulatory Compliance Testing support Image"
 
-inherit image-summitsom-gen image-summitsom-sd-gen image-summitsom-swu-gen
+inherit image-summitsom-gen ${@oe.utils.ifelse('mtk' in (d.getVar('OVERRIDES') or '').split(':'), '', 'image-summitsom-sd-gen')} image-summitsom-swu-gen
 
 REQUIRED_DISTRO_FEATURES += "summitsom-mfg"
 

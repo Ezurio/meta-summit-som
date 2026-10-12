@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Thu, 8 Oct 2026 00:00:00 +0000
+Subject: [PATCH] mt8188: route PMIC wrapper init messages through the TF-A log level
+
+Drop the always-on PMIC_WRAP_DEBUG and map the preloader PWRAP* macros to
+VERBOSE/ERROR/INFO, so the init trace only appears when LOG_LEVEL asks for it.
+The two failure paths are promoted to ERROR.
+
+Upstream-Status: Inappropriate [Summit SoM specific]
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/plat/mediatek/mt8188/drivers/pmic_wrap_bl2/pmic_wrap_init.c b/plat/mediatek/mt8188/drivers/pmic_wrap_bl2/pmic_wrap_init.c
+--- a/plat/mediatek/mt8188/drivers/pmic_wrap_bl2/pmic_wrap_init.c
++++ b/plat/mediatek/mt8188/drivers/pmic_wrap_bl2/pmic_wrap_init.c
+@@ -5,9 +5,9 @@
+  */
+ 
+ #define PMIC_WRAP_PRELOADER 1
+-#define PMIC_WRAP_DEBUG 1
+ 
+ #include <stdint.h>
++#include <common/debug.h>
+ #include <reg_PMIC_WRAP.h>
+ #include <reg_PMIC_WRAP_mac.h>
+ #include <upmu_hw.h>
+@@ -48,16 +48,10 @@
+ /******  DEBUG marco define *******************************/
+ #define PWRAPTAG                "[PWRAP] "
+ #if (PMIC_WRAP_PRELOADER)
+-	#ifdef PMIC_WRAP_DEBUG
+-		#define PWRAPFUC(fmt, arg...)   printf(PWRAPTAG "%s\n", __func__)
+-		#define PWRAPLOG(fmt, arg...)   printf(PWRAPTAG fmt, ##arg)
+-		#define PWRAPERR(fmt, arg...)   printf(PWRAPTAG "ERR " fmt, ##arg)
+-	#else
+-		#define PWRAPFUC(fmt, arg...)
+-		#define PWRAPLOG(fmt, arg...)
+-		#define PWRAPERR(fmt, arg...)
+-	#endif /* end of #ifdef PMIC_WRAP_DEBUG */
+-	#define PWRAPCRI(fmt, arg...)   printf(PWRAPTAG fmt, ##arg)
++	#define PWRAPFUC(fmt, arg...)	VERBOSE(PWRAPTAG "%s\n", __func__)
++	#define PWRAPLOG(fmt, arg...)	VERBOSE(PWRAPTAG fmt, ##arg)
++	#define PWRAPERR(fmt, arg...)	ERROR(PWRAPTAG fmt, ##arg)
++	#define PWRAPCRI(fmt, arg...)	INFO(PWRAPTAG fmt, ##arg)
+ #elif (PMIC_WRAP_LK)
+ 	#ifdef PMIC_WRAP_DEBUG
+ 		#define PWRAPFUC(fmt, arg...)   dprintf(CRITICAL, PWRAPTAG "%s\n", __func__)
+@@ -533,7 +527,7 @@
+ 
+ FAIL:
+ 	if (return_value != 0) {
+-		PWRAPCRI("_pwrap_swinf_acc fail, ret=%d\n", return_value);
++		PWRAPERR("_pwrap_swinf_acc fail, ret=%d\n", return_value);
+ 	}
+ 
+ 	return 0;
+@@ -840,7 +834,7 @@
+ 			break;
+ 	}
+ 	if (found == 0) {
+-		PWRAPCRI("_pwrap_init_sistrobe (not found)\n");
++		PWRAPERR("_pwrap_init_sistrobe (not found)\n");
+ 		return E_PWR_INIT_SIDLY_FAIL;
+ 	}
+ 	if((si_sample_ck_dly == 7) && (si_sample_ck_pol == 1)) {

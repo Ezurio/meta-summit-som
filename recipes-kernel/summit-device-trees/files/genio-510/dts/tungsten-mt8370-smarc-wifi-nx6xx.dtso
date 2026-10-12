@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * On-board SDIO NX6XX radio-only module
+ *
+ * Copyright (C) 2024 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+&reg_wifi_en {
+	startup-delay-us = <20000>;
+	off-on-delay-us = <100>;
+};
+
+&mmc2 {
+	status = "okay";
+};

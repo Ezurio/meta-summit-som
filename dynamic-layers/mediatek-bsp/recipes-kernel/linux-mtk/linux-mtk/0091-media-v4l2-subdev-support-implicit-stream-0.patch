@@ -1,0 +1,98 @@
+From: Tomi Valkeinen <tomi.valkeinen@ideasonboard.com>
+Subject: [PATCH] media: subdev: Support implicit stream 0 with pad ops
+
+Backport the single-stream, non-routing subdevice behavior needed by
+subdevices that implement enable/disable_streams without setting
+V4L2_SUBDEV_FL_STREAMS. Keep Scarthgap's existing s_stream fallback
+implementation intact.
+
+Upstream commit: b62949ddaa52e7612d3bbd90095079f97946c821
+
+---
+ drivers/media/v4l2-core/v4l2-subdev.c | 50 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 53 insertions(+)
+
+diff --git a/drivers/media/v4l2-core/v4l2-subdev.c b/drivers/media/v4l2-core/v4l2-subdev.c
+index 000000000000..000000000000 100644
+--- a/drivers/media/v4l2-core/v4l2-subdev.c
++++ b/drivers/media/v4l2-core/v4l2-subdev.c
+@@ -1971,5 +1971,13 @@ int v4l2_subdev_enable_streams(struct v4l2_subdev *sd, u32 pad,
+ 	if (pad >= sd->entity.num_pads)
+ 		return -EINVAL;
+ 
++	if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS)) {
++		if (!(sd->entity.pads[pad].flags & MEDIA_PAD_FL_SOURCE))
++			return -EOPNOTSUPP;
++
++		if (pad >= sizeof(sd->enabled_pads) * BITS_PER_BYTE)
++			return -EOPNOTSUPP;
++	}
++
+ 	if (!streams_mask)
+ 		return 0;
+@@ -1991,4 +1999,15 @@ int v4l2_subdev_enable_streams(struct v4l2_subdev *sd, u32 pad,
+ 	 * Verify that the requested streams exist and that they are not
+ 	 * already enabled.
+ 	 */
++	if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS)) {
++		found_streams = BIT_ULL(0);
++
++		if (sd->enabled_pads & BIT_ULL(pad)) {
++			dev_dbg(dev, "pad %u already enabled on %s\n",
++				pad, sd->entity.name);
++			ret = -EALREADY;
++			goto done;
++		}
++	}
++
+ 	for (i = 0; i < state->stream_configs.num_configs; ++i) {
+@@ -2030,6 +2047,9 @@ int v4l2_subdev_enable_streams(struct v4l2_subdev *sd, u32 pad,
+ 		if (cfg->pad == pad && (streams_mask & BIT_ULL(cfg->stream)))
+ 			cfg->enabled = true;
+ 	}
++
++	if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS))
++		sd->enabled_pads |= BIT_ULL(pad);
+ 
+ done:
+ 	v4l2_subdev_unlock_state(state);
+@@ -2100,5 +2120,13 @@ int v4l2_subdev_disable_streams(struct v4l2_subdev *sd, u32 pad,
+ 	if (pad >= sd->entity.num_pads)
+ 		return -EINVAL;
+ 
++	if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS)) {
++		if (!(sd->entity.pads[pad].flags & MEDIA_PAD_FL_SOURCE))
++			return -EOPNOTSUPP;
++
++		if (pad >= sizeof(sd->enabled_pads) * BITS_PER_BYTE)
++			return -EOPNOTSUPP;
++	}
++
+ 	if (!streams_mask)
+ 		return 0;
+@@ -2120,4 +2148,15 @@ int v4l2_subdev_disable_streams(struct v4l2_subdev *sd, u32 pad,
+ 	 * Verify that the requested streams exist and that they are not
+ 	 * already disabled.
+ 	 */
++	if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS)) {
++		found_streams = BIT_ULL(0);
++
++		if (!(sd->enabled_pads & BIT_ULL(pad))) {
++			dev_dbg(dev, "pad %u already disabled on %s\n",
++				pad, sd->entity.name);
++			ret = -EALREADY;
++			goto done;
++		}
++	}
++
+ 	for (i = 0; i < state->stream_configs.num_configs; ++i) {
+@@ -2159,6 +2196,9 @@ int v4l2_subdev_disable_streams(struct v4l2_subdev *sd, u32 pad,
+ 		if (cfg->pad == pad && (streams_mask & BIT_ULL(cfg->stream)))
+ 			cfg->enabled = false;
+ 	}
++
++	if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS))
++		sd->enabled_pads &= ~BIT_ULL(pad);
+ 
+ done:
+ 	v4l2_subdev_unlock_state(state);

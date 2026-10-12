@@ -1,0 +1,45 @@
+From: summit <summit@localhost>
+Subject: [PATCH] ASoC: mt8188-mt6359: separate card Headphone Switch from WM8962 control
+
+The card headphone pin switch "Headphone Switch" has the same name and index as
+the WM8962 codec control, so the card fails to register with -EBUSY. Keep the
+name and pin, and add the card control at ALSA index 1 from fixup_controls
+(ASoC forces index 0 for card controls). Unlike a device-id split, this keeps
+the simple mixer (alsamixer) working. Quirk boards do not add it.
+
+Upstream-Status: Inappropriate [summit board-specific workaround]
+---
+diff --git a/sound/soc/mediatek/mt8188/mt8188-mt6359.c b/sound/soc/mediatek/mt8188/mt8188-mt6359.c
+--- a/sound/soc/mediatek/mt8188/mt8188-mt6359.c
++++ b/sound/soc/mediatek/mt8188/mt8188-mt6359.c
+@@ -327,7 +327,6 @@
+ };
+ 
+ static const struct snd_kcontrol_new mt8188_mt6359_controls[] = {
+-	SOC_DAPM_PIN_SWITCH("Headphone"),
+ 	SOC_DAPM_PIN_SWITCH("Headset Mic"),
+ };
+ 
+@@ -1339,12 +1338,16 @@
+ 
+ 			snd_soc_dapm_free_widget(w);
+ 		}
+-
+-		kctl = snd_ctl_find_id_mixer(card->snd_card, "Headphone Switch");
+-		if (kctl)
+-			snd_ctl_remove(card->snd_card, kctl);
+-		else
+-			dev_warn(card->dev, "Cannot find ctl : Headphone Switch\n");
++	} else {
++		/* Index 1 keeps this off the codec's own "Headphone Switch" (index 0). */
++		static const struct snd_kcontrol_new hp_switch =
++			SOC_DAPM_PIN_SWITCH("Headphone");
++		struct snd_kcontrol_new tmpl = hp_switch;
++
++		tmpl.index = 1;
++		kctl = snd_ctl_new1(&tmpl, card);
++		if (kctl && snd_ctl_add(card->snd_card, kctl) < 0)
++			dev_warn(card->dev, "Cannot add ctl : Headphone Switch\n");
+ 	}
+ }
+ 

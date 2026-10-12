@@ -32,8 +32,8 @@ FIT_DEPLOY_FITIMAGE_NAME ?= "fitImage-${PN}"
 FIT_DEPLOY_KERNEL_ITB_NAME ?= "kernel-${PN}.itb"
 FIT_DEPLOY_ITS_NAME ?= "fit-image-${PN}.its"
 
-# Set to "0" to skip pulling in virtual/dtb (and its .dtbo overlays) even
-# when PREFERRED_PROVIDER_virtual/dtb is set machine/distro-wide.
+# Set to "0" to leave the .dtbo overlays out of the FIT; base DTBs are still
+# taken from virtual/dtb.
 FIT_EXTERNAL_DTB_OVERLAYS ?= "1"
 
 # Consume this image's own dm-verity boot script directly - no image name
@@ -83,7 +83,7 @@ python () {
             d.appendVarFlag('do_compile_fit', 'depends', ' ${INITRAMFS_IMAGE}:do_image_complete')
 
     providerdtb = d.getVar("PREFERRED_PROVIDER_virtual/dtb")
-    if providerdtb and d.getVar('FIT_EXTERNAL_DTB_OVERLAYS') == '1':
+    if providerdtb:
         d.appendVarFlag('do_compile_fit', 'depends', ' virtual/dtb:do_populate_sysroot')
         d.setVar('EXTERNAL_KERNEL_DEVICETREE', "${RECIPE_SYSROOT}/boot/devicetree")
 
@@ -179,29 +179,43 @@ python do_compile_fit() {
     # fitimage_emit_section_config() below, so the real DTB's own
     # configuration is still emitted first and remains the FIT 'default'.
     overlay_confs = []
-    kernel_devicetree = d.getVar('KERNEL_DEVICETREE')
+    kernel_devicetree = (d.getVar('KERNEL_DEVICETREE') or '').split()
+    summit_devicetree = (d.getVar('SUMMIT_DEVICE_TREE_FILES') or '').replace('.dtso', '.dtbo').replace('.dts', '.dtb').split()
     external_kernel_devicetree = d.getVar("EXTERNAL_KERNEL_DEVICETREE")
-    if kernel_devicetree:
-        for dtb in kernel_devicetree.split():
-            # In deploy_dir the DTBs are without sub-directories also with KERNEL_DTBVENDORED = "1"
-            dtb_name = os.path.basename(dtb)
+    default_dtb = d.getVar("FIT_CONF_DEFAULT_DTB")
+    with_overlays = d.getVar('FIT_EXTERNAL_DTB_OVERLAYS') == '1'
+    if external_kernel_devicetree and not summit_devicetree:
+        bb.fatal("Selected external DT provider %s does not define SUMMIT_DEVICE_TREE_FILES" %
+                 d.getVar('PREFERRED_PROVIDER_virtual/dtb'))
+    fit_devicetree = kernel_devicetree + summit_devicetree
+    if not with_overlays:
+        fit_devicetree = [dtb for dtb in fit_devicetree if not dtb.endswith('.dtbo')]
+    kernel_devicetree = [dtb for dtb in kernel_devicetree if dtb in fit_devicetree]
+    summit_devicetree = [dtb for dtb in summit_devicetree if dtb in fit_devicetree]
+    summit_dtb_names = {os.path.basename(dtb) for dtb in summit_devicetree}
 
-            # Skip DTB if it's also provided in EXTERNAL_KERNEL_DEVICETREE directory
-            if external_kernel_devicetree:
-                ext_dtb_path = os.path.join(external_kernel_devicetree, dtb_name)
-                if os.path.exists(ext_dtb_path) and os.path.getsize(ext_dtb_path) > 0:
-                    continue
+    for dtb in kernel_devicetree:
+        # In deploy_dir the DTBs are without sub-directories also with KERNEL_DTBVENDORED = "1"
+        dtb_name = os.path.basename(dtb)
+        if not default_dtb and dtb_name.endswith('.dtb'):
+            default_dtb = dtb_name
 
-            # Copy the dtb or dtbo file into the FIT image assembly directory
-            shutil.copyfile(os.path.join(kernel_deploydir, dtb_name), dtb_name)
-            root_node.fitimage_emit_section_dtb(dtb_name, dtb_name,
-                d.getVar("UBOOT_DTB_LOADADDRESS"), d.getVar("UBOOT_DTBO_LOADADDRESS"))
+        # Prefer an explicitly selected external target if it is in both lists.
+        if external_kernel_devicetree and dtb_name in summit_dtb_names:
+            ext_dtb_path = os.path.join(external_kernel_devicetree, dtb_name)
+            if os.path.exists(ext_dtb_path) and os.path.getsize(ext_dtb_path) > 0:
+                continue
+
+        # Copy the dtb or dtbo file into the FIT image assembly directory
+        shutil.copyfile(os.path.join(kernel_deploydir, dtb_name), dtb_name)
+        root_node.fitimage_emit_section_dtb(dtb_name, dtb_name,
+            d.getVar("UBOOT_DTB_LOADADDRESS"), d.getVar("UBOOT_DTBO_LOADADDRESS"))
 
     if external_kernel_devicetree:
-        # iterate over all .dtb and .dtbo files in the external kernel devicetree directory
-        # and copy them to the FIT image assembly directory
-        for dtb_name in sorted(os.listdir(external_kernel_devicetree)):
-            if dtb_name.endswith('.dtb') or dtb_name.endswith('.dtbo'):
+        for dtb_name in [os.path.basename(dtb) for dtb in summit_devicetree]:
+            if dtb_name.endswith('.dtb') or (with_overlays and dtb_name.endswith('.dtbo')):
+                if not default_dtb and dtb_name.endswith('.dtb'):
+                    default_dtb = dtb_name
                 dtb_path = os.path.join(external_kernel_devicetree, dtb_name)
                 is_overlay = dtb_name.endswith('.dtbo')
 
@@ -309,7 +323,9 @@ python do_compile_fit() {
             root_node._loadables[-1].add_property("core-id", core_id)
 
     # Generate the configuration section
-    root_node.fitimage_emit_section_config(d.getVar("FIT_CONF_DEFAULT_DTB"), d.getVar("FIT_CONF_MAPPINGS"))
+    if not d.getVar("FIT_CONF_DEFAULT_DTB") and default_dtb:
+        bb.note("FIT_CONF_DEFAULT_DTB not set; defaulting to first DTB: %s" % default_dtb)
+    root_node.fitimage_emit_section_config(default_dtb, d.getVar("FIT_CONF_MAPPINGS"))
 
     # Reference the boot script from each real DTB's configuration (see the
     # u-boot script section above) - must run before the overlay configs are
@@ -331,8 +347,21 @@ python do_compile_fit() {
     # FIT 'default' is set), add the deferred bare fdt-only configurations
     # for .dtbo overlays collected above.
     for conf_name, fdt_name in overlay_confs:
-        summit.fitimage.ItsNodeConfiguration(conf_name, root_node.configurations, "FDT blob",
+        conf_node = summit.fitimage.ItsNodeConfiguration(conf_name, root_node.configurations, "FDT blob",
             opt_props={"fdt": fdt_name})
+        if root_node._hash_algo:
+            summit.fitimage.ItsNodeHash("hash-1", conf_node, root_node._hash_algo)
+        if root_node._sign_enable:
+            summit.fitimage.ItsNodeConfigurationSignature(
+                "signature-1",
+                conf_node,
+                f"{root_node._hash_algo},{root_node._sign_algo}",
+                root_node._sign_keyname_conf,
+                opt_props={
+                    "padding": root_node._pad_algo,
+                    "sign-images": ["fdt"]
+                }
+            )
 
     # Write the its file
     root_node.write_its_file(itsfile)

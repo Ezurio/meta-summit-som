@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Sun, 11 Oct 2026 00:00:00 +0000
+Subject: [PATCH] mt8188: ignore a platform parameter that is not an aux param list
+
+U-Boot SPL passes an FDT pointer as the platform parameter; walking it as a
+bl_aux_param list dereferences garbage before the console is up.
+
+Upstream-Status: Inappropriate [Summit SoM specific]
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/plat/mediatek/common/params_setup.c b/plat/mediatek/common/params_setup.c
+--- a/plat/mediatek/common/params_setup.c
++++ b/plat/mediatek/common/params_setup.c
+@@ -28,8 +28,23 @@
+ 	return false;
+ }
+ 
+ void params_early_setup(u_register_t plat_param_from_bl2)
+ {
++	/* The aux list has no magic, so reject what is clearly not a list. */
++	static const uint8_t fdt_magic[4] = { 0xd0, 0x0d, 0xfe, 0xed };
++
++	if (plat_param_from_bl2 == 0U) {
++		return;
++	}
++
++	if ((plat_param_from_bl2 & (sizeof(uint64_t) - 1U)) != 0U ||
++	    memcmp((const void *)plat_param_from_bl2, fdt_magic,
++		   sizeof(fdt_magic)) == 0) {
++		WARN("Ignoring platform parameter 0x%lx: not an aux param list\n",
++		     (unsigned long)plat_param_from_bl2);
++		return;
++	}
++
+ 	bl_aux_params_parse(plat_param_from_bl2, mtk_aux_param_handler);
+ }
+ 

@@ -1,0 +1,42 @@
+From 2a073968289d3e60d9262a12d5dec71725787b2d Mon Sep 17 00:00:00 2001
+From: Douglas Anderson <dianders@chromium.org>
+Date: Fri, 1 Sep 2023 16:39:52 -0700
+Subject: [PATCH] drm/atomic-helper: drm_atomic_helper_shutdown(NULL) should be
+ a noop
+
+As with other places in the Linux kernel--kfree(NULL) being the most
+famous example--it's convenient to treat being passed a NULL argument
+as a noop in cleanup functions. Let's make
+drm_atomic_helper_shutdown() work like this.
+
+This is convenient for DRM devices that use the "component" model. On
+these devices we want shutdown to be a noop if the bind() call of the
+component hasn't been called yet. As long as drivers are careful to
+make sure the drvdata is NULL whenever the driver is not bound then we
+can just do a simple call to drm_atomic_helper_shutdown() with the
+drvdata at shutdown time.
+
+Upstream-Status: Backport [https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a073968289d3e60d9262a12d5dec71725787b2d]
+
+Acked-by: Maxime Ripard <mripard@kernel.org>
+Signed-off-by: Douglas Anderson <dianders@chromium.org>
+Link: https://patchwork.freedesktop.org/patch/msgid/20230901163944.RFT.1.I906acd535bece03b6671d97c2826c6f0444f4728@changeid
+---
+ drivers/gpu/drm/drm_atomic_helper.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/gpu/drm/drm_atomic_helper.c b/drivers/gpu/drm/drm_atomic_helper.c
+index 292e38eb6218..71d399397107 100644
+--- a/drivers/gpu/drm/drm_atomic_helper.c
++++ b/drivers/gpu/drm/drm_atomic_helper.c
+@@ -3339,6 +3339,9 @@ void drm_atomic_helper_shutdown(struct drm_device *dev)
+ 	struct drm_modeset_acquire_ctx ctx;
+ 	int ret;
+ 
++	if (dev == NULL)
++		return;
++
+ 	DRM_MODESET_LOCK_ALL_BEGIN(dev, ctx, 0, ret);
+ 
+ 	ret = drm_atomic_helper_disable_all(dev, &ctx);
+-- 

@@ -1,0 +1,75 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] media: i2c: ov5645: report the frame interval
+
+Add the frame rate of each mode and implement g_frame_interval. Consumers
+such as the MediaTek camsys driver derive their timing from it and assume
+30fps when it is missing.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Upstream-Status: Inappropriate [Not submitted upstream]
+---
+diff --git a/drivers/media/i2c/ov5645.c b/drivers/media/i2c/ov5645.c
+index abaf36f803be..d47676a8bb77 100644
+--- a/drivers/media/i2c/ov5645.c
++++ b/drivers/media/i2c/ov5645.c
+@@ -82,6 +82,7 @@ struct ov5645_mode_info {
+ 	u32 data_size;
+ 	u32 pixel_clock;
+ 	u32 link_freq;
++	u32 fps;
+ };
+ 
+ struct ov5645 {
+@@ -516,7 +517,8 @@ static const struct ov5645_mode_info ov5645_mode_info_data[] = {
+ 		.data = ov5645_setting_sxga,
+ 		.data_size = ARRAY_SIZE(ov5645_setting_sxga),
+ 		.pixel_clock = 112000000,
+-		.link_freq = 0 /* an index in link_freq[] */
++		.link_freq = 0, /* an index in link_freq[] */
++		.fps = 30
+ 	},
+ 	{
+ 		.width = 1920,
+@@ -524,7 +526,8 @@ static const struct ov5645_mode_info ov5645_mode_info_data[] = {
+ 		.data = ov5645_setting_1080p,
+ 		.data_size = ARRAY_SIZE(ov5645_setting_1080p),
+ 		.pixel_clock = 168000000,
+-		.link_freq = 1 /* an index in link_freq[] */
++		.link_freq = 1, /* an index in link_freq[] */
++		.fps = 30
+ 	},
+ 	{
+ 		.width = 2592,
+@@ -532,7 +535,8 @@ static const struct ov5645_mode_info ov5645_mode_info_data[] = {
+ 		.data = ov5645_setting_full,
+ 		.data_size = ARRAY_SIZE(ov5645_setting_full),
+ 		.pixel_clock = 168000000,
+-		.link_freq = 1 /* an index in link_freq[] */
++		.link_freq = 1, /* an index in link_freq[] */
++		.fps = 15
+ 	},
+ };
+ 
+@@ -995,7 +999,22 @@ static int ov5645_disable_streams(struct v4l2_subdev *sd,
+ 	return ret;
+ }
+ 
++static int ov5645_g_frame_interval(struct v4l2_subdev *sd,
++				   struct v4l2_subdev_frame_interval *fi)
++{
++	struct ov5645 *ov5645 = to_ov5645(sd);
++
++	if (!ov5645->current_mode)
++		return -EINVAL;
++
++	fi->interval.numerator = 1;
++	fi->interval.denominator = ov5645->current_mode->fps;
++
++	return 0;
++}
++
+ static const struct v4l2_subdev_video_ops ov5645_video_ops = {
++	.g_frame_interval = ov5645_g_frame_interval,
+ 	.s_stream = v4l2_subdev_s_stream_helper,
+ };
+ 

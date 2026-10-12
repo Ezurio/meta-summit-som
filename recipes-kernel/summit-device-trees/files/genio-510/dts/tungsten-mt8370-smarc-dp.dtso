@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/dts-v1/;
+/plugin/;
+
+&gpu {
+	status = "okay";
+};
+
+&dp_tx {
+	status = "okay";
+};
+
+&dp_intf1 {
+	status = "okay";
+};

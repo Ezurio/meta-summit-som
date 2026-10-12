@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * M.2 PCIE Wi-Fi module
+ *
+ * Copyright (C) 2026 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+&reg_mmc1_en {
+	vin-supply = <&reg_slow_clock_carrier>;
+
+	startup-delay-us = <1000>;
+	off-on-delay-us = <100000>;
+};
+
+&pcie {
+	status = "okay";
+};
+
+&pciephy {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};

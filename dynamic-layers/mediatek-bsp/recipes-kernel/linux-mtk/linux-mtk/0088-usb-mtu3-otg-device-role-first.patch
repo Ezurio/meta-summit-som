@@ -1,0 +1,139 @@
+From: summit <summit@localhost>
+Subject: [PATCH] usb: mtu3: bring OTG up as peripheral, create host on switch
+
+An OTG port currently starts as host with xhci created, then the role switch
+work flips port0 to device. The xHC reset never completes (-110 after ~15 s)
+and VBUS is pulsed at boot. Start OTG like peripheral mode, which does not
+initialize host, and create the host side only on the first switch to host,
+after the port has been switched.
+
+Upstream-Status: Inappropriate [summit board-specific workaround]
+---
+diff --git a/drivers/usb/mtu3/mtu3_dr.c b/drivers/usb/mtu3/mtu3_dr.c
+index cf9ac9e..43f322b 100644
+--- a/drivers/usb/mtu3/mtu3_dr.c
++++ b/drivers/usb/mtu3/mtu3_dr.c
+@@ -152,10 +152,8 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+ 
+ 	switch (desired_role) {
+ 	case USB_ROLE_HOST:
+-		if (ssusb->role_switch_reset) {
++		if (ssusb->role_switch_reset)
+ 			of_platform_depopulate(ssusb->dev);
+-			of_platform_populate(ssusb->dev->of_node, NULL, NULL, ssusb->dev);
+-		}
+ 		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_HOST);
+ 		mtu3_stop(mtu);
+ 		switch_port_to_host(ssusb);
+@@ -169,6 +167,9 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+ 			ssusb_set_force_vbus(ssusb, false);
+ 
+ 		ssusb->is_host = true;
++
++		/* xhci must be probed after the port is in host role */
++		ssusb_host_create(ssusb);
+ 		break;
+ 	case USB_ROLE_DEVICE:
+ 		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
+@@ -228,9 +229,9 @@ static int ssusb_extcon_register(struct otg_switch_mtk *otg_sx)
+ 	ret = extcon_get_state(edev, EXTCON_USB_HOST);
+ 	dev_dbg(ssusb->dev, "EXTCON_USB_HOST: %d\n", ret);
+ 
+-	/* default as host, switch to device mode if needed */
+-	if (!ret)
+-		ssusb_set_mode(otg_sx, USB_ROLE_DEVICE);
++	/* the port starts as peripheral, switch to host if extcon already reports it */
++	if (ret)
++		ssusb_set_mode(otg_sx, USB_ROLE_HOST);
+ 
+ 	return 0;
+ }
+@@ -325,6 +326,12 @@ int ssusb_otg_switch_init(struct ssusb_mtk *ssusb)
+ 
+ 	INIT_WORK(&otg_sx->dr_work, ssusb_mode_sw_work);
+ 
++	/* the port comes up as peripheral, same as the USB_ROLE_DEVICE switch */
++	ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
++	ssusb_set_force_vbus(ssusb, true);
++	switch_port_to_device(ssusb);
++	mtu3_start(ssusb->u3d);
++
+ 	if (otg_sx->manual_drd_enabled)
+ 		ssusb_dr_debugfs_init(ssusb);
+ 	else if (otg_sx->role_sw_used)
+diff --git a/drivers/usb/mtu3/mtu3_dr.h b/drivers/usb/mtu3/mtu3_dr.h
+index e325508..e86d948 100644
+--- a/drivers/usb/mtu3/mtu3_dr.h
++++ b/drivers/usb/mtu3/mtu3_dr.h
+@@ -14,6 +14,7 @@
+ 
+ int ssusb_host_init(struct ssusb_mtk *ssusb, struct device_node *parent_dn);
+ void ssusb_host_exit(struct ssusb_mtk *ssusb);
++int ssusb_host_create(struct ssusb_mtk *ssusb);
+ int ssusb_wakeup_of_property_parse(struct ssusb_mtk *ssusb,
+ 				struct device_node *dn);
+ int ssusb_host_resume(struct ssusb_mtk *ssusb, bool p0_skipped);
+@@ -32,6 +33,11 @@ static inline int ssusb_host_init(struct ssusb_mtk *ssusb,
+ static inline void ssusb_host_exit(struct ssusb_mtk *ssusb)
+ {}
+ 
++static inline int ssusb_host_create(struct ssusb_mtk *ssusb)
++{
++	return 0;
++}
++
+ static inline int ssusb_wakeup_of_property_parse(
+ 	struct ssusb_mtk *ssusb, struct device_node *dn)
+ {
+diff --git a/drivers/usb/mtu3/mtu3_host.c b/drivers/usb/mtu3/mtu3_host.c
+index c1386c1..0a2d2b5 100644
+--- a/drivers/usb/mtu3/mtu3_host.c
++++ b/drivers/usb/mtu3/mtu3_host.c
+@@ -361,3 +361,14 @@ void ssusb_host_exit(struct ssusb_mtk *ssusb)
+ 	of_platform_depopulate(ssusb->dev);
+ 	ssusb_host_cleanup(ssusb);
+ }
++
++/* create the host side of an OTG port on switch to host; safe to call repeatedly */
++int ssusb_host_create(struct ssusb_mtk *ssusb)
++{
++	host_ports_num_get(ssusb);
++
++	if (ssusb_host_enable(ssusb))
++		return -ETIMEDOUT;
++
++	return of_platform_populate(ssusb->dev->of_node, NULL, NULL, ssusb->dev);
++}
+diff --git a/drivers/usb/mtu3/mtu3_plat.c b/drivers/usb/mtu3/mtu3_plat.c
+index 579d4e7..36c0ce9 100644
+--- a/drivers/usb/mtu3/mtu3_plat.c
++++ b/drivers/usb/mtu3/mtu3_plat.c
+@@ -443,16 +443,13 @@ static int mtu3_probe(struct platform_device *pdev)
+ 			goto comm_exit;
+ 		}
+ 
+-		ret = ssusb_host_init(ssusb, node);
+-		if (ret) {
+-			dev_err(dev, "failed to initialize host\n");
+-			goto gadget_exit;
+-		}
++		/* start as peripheral like USB_DR_MODE_PERIPHERAL; host is created on switch */
++		ssusb->is_host = false;
+ 
+ 		ret = ssusb_otg_switch_init(ssusb);
+ 		if (ret) {
+ 			dev_err(dev, "failed to initialize switch\n");
+-			goto host_exit;
++			goto gadget_exit;
+ 		}
+ 		break;
+ 	default:
+@@ -468,8 +465,6 @@ static int mtu3_probe(struct platform_device *pdev)
+ 
+ 	return 0;
+ 
+-host_exit:
+-	ssusb_host_exit(ssusb);
+ gadget_exit:
+ 	ssusb_gadget_exit(ssusb);
+ comm_exit:

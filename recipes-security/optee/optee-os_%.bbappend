@@ -1,3 +1,6 @@
+FILESEXTRAPATHS:prepend := "${THISDIR}/optee-os:"
+SRC_URI:append:summitsom-genio = " file://0001-plat-mediatek-mt8370-console-baudrate-115200.patch"
+
 RPMB_FS_DEV_ID ?= "${EMMC_DEVICE}"
 
 EXTRA_OEMAKE:append:summitsom:mx8mm-generic-bsp = " \
@@ -15,6 +18,8 @@ EXTRA_OEMAKE:append:summitsom = " \
     CFG_TEE_CORE_LOG_LEVEL=1 \
     CFG_IN_TREE_EARLY_TAS='trusted_keys/f04a0fe7-1f5d-4b9b-abf7-619b85b4ce8c' \
     "
+
+EXTRA_OEMAKE:append:summitsom-genio = " CFG_UART_ENABLE=y CFG_DT=y CFG_DTB_MAX_SIZE=0x4000"
 
 #EXTRA_OEMAKE:append:summit-secure = "\
 #	CFG_RPMB_FS=y \

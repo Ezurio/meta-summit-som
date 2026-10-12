@@ -1,0 +1,166 @@
+// SPDX-License-Identifier: (GPL-2.0-or-later OR MIT)
+/*
+ * Copyright 2026 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/mediatek,mt8188-pinfunc.h>
+
+#include "tungsten-mt8370-bd-panel.dtsi"
+
+
+&{/} {
+	backlight_dsi0: backlight-dsi0 {
+		compatible = "pwm-backlight";
+		brightness-levels = <0 1 2 3 4 5 6 7 8 9 10>;
+		default-brightness-level = <8>;
+
+		enable-gpios = <&pio 30 GPIO_ACTIVE_HIGH>;
+
+		pwms = <&disp_pwm0 0 30000>;
+	};
+
+	display_dsi0: display-dsi0 {
+		compatible = "panel-lvds";
+		data-mapping = "vesa-24";
+
+		backlight = <&backlight_dsi0>;
+
+		width-mm = <150>;
+		height-mm = <94>;
+
+		panel-timing {
+			BD_PANEL_TIMING
+		};
+
+		port {
+			display_in_ep_dsi0: endpoint {
+				remote-endpoint = <&sn65dsi84_bridge_out>;
+			};
+		};
+	};
+};
+
+&disp_pwm0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&disp_pwm0_pins>;
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+};
+
+&mipi_tx0 {
+	status = "okay";
+};
+
+
+&dsi0 {
+	status = "okay";
+
+	port {
+		dsi0_out: endpoint {
+			remote-endpoint = <&sn65dsi84_bridge_in>;
+		};
+	};
+};
+
+&i2c_mux_lcd_2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sn65dsi84_dsi0: sn65dsi84-dsi0@2c {
+		compatible = "ti,sn65dsi84";
+		reg = <0x2c>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&dsi0_sn65dsi84_pins>;
+		interrupts-extended = <&pio 128 IRQ_TYPE_EDGE_FALLING>;
+		interrupt-names = "irq";
+
+		vcc-supply = <&reg_3v3>;
+		enable-gpios = <&pio 25 GPIO_ACTIVE_HIGH>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				sn65dsi84_bridge_in: endpoint {
+					remote-endpoint = <&dsi0_out>;
+					data-lanes = <1 2 3 4>;
+				};
+			};
+
+			port@2 {
+				reg = <2>;
+
+				sn65dsi84_bridge_out: endpoint {
+					remote-endpoint = <&display_in_ep_dsi0>;
+				};
+			};
+		};
+	};
+
+	touchscreen_dsi0: touchscreen-dsi0@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
+
+		AVDD28-supply = <&reg_3v3>;
+		VDDIO-supply = <&reg_3v3>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_dsi0_goodix_pins>;
+		interrupts-extended = <&pio 146 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "irq";
+		irq-gpios = <&pio 146 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio 7 GPIO_ACTIVE_HIGH>;
+
+		touchscreen-min-x = <0>;
+		touchscreen-min-y = <0>;
+		touchscreen-size-x = <1280>;
+		touchscreen-size-y = <800>;
+	};
+};
+
+&pio {
+	disp_pwm0_pins: disp-pwm0-pins {
+		pins {
+			pinmux = <PINMUX_GPIO29__FUNC_O_DISP_PWM0>;
+			bias-pull-down;
+		};
+	};
+
+	dsi0_sn65dsi84_pins: dsi0-sn65dsi84-pins {
+		pins-enable {
+			pinmux = <PINMUX_GPIO25__FUNC_B_GPIO25>;
+			bias-pull-down;
+		};
+
+		pins-irq {
+			pinmux = <PINMUX_GPIO128__FUNC_B_GPIO128>;
+			bias-pull-up;
+			input-enable;
+		};
+	};
+
+	ts_dsi0_goodix_pins: ts-dsi0-goodix-pins {
+		pins-irq {
+			pinmux = <PINMUX_GPIO146__FUNC_B_GPIO146>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+			input-enable;
+		};
+
+		pins-reset {
+			pinmux = <PINMUX_GPIO7__FUNC_B_GPIO7>;
+			bias-pull-down;
+		};
+	};
+};

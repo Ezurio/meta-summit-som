@@ -1,0 +1,83 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] camsys: camsv: index pipes by device id, not by probed count
+
+num_camsv_drivers is the number of camsv devices enabled in the DT, but
+sv.devs[] and sv.pipelines[] are indexed by camsv id. With only camsv2
+enabled (CSI1) the count is 1, so id 1 was never searched: the pipe was
+not found and stream-on failed with -EINVAL right after "used_sv_dev".
+Scan all CAMSV_PIPELINE_NUM slots; unprobed pipelines have hw_cap == 0
+and are skipped.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Inappropriate [MediaTek out-of-tree driver]
+---
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
+@@ -4180,7 +4180,7 @@
+ 		for (i = 0; i < req_amount; i++) {
+ 			group = master << CAMSV_GROUP_SHIFT;
+ 			exp_order = 1 << (i + CAMSV_EXP_ORDER_SHIFT);
+-			for (j = 0; j < cam->num_camsv_drivers; j++) {
++			for (j = 0; j < CAMSV_PIPELINE_NUM; j++) {
+ 				if ((cam->sv.pipelines[j].is_occupied == 0) &&
+ 					(cam->sv.pipelines[j].hw_cap & hw_scen) &&
+ 					(cam->sv.pipelines[j].hw_cap & group) &&
+@@ -4190,7 +4190,7 @@
+ 					break;
+ 				}
+ 			}
+-			if (j == cam->num_camsv_drivers) {
++			if (j == CAMSV_PIPELINE_NUM) {
+ 				idle_pipes = 0;
+ 				match_cnt = 0;
+ 				goto EXIT;
+@@ -4201,7 +4201,7 @@
+ 			for (j = 0; j < req_amount; j++) {
+ 				group = 1 << (i + CAMSV_GROUP_SHIFT);
+ 				exp_order = 1 << (j + CAMSV_EXP_ORDER_SHIFT);
+-				for (k = 0; k < cam->num_camsv_drivers; k++) {
++				for (k = 0; k < CAMSV_PIPELINE_NUM; k++) {
+ 					if ((cam->sv.pipelines[k].is_occupied == 0) &&
+ 						(cam->sv.pipelines[k].hw_cap & hw_scen) &&
+ 						(cam->sv.pipelines[k].hw_cap & group) &&
+@@ -4211,7 +4211,7 @@
+ 						break;
+ 					}
+ 				}
+-				if (k == cam->num_camsv_drivers) {
++				if (k == CAMSV_PIPELINE_NUM) {
+ 					idle_pipes = 0;
+ 					match_cnt = 0;
+ 					goto EXIT;
+@@ -4221,7 +4221,7 @@
+ 				break;
+ 		}
+ 	} else {
+-		for (i = 0; i < cam->num_camsv_drivers; i++) {
++		for (i = 0; i < CAMSV_PIPELINE_NUM; i++) {
+ 			if ((cam->sv.pipelines[i].is_occupied == 0) &&
+ 				(cam->sv.pipelines[i].hw_cap & hw_scen)) {
+ 				match_cnt++;
+@@ -4238,7 +4238,7 @@
+ 	}
+ 
+ 	if (is_trial == 0) {
+-		for (i = 0; i < cam->num_camsv_drivers; i++) {
++		for (i = 0; i < CAMSV_PIPELINE_NUM; i++) {
+ 			if (idle_pipes & (1 << cam->sv.pipelines[i].id))
+ 				cam->sv.pipelines[i].is_occupied = 1;
+ 		}
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
+@@ -913,7 +913,7 @@
+ {
+ 	unsigned int i;
+ 
+-	for (i = 0; i < cam->num_camsv_drivers; i++) {
++	for (i = 0; i < CAMSV_PIPELINE_NUM; i++) {
+ 		if (sv_mask & (1 << i))
+ 			return cam->sv.devs[i];
+ 	}

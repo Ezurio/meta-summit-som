@@ -1,0 +1,32 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] camsys: camsv: fail stream-on when the top camsv is missing
+
+camsv devices work in pairs and the DMA setup writes the even device's
+(top) registers. If only the odd camsv is enabled in the DT, devs[] has
+no top device and mtk_cam_sv_dev_config() oopses on a NULL drvdata.
+Reject the pipe with -ENODEV and a message instead.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Inappropriate [MediaTek out-of-tree driver]
+---
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
+@@ -884,6 +884,16 @@
+ 		return ret;
+ 	}
+ 
++	/* DMA setup goes through the pair's even "top" camsv, so it must be probed. */
++	for (i = 0; i < ARRAY_SIZE(sv->devs); i++) {
++		if ((sv_pipe->enabled_sv & 1<<i) && !sv->devs[i & ~1u]) {
++			dev_info(sv->cam_dev,
++				 "camsv%u needs camsv%u enabled in the DT\n",
++				 i + 1, (i & ~1u) + 1);
++			return -ENODEV;
++		}
++	}
++
+ 	for (i = 0; i < ARRAY_SIZE(sv->devs); i++) {
+ 		if (!(sv_pipe->enabled_sv & 1<<i))
+ 			continue;

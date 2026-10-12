@@ -1,0 +1,14 @@
+Match the 115200 console used by BL2/BL31 on the mt8370 (Summit SoM).
+
+diff --git a/core/arch/arm/plat-mediatek/platform_config.h b/core/arch/arm/plat-mediatek/platform_config.h
+--- a/core/arch/arm/plat-mediatek/platform_config.h
++++ b/core/arch/arm/plat-mediatek/platform_config.h
+@@ -144,7 +144,7 @@
+ #define UART2_BASE		0x11001300
+ 
+ #define CONSOLE_UART_BASE	UART0_BASE
+-#define CONSOLE_BAUDRATE	921600
++#define CONSOLE_BAUDRATE	115200
+ #define CONSOLE_UART_CLK_IN_HZ	26000000
+ 
+ #elif defined(PLATFORM_FLAVOR_mt8391)

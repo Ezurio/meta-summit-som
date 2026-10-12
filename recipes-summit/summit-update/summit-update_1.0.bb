@@ -11,6 +11,7 @@ inherit ${@oe.utils.ifelse( \
     'swupdate-key-provider-sign', \
     '')}
 
+
 SWUPDATE_SIGNING_CERT ?= "${@oe.utils.ifelse( \
     d.getVar('HSM_UPDATE_KEY_ID'), \
     d.getVar('SWUPDATE_UPDATE_SIGNING_CERT'), \
@@ -33,6 +34,7 @@ RDEPENDS:${PN} = "\
     swupdate-client \
     mmc-utils \
     curl \
+    summit-initdata \
 "
 
 PACKAGES += "${PN}-push"

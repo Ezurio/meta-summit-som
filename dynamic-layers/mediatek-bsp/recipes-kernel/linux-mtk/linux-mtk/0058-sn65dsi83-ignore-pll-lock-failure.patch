@@ -1,0 +1,85 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] drm/bridge: ti-sn65dsi83: defer PLL lock wait and reset to atomic_enable
+
+According to the SN65DSI83 datasheet (Table 7-2, Initialization Sequence):
+- Init seq 2 requires DSI CLK lanes to be in HS state before PLL locking.
+- Init seq 6 sets PLL_EN and waits 10ms for PLL lock.
+- Init seq 7 sets SOFT_RESET and waits 10ms.
+- Init seq 10 clears error registers (CSR 0xE5).
+- Init seq 11 verifies CSR 0xE5.
+
+In Linux DRM, many DSI host drivers do not start the high-speed clock until
+atomic_enable(). In atomic_pre_enable(), the DSI clock is absent, so
+polling for PLL lock times out and performing soft reset without a clock
+leaves the deserializer in an uninitialized/unlocked state.
+
+Move the PLL lock wait (Step 6) and soft reset (Step 7) to atomic_enable(),
+where the host DSI clock is active.
+
+Upstream-Status: Pending
+---
+diff --git a/drivers/gpu/drm/bridge/ti-sn65dsi83.c b/drivers/gpu/drm/bridge/ti-sn65dsi83.c
+index 181b1f8d7736..00aecf6f569f 100644
+--- a/drivers/gpu/drm/bridge/ti-sn65dsi83.c
++++ b/drivers/gpu/drm/bridge/ti-sn65dsi83.c
+@@ -471,22 +471,6 @@ static void sn65dsi83_atomic_pre_enable(struct drm_bridge *bridge,
+ 
+ 	/* Enable PLL */
+ 	regmap_write(ctx->regmap, REG_RC_PLL_EN, REG_RC_PLL_EN_PLL_EN);
+-	usleep_range(3000, 4000);
+-	ret = regmap_read_poll_timeout(ctx->regmap, REG_RC_LVDS_PLL, pval,
+-				       pval & REG_RC_LVDS_PLL_PLL_EN_STAT,
+-				       1000, 100000);
+-	if (ret) {
+-		dev_err(ctx->dev, "failed to lock PLL, ret=%i\n", ret);
+-		/* On failure, disable PLL again and exit. */
+-		regmap_write(ctx->regmap, REG_RC_PLL_EN, 0x00);
+-		return;
+-	}
+-
+-	/* Trigger reset after CSR register update. */
+-	regmap_write(ctx->regmap, REG_RC_RESET, REG_RC_RESET_SOFT_RESET);
+-
+-	/* Wait for 10ms after soft reset as specified in datasheet */
+-	usleep_range(10000, 12000);
+ }
+ 
+ static void sn65dsi83_atomic_enable(struct drm_bridge *bridge,
+@@ -494,16 +478,32 @@ static void sn65dsi83_atomic_enable(struct drm_bridge *bridge,
+ {
+ 	struct sn65dsi83 *ctx = bridge_to_sn65dsi83(bridge);
+ 	unsigned int pval;
++	int ret;
+ 
+-	/* Clear all errors that got asserted during initialization. */
+-	regmap_read(ctx->regmap, REG_IRQ_STAT, &pval);
+-	regmap_write(ctx->regmap, REG_IRQ_STAT, pval);
++	/*
++	 * Wait for PLL lock (Table 7-2 Step 6 in datasheet).
++	 * DSI host enables its HS clock in enable(), so PLL locks here.
++	 */
++	ret = regmap_read_poll_timeout(ctx->regmap, REG_RC_LVDS_PLL, pval,
++				       pval & REG_RC_LVDS_PLL_PLL_EN_STAT,
++				       1000, 20000);
++	if (ret)
++		dev_warn(ctx->dev, "failed to lock PLL: %d\n", ret);
++
++	/* Trigger reset after CSR register update and PLL lock (Step 7) */
++	regmap_write(ctx->regmap, REG_RC_RESET, REG_RC_RESET_SOFT_RESET);
++
++	/* Wait for 10ms after soft reset as specified in datasheet */
++	usleep_range(10000, 12000);
++
++	/* Clear all errors that got asserted during initialization (Step 10) */
++	regmap_write(ctx->regmap, REG_IRQ_STAT, 0xff);
+ 
+-	/* Wait for 1ms and check for errors in status register */
++	/* Wait for 1ms and check for errors in status register (Step 11) */
+ 	usleep_range(1000, 1100);
+ 	regmap_read(ctx->regmap, REG_IRQ_STAT, &pval);
+ 	if (pval)
+-		dev_err(ctx->dev, "Unexpected link status 0x%02x\n", pval);
++		dev_warn(ctx->dev, "Unexpected link status 0x%02x\n", pval);
+ }
+ 
+ static void sn65dsi83_atomic_disable(struct drm_bridge *bridge,

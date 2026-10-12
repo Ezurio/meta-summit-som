@@ -1009,7 +1009,47 @@ static const struct v4l2_subdev_core_ops pivariety_core_ops = {
 	.unsubscribe_event = v4l2_event_subdev_unsubscribe,
 };
 
+/* IMX678 frame rates per output resolution */
+static const struct {
+	u32 width;
+	u32 height;
+	u32 fps;
+} pivariety_mode_fps[] = {
+	{ 3840, 2160, 15 },
+	{ 1920, 1080, 60 },
+	{ 1280, 720, 90 },
+};
+
+static int pivariety_g_frame_interval(struct v4l2_subdev *sd,
+				      struct v4l2_subdev_frame_interval *fi)
+{
+	struct pivariety *pivariety = to_pivariety(sd);
+	struct arducam_format *format;
+	struct arducam_resolution *res;
+	int i, ret = -ENOIOCTLCMD;
+
+	mutex_lock(&pivariety->mutex);
+
+	format = &pivariety->supported_formats[pivariety->current_format_idx];
+	res = &format->resolution_set[pivariety->current_resolution_idx];
+
+	for (i = 0; i < ARRAY_SIZE(pivariety_mode_fps); i++) {
+		if (pivariety_mode_fps[i].width == res->width &&
+		    pivariety_mode_fps[i].height == res->height) {
+			fi->interval.numerator = 1;
+			fi->interval.denominator = pivariety_mode_fps[i].fps;
+			ret = 0;
+			break;
+		}
+	}
+
+	mutex_unlock(&pivariety->mutex);
+
+	return ret;
+}
+
 static const struct v4l2_subdev_video_ops pivariety_video_ops = {
+	.g_frame_interval = pivariety_g_frame_interval,
 	.s_stream = pivariety_set_stream,
 };
 

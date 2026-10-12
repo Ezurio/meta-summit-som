@@ -13,7 +13,8 @@ inherit ${@oe.utils.ifelse( \
 SRC_URI += "file://erase_data_emmc.sh file://erase_data.sh file://copy_partitions.sh"
 SRC_URI:append:imx8mp-summitsom = " file://update_support.sh"
 
-DEPENDS += "summit-image-tools"
+# Host tools only feed do_create_archive; DEPENDS would pull them into do_rootfs's hash.
+do_create_archive[depends] += "summit-image-tools:do_deploy"
 
 ARCHIVE_WILDCARD += "${SWUDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.swu \
     ${DEPLOY_DIR_IMAGE}/mksdcard.sh"

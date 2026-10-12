@@ -1,0 +1,8 @@
+# TI AM6xx ROM USB DFU
+SUBSYSTEM=="usb", ATTR{idVendor}=="0451", ATTR{idProduct}=="6165", MODE="0660", TAG+="uaccess"
+
+# Ezurio SPL (DFU or fastboot) and U-Boot fastboot
+SUBSYSTEM=="usb", ATTR{idVendor}=="1fa3", ATTR{idProduct}=="0003", MODE="0660", TAG+="uaccess"
+
+# Ezurio Linux DFU and U-Boot fastboot
+SUBSYSTEM=="usb", ATTR{idVendor}=="1fa3", ATTR{idProduct}=="0002", MODE="0660", TAG+="uaccess"

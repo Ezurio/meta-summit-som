@@ -1,0 +1,30 @@
+From 3b05aa1189c0f2a0a0c6558863e34d2cb441a8d1 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Sun, 11 Oct 2026 00:00:00 +0000
+Subject: [PATCH] drm/mediatek: use dev_err_probe for RDMA component
+
+Adding a display component can defer while another component or the DRM
+master is not ready. Report that expected probe-order condition through
+dev_err_probe() instead of emitting it as an error, while preserving the
+error return so the driver core can retry the probe.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Pending
+---
+ drivers/gpu/drm/mediatek/mtk_disp_rdma.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_rdma.c b/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
+index 000000000000..111111111111 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
+@@ -378,5 +378,5 @@ static int mtk_disp_rdma_probe(struct platform_device *pdev)
+ 	if (ret) {
+ 		pm_runtime_disable(dev);
+-		dev_err(dev, "Failed to add component: %d\n", ret);
++		dev_err_probe(dev, ret, "Failed to add component\n");
+ 	}
+ 
+-- 
+2.45.2

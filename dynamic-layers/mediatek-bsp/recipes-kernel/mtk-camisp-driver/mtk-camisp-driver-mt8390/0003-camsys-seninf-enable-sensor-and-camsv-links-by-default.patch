@@ -1,0 +1,93 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] camsys: enable sensor->seninf and seninf->camsv links by default
+
+The links are created disabled, so a plain V4L2 user (v4l2-ctl, gstreamer)
+fails with "Failed to find the linked seninf entity" unless it enables them.
+Enable the sensor link when the DT-described sensor is bound, and, for each
+seninf, the link to the first registered camsv that has no input yet (the
+DT may enable only some camsv, e.g. camsv-1 for CSI1). Both go through media_entity_setup_link()
+so the link_setup callbacks run. Userspace can still change them.
+On unbind the sensor link is disabled and the seninf drops its sensor.
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Inappropriate [MediaTek out-of-tree driver]
+---
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-seninf-drv.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-seninf-drv.c
+index fbb0c97..6b89048 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-seninf-drv.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-seninf-drv.c
+@@ -1506,6 +1506,7 @@ static int seninf_notifier_bound(struct v4l2_async_notifier *notifier,
+ {
+ 	struct seninf_ctx *ctx = notifier_to_ctx(notifier);
+ 	struct media_entity *sensor = &sd->entity;
++	struct media_link *link;
+ 	int ret;
+ 	unsigned int i;
+ 
+@@ -1531,6 +1532,15 @@ static int seninf_notifier_bound(struct v4l2_async_notifier *notifier,
+ 		return ret;
+ 	}
+ 
++	/* Go through setup_link so seninf_link_setup() records the sensor. */
++	link = media_entity_find_link(&sensor->pads[i], &ctx->subdev.entity.pads[0]);
++	if (link) {
++		ret = media_entity_setup_link(link, MEDIA_LNK_FL_ENABLED);
++		if (ret)
++			dev_info(ctx->dev, "failed to enable link for %s: %d\n",
++				 sd->entity.name, ret);
++	}
++
+ 	ret = v4l2_device_register_subdev_nodes(ctx->subdev.v4l2_dev);
+ 	if (ret) {
+ 		dev_info(ctx->dev, "failed to create subdev nodes\n");
+@@ -1545,8 +1555,20 @@ static void seninf_notifier_unbind(struct v4l2_async_notifier *notifier,
+ 				   struct v4l2_async_connection *asd)
+ {
+ 	struct seninf_ctx *ctx = notifier_to_ctx(notifier);
++	struct media_link *link;
+ 
+ 	dev_info(ctx->dev, "%s is unbounded\n", sd->entity.name);
++
++	if (ctx->sensor_sd != sd)
++		return;
++
++	link = media_entity_find_link(&sd->entity.pads[ctx->sensor_pad_idx],
++				      &ctx->subdev.entity.pads[0]);
++	if (link)
++		media_entity_setup_link(link, 0);
++
++	/* The sensor is going away, even if the link could not be disabled. */
++	ctx->sensor_sd = NULL;
+ }
+ 
+ static const struct v4l2_async_notifier_operations seninf_async_ops = {
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
+@@ -7191,6 +7191,8 @@
+ 				   struct v4l2_subdev *seninf)
+ {
+ 	struct media_entity *pipe_entity;
++	struct media_link *link;
++	bool sv_linked = false;
+ 	unsigned int i, j;
+ 	int ret;
+ 
+@@ -7243,6 +7245,16 @@
+ 				}
+ 			}
+ 
++			/* Default to the first registered camsv without an input, once per seninf. */
++			if (!sv_linked &&
++			    !media_pad_remote_pad_first(&pipe_entity->pads[MTK_CAMSV_SINK])) {
++				link = media_entity_find_link(&seninf->entity.pads[PAD_SRC_RAW0],
++							      &pipe_entity->pads[MTK_CAMSV_SINK]);
++				if (link && !media_entity_setup_link(link, MEDIA_LNK_FL_ENABLED |
++								     MEDIA_LNK_FL_DYNAMIC))
++					sv_linked = true;
++			}
++
+ #if PDAF_READY
+ 			for (j = PAD_SRC_PDAF0; j <= PAD_SRC_PDAF5; j++) {
+ 				ret = media_create_pad_link(&seninf->entity, j,

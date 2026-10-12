@@ -1,7 +1,5 @@
 FILESEXTRAPATHS:prepend:summitsom := "${THISDIR}/${PN}-6.12:"
 
-inherit summit-kernel-dtbo-check
-
 SRC_URI:append:summitsom = " \
     file://0001-ts3a227-jack.patch \
     file://0002-ts3a227-irq.patch \
@@ -40,10 +38,19 @@ SRC_URI:append:summitsom = " \
     file://0067-can-m_can-m_can_get_berr_counter-dont-wake-up.patch \
     file://0068-pinctrl-mcp23s08-add-wakeup-support.patch \
     file://0079-fs_crypt-accept-trusted-keys-via-key_id.patch \
-    file://dts \
     "
 
-KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if (d.getVar('KERNEL_DEVICETREE') or '').find('.dtbo') >= 0 else ''}"
+SRC_URI:append:summitsom-rescue-initramfs = " \
+    file://kernel-initramfs.cfg \
+    "
+KERNEL_CONFIG_FRAGMENTS:append:summitsom-rescue-initramfs = " \
+    ${UNPACKDIR}/kernel-initramfs.cfg \
+    "
+
+# DTBs and overlays are built by summit-device-trees (virtual/dtb)
+KERNEL_DEVICETREE:summitsom = ""
+# Revert meta-ti's /boot/dtb so no empty directory is installed
+KERNEL_DTBDEST:summitsom = "${KERNEL_IMAGEDEST}"
 
 KERNEL_CONFIG_SUMMIT:am62xx = "k3-am625-carbon_defconfig"
 KERNEL_CONFIG_SUMMIT:j722s  = "k3-am675-carbon_defconfig"
@@ -54,14 +61,6 @@ KERNEL_DEFCONFIG:summitsom = "${@'file://' + d.getVar('KERNEL_CONFIG_SUMMIT') if
 
 # Remove kernel binary from rootfs
 RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base:summitsom = ""
-
-python do_patch:append:summitsom () {
-    bb.build.exec_func('do_copy_dts', d)
-}
-
-do_copy_dts () {
-    cp -af -t "${S}/arch/arm64/boot" "${WORKDIR}/dts"
-}
 
 do_configure:prepend:summitsom() {
     cp -f "${WORKDIR}/${KERNEL_CONFIG_SUMMIT}" "${WORKDIR}/defconfig"

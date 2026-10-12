@@ -1,7 +1,5 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-inherit summit-kernel-dtbo-check
-
 SRC_URI:append:summitsom = " \
     file://0001-ts3a227-jack.patch \
     file://0006-sound_ts3a227_support.patch \
@@ -54,7 +52,6 @@ SRC_URI:append:summitsom = " \
     file://0095-staging-neutron-use-dma-barriers-for-coherent-buffers.patch \
     file://0096-media-mxc-csi-select-input-endpoint.patch \
     file://0097-media-mxc-csi-ov5645-uyvy-format.patch \
-    file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
 
@@ -62,7 +59,16 @@ SRC_URI:append:imx8mp-summitsom = " \
     file://0004-Introduce-the-BQ25790-charger-driver.patch \
     "
 
-KERNEL_DTC_FLAGS:append:summitsom = " ${@' -@' if d.getVar('KERNEL_DEVICETREE').find('.dtbo') else ''}"
+SRC_URI:append:summitsom-rescue = " \
+    file://kernel-rescue.cfg \
+    "
+
+SRC_URI:append:summitsom-initramfs = " \
+    file://kernel-initramfs.cfg \
+    "
+
+# DTBs and overlays are built by summit-device-trees (virtual/dtb)
+KERNEL_DEVICETREE:summitsom = ""
 
 KERNEL_CONFIG_SUMMIT:mx8mm-generic-bsp = "file://nitrogen_imx8mm_defconfig"
 KERNEL_CONFIG_SUMMIT:mx8mp-generic-bsp = "file://nitrogen_imx8mp_defconfig"
@@ -83,10 +89,6 @@ RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base:summitsom = ""
 python __anonymous() {
     if 'summitsom' in d.getVar('OVERRIDES', True).split(':'):
         d.setVarFlag('do_copy_defconfig', 'noexec', '1')
-}
-
-do_patch:append:summitsom () {
-    cp -af -t "${S}/arch/arm64/boot" "${WORKDIR}/dts"
 }
 
 # Build SDMA firmware into kernel

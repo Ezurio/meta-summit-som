@@ -7,7 +7,7 @@ SRC_URI = " \
     file://LT9611UXD_DSI_AUTO_V1.3_445651.bin \
     "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}"
 
 inherit allarch
 

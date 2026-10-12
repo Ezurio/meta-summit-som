@@ -2,9 +2,9 @@
 # long-description:
 # Create an image that can be written onto a SD card using dd for use
 
-part /boot --source bootimg-partition --ondisk mmcblk --fstype=vfat --label kernel_a --active --align 1024 --fixed-size 32M
+part /boot --source bootimg-partition --ondisk mmcblk --fstype=vfat --label kernel_a --active --align 1024 --fixed-size 64M
 part --ondisk mmcblk --fstype=swap --label swap --align 8192 --size 1G
-part --ondisk mmcblk --fstype=ext4 --label perm --align 8192 --fixed-size 50M
+part --ondisk mmcblk --fstype=ext4 --label perm --align 8192 --fixed-size 64M
 part / --source rawcopy --sourceparams="file=${IMGDEPLOYDIR}/${IMAGE_ROOTFS_VERITY_NAME}" --ondisk mmcblk --fstype=squashfs --align 8192
 part --ondisk mmcblk --fstype=ext4 --label rootfs_data_a --align 8192 --fixed-size ${WIC_ROOTFS_DATA_FIXED_SIZE}
 

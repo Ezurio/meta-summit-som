@@ -15,8 +15,6 @@ BBLAYERS = " \
   ${BSPDIR}/sources/meta-openembedded/meta-multimedia \
   ${BSPDIR}/sources/meta-openembedded/meta-python \
   \
-  ${BSPDIR}/sources/meta-ti/meta-ti-bsp \
-  \
   ${BSPDIR}/sources/meta-arm/meta-arm \
   ${BSPDIR}/sources/meta-arm/meta-arm-toolchain \
   \
@@ -30,4 +28,8 @@ BBLAYERS = " \
   ${BSPDIR}/sources/meta-aws \
   \
   ${BSPDIR}/sources/meta-summit-radio/meta-summit-radio \
+"
+
+BBLAYERS += " \
+  ${BSPDIR}/sources/meta-ti/meta-ti-bsp \
 "

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2022 Ezurio LLC
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "imx8mp-summitsom-wifi-sdio-uart.dtso"
+
+&usdhc1 {
+	/delete-property/ keep-power-in-suspend;
+};
+
+&wifi {
+	remove-power-on-link-down;
+};

@@ -1,6 +1,6 @@
 DESCRIPTION = "Summit SOM Weston Image"
 
-inherit image-summitsom-gen image-summitsom-sd-gen image-summitsom-swu-gen
+inherit image-summitsom-gen ${@oe.utils.ifelse('mtk' in (d.getVar('OVERRIDES') or '').split(':'), '', 'image-summitsom-sd-gen')} image-summitsom-swu-gen
 
 IMAGE_FEATURES += "splash hwcodecs weston"
 

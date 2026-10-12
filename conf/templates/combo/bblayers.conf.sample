@@ -44,6 +44,10 @@ BBLAYERS_TI = " \
   ${BSPDIR}/sources/meta-ti/meta-ti-bsp \
 "
 
-BSP_VENDOR ?= "${@'ti' if any(m in (d.getVar('MACHINE') or (open(d.getVar('TOPDIR') + '/conf/local.conf').read() if os.path.exists(d.getVar('TOPDIR') + '/conf/local.conf') else '')) for m in ('am6', 'k3')) else 'nxp'}"
+BBLAYERS_MTK = " \
+  ${BSPDIR}/sources/meta-mediatek-bsp \
+"
+
+BSP_VENDOR ?= "${@ (lambda machine: next((vendor for vendor, markers in (('ti', ('am6', 'k3')), ('mtk', ('genio', 'mt8')), ('nxp', ('imx',))) if any(marker in machine for marker in markers)), 'unknown'))(d.getVar('MACHINE') or (open(d.getVar('TOPDIR') + '/conf/local.conf').read() if os.path.exists(d.getVar('TOPDIR') + '/conf/local.conf') else ''))}"
 
 BBLAYERS += "${@d.getVar('BBLAYERS_' + d.getVar('BSP_VENDOR').upper())}"

@@ -1,0 +1,294 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright (C) 2026 Ezurio LLC
+ */
+
+/dts-v1/;
+
+#include "tungsten-mt8390-smarc.dtsi"
+
+/ {
+	aliases {
+		rtc0 = &rv3028_carrier;
+	};
+
+	reg_i2c_mux_lcd: regulator-i2c-mux-lcd {
+		compatible = "regulator-fixed";
+		regulator-name = "reg_i2c_mux_lcd";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c_mux_lcd>;
+		gpio = <&pio 5 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_i2c_mux_gp: regulator-i2c-mux-gp {
+		compatible = "regulator-fixed";
+		regulator-name = "reg_i2c_mux_gp";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c_mux_gp>;
+		gpio = <&pio 6 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	usb_p2_vbus: regulator-usb-p2-vbus {
+		compatible = "regulator-fixed";
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb2_eth_pins>;
+		regulator-name = "vbus_p2";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&pio 80 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_slow_clock_carrier: regulator-slow-clock-carrier {
+		compatible = "regulator-fixed-clock";
+
+		regulator-name = "reg_slow_clock_carrier";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+
+		clocks = <&rv3028_carrier>;
+
+		startup-delay-us = <1000>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+
+	i2c-mux-gp@73 {
+		compatible = "nxp,pca9546";
+		reg = <0x73>;
+		vdd-supply = <&reg_i2c_mux_gp>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		i2c_mux_gp_0: i2c@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			rv3028_carrier: rtc@52 {
+				compatible = "microcrystal,rv3028";
+				reg = <0x52>;
+
+				backup-switchover-dsm;
+				interrupts-extended = <&pio 42 IRQ_TYPE_LEVEL_LOW>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&rv3028_carrier_pins>;
+				#clock-cells = <0>;
+				wakeup-source;
+			};
+		};
+
+		i2c_mux_gp_1: i2c@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			typec: typec@60 {
+				compatible = "ti,tusb320";
+				reg = <0x60>;
+				interrupts-extended = <&pio 45 IRQ_TYPE_EDGE_FALLING>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&tusb320_pins>;
+			};
+		};
+
+		i2c_mux_gp_2: i2c@2 {
+			reg = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			codec: codec@1a {
+				compatible = "wlf,wm8962";
+				reg = <0x1a>;
+				#sound-dai-cells = <0>;
+				clocks = <&topckgen CLK_TOP_I2SO1>;
+				AVDD-supply = <&reg_1v8>;
+				CPVDD-supply = <&reg_1v8>;
+				DBVDD-supply = <&reg_3v3>;
+				DCVDD-supply = <&reg_1v8>;
+				MICVDD-supply = <&reg_3v3>;
+				PLLVDD-supply = <&reg_1v8>;
+				SPKVDD1-supply = <&reg_5v>;
+				SPKVDD2-supply = <&reg_5v>;
+				gpio-cfg = <0x0000 0x0000 0x0000 0x0000 0x8081 0x8095>;
+			};
+		};
+
+		i2c_mux_gp_3: i2c@3 {
+			reg = <3>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+	};
+};
+
+&i2c2 {
+	status = "okay";
+
+	i2c-mux-lcd@73 {
+		compatible = "nxp,pca9546";
+		reg = <0x73>;
+		vdd-supply = <&reg_i2c_mux_lcd>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		i2c_mux_lcd_0: i2c@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		i2c_mux_lcd_1: i2c@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		i2c_mux_lcd_2: i2c@2 {
+			reg = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		i2c_mux_lcd_3: i2c@3 {
+			reg = <3>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+	};
+};
+
+&mmc1 {
+	status = "okay";
+};
+
+&sound {
+	compatible = "mediatek,mt8188-mt6359";
+	pinctrl-names = "default";
+	pinctrl-0 = <&audio_pins>;
+	audio-routing =
+		"Headphone", "Headphone L",
+		"Headphone", "Headphone R",
+		"Headphone", "HPOUTL",
+		"Headphone", "HPOUTR",
+		"Headphone", "SPKOUTL",
+		"Headphone", "SPKOUTR",
+		"Headset Mic", "MICBIAS",
+		"IN1R", "Headset Mic",
+		"IN2R", "Headset Mic",
+		"IN3L", "Headset Mic",
+		"IN3R", "Headset Mic";
+	status = "okay";
+
+	dai-link-1 {
+		sound-dai = <&afe>;
+		link-name = "ETDM3_OUT_BE";
+		status = "disabled";
+
+		codec {
+			sound-dai = <&hdmi0>;
+		};
+	};
+
+	dai-link-2 {
+		sound-dai = <&afe>;
+		link-name = "DPTX_BE";
+		status = "disabled";
+
+		codec {
+			sound-dai = <&dp_tx>;
+		};
+	};
+
+	dai-link-3 {
+		sound-dai = <&afe>;
+		link-name = "ETDM1_OUT_BE";
+		status = "okay";
+
+		codec {
+			sound-dai = <&codec>;
+		};
+	};
+
+	dai-link-4 {
+		sound-dai = <&afe>;
+		link-name = "ETDM2_IN_BE";
+		status = "okay";
+
+		codec {
+			sound-dai = <&codec>;
+		};
+	};
+};
+
+&ssusb0 {
+	dr_mode = "otg";
+	maximum-speed = "high-speed";
+	extcon = <&typec>;
+	/* VBUS-valid is not sensed by the SoC in device role; BROM forces it, so do the same */
+	mediatek,force-vbus;
+
+	status = "okay";
+};
+
+&u2port0 {
+	status = "okay";
+};
+
+&u3phy0 {
+	status = "okay";
+};
+
+&pio {
+	pinctrl_i2c_mux_gp: pinctrl-i2c-mux-gp {
+		pins-reset {
+			pinmux = <PINMUX_GPIO6__FUNC_B_GPIO6>;
+			bias-pull-up;
+		};
+	};
+
+	pinctrl_i2c_mux_lcd: pinctrl-i2c-mux-lcd {
+		pins-reset {
+			pinmux = <PINMUX_GPIO5__FUNC_B_GPIO5>;
+			bias-pull-down;
+		};
+	};
+
+	rv3028_carrier_pins: rv3028-carrier-pins {
+		pins-irq {
+			pinmux = <PINMUX_GPIO42__FUNC_B_GPIO42>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+			input-enable;
+		};
+	};
+
+	usb2_eth_pins: usb2-eth-pins {
+		pins {
+			pinmux = <PINMUX_GPIO80__FUNC_B_GPIO80>;
+			output-low;
+		};
+	};
+
+	tusb320_pins: tusb320-pins {
+		pins-irq {
+			pinmux = <PINMUX_GPIO45__FUNC_B_GPIO45>;
+			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
+			input-enable;
+		};
+	};
+};
+
+/ {
+	model = "Ezurio Tungsten700 SMARC DVK (MT8390)";
+	compatible = "summit,mt8390-tungsten-smarc-dvk",
+		     "summit,mt8390-tungsten-smarc", "mediatek,mt8390",
+		     "mediatek,mt8188";
+};

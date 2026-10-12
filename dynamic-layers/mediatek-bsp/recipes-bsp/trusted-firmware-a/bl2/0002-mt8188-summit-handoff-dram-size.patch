@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Thu, 8 Oct 2026 00:00:00 +0000
+Subject: [PATCH] mt8188: hand the detected DRAM size to the next stage
+
+With SUMMIT_EMMC_NO_GPT, store the DRAM size found by libdram in the MediaTek
+boot arguments at BOOT_ARGUMENT_LOCATION so later stages can size memory
+without a static value.
+
+Upstream-Status: Inappropriate [Summit SoM specific]
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/plat/mediatek/mt8188/include/platform_def.h b/plat/mediatek/mt8188/include/platform_def.h
+--- a/plat/mediatek/mt8188/include/platform_def.h
++++ b/plat/mediatek/mt8188/include/platform_def.h
+@@ -276,5 +276,6 @@
+ #define BL2_BASE		(0x201000)
+ #define BL2_LIMIT		(0x400000)
++#define BOOT_ARGUMENT_LOCATION	(0x40000100)
+ 
+ #define MAX_IO_DEVICES			U(3)
+ #define MAX_IO_HANDLES			U(4)
+
+diff --git a/plat/mediatek/mt8188/bl2_plat_setup.c b/plat/mediatek/mt8188/bl2_plat_setup.c
+--- a/plat/mediatek/mt8188/bl2_plat_setup.c
++++ b/plat/mediatek/mt8188/bl2_plat_setup.c
+@@ -438,2 +438,8 @@
+ 	mt_mem_init();
++#if defined(SUMMIT_EMMC_NO_GPT)
++	/* Share the detected DRAM capacity through MediaTek's boot arguments. */
++	BOOT_ARGUMENT->magic_number = 0;
++	BOOT_ARGUMENT->dram_size = platform_memory_size();
++	BOOT_ARGUMENT->magic_number = BOOT_ARGUMENT_MAGIC;
++#endif
+ 	/* change emmc read buffer to DRAM */
+
+diff --git a/plat/mediatek/mt8188/include/libdram.h b/plat/mediatek/mt8188/include/libdram.h
+--- a/plat/mediatek/mt8188/include/libdram.h
++++ b/plat/mediatek/mt8188/include/libdram.h
+@@ -14,5 +14,6 @@
+ void i2c_hw_init(void);
+ unsigned int pmic_init(void);
+ void mt_mem_init(void);
++unsigned long long platform_memory_size(void);
+ 
+ #endif /* LIBDRAM_H */

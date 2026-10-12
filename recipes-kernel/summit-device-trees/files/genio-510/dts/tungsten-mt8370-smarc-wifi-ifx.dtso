@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * On-board SDIO LWBxx & IFxxx module
+ */
+
+/dts-v1/;
+/plugin/;
+
+&reg_wifi_en {
+	startup-delay-us = <250000>;
+	off-on-delay-us = <100>;
+};
+
+&mmc2 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
+};

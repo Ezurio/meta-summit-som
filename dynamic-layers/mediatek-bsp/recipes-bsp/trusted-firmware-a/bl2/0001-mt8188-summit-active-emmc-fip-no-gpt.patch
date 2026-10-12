@@ -1,0 +1,155 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Thu, 8 Oct 2026 00:00:00 +0000
+Subject: [PATCH] mt8188: boot the FIP from the active eMMC boot partition without GPT
+
+Add SUMMIT_EMMC_NO_GPT. With it BL2 does not parse a GPT: the FIP is read
+from a fixed offset (0x64000, 2 MiB) of the active eMMC boot partition and the
+GPT/partition sources are left out of the build. It cannot be combined with
+PLAT_AB_BOOT_ENABLE.
+
+Also link $(BL_LIBS) before $(LDLIBS) so the prebuilt libdram can resolve its
+libc references against BL2's libc.
+
+Upstream-Status: Inappropriate [Summit SoM specific]
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/make_helpers/build_macros.mk b/make_helpers/build_macros.mk
+index 46cd8f822..6ae28e7b8 100644
+--- a/make_helpers/build_macros.mk
++++ b/make_helpers/build_macros.mk
+@@ -507,16 +507,16 @@ ifneq ($(findstring armlink,$(notdir $(LD))),)
+ 		--predefine="-D__LINKER__=$(__LINKER__)" \
+ 		--predefine="-DTF_CFLAGS=$(TF_CFLAGS)" \
+ 		--map --list="$(MAPFILE)" --scatter=${PLAT_DIR}/scat/${1}.scat \
+-		$(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS) \
++       $(LDPATHS) $(LIBWRAPPER) $(BL_LIBS) $(LDLIBS) \
+ 		$(BUILD_DIR)/build_message.o $(OBJS)
+ else ifneq ($(findstring gcc,$(notdir $(LD))),)
+ 	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) -Wl,-Map=$(MAPFILE) \
+ 		-Wl,-dT $(LINKERFILE) $(EXTRA_LINKERFILE) $(BUILD_DIR)/build_message.o \
+-		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
++       $(OBJS) $(LDPATHS) $(LIBWRAPPER) $(BL_LIBS) $(LDLIBS)
+ else
+ 	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $(BL_LDFLAGS) -Map=$(MAPFILE) \
+ 		--script $(LINKERFILE) $(BUILD_DIR)/build_message.o \
+-		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
++       $(OBJS) $(LDPATHS) $(LIBWRAPPER) $(BL_LIBS) $(LDLIBS)
+ endif
+ ifeq ($(DISABLE_BIN_GENERATION),1)
+ 	@${ECHO_BLANK_LINE}
+diff --git a/plat/mediatek/common/mtk_plat_common.c b/plat/mediatek/common/mtk_plat_common.c
+index 8ac24e358..a0bd795d2 100644
+--- a/plat/mediatek/common/mtk_plat_common.c
++++ b/plat/mediatek/common/mtk_plat_common.c
+@@ -106,6 +106,9 @@ uint64_t get_part_addr(const char *name)
+ 	if (strncmp(name, "dramk", 5) == 0)
+ 		return BL2_STORAGE_NOR_DRAMK;
+ 	return 0;
++#elif defined(SUMMIT_EMMC_NO_GPT)
++	(void)name;
++	return 0;
+ #else
+ 	const partition_entry_t *entry;
+ 
+diff --git a/plat/mediatek/mt8188/bl2_plat_setup.c b/plat/mediatek/mt8188/bl2_plat_setup.c
+--- a/plat/mediatek/mt8188/bl2_plat_setup.c
++++ b/plat/mediatek/mt8188/bl2_plat_setup.c
+@@ -163,7 +163,11 @@
+ 		.length = PLAT_PARTITION_BLOCK_SIZE,
+ 	},
+ 	.ops = {
++#if defined(SUMMIT_EMMC_NO_GPT)
++		.read = mmc_boot_part_read_blocks,
++#else
+ 		.read = mmc_read_blocks,
++#endif
+ 		.write = mmc_write_blocks,
+ 	},
+ 	.block_size = MMC_BLOCK_SIZE,
+@@ -178,6 +182,10 @@
+ };
+ 
+ static io_block_spec_t storage_fip_spec;
++static const io_block_spec_t summit_emmc_fip_spec = {
++	.offset = 0x64000,
++	.length = 0x200000,
++};
+ #if defined(PLAT_AB_BOOT_ENABLE)
+ static io_block_spec_t storage_misc_spec;
+ #endif
+@@ -235,7 +243,7 @@
+ static const struct plat_io_policy policies[] = {
+ 	[FIP_IMAGE_ID] = {
+ 		&storage_dev_handle,
+-		(uintptr_t) &storage_fip_spec,
++		(uintptr_t)&summit_emmc_fip_spec,
+ 		check_storage
+ 	},
+ 	[BL31_IMAGE_ID] = {
+@@ -395,8 +403,12 @@
+ 	mmc_register_blkdev();
+ #endif
+ 	mtk_io_setup();
++	#if defined(SUMMIT_EMMC_NO_GPT)
++	blkdev_set_dramk_data_offset(0);
++	#else
+ 	load_partition_table(GPT_IMAGE_ID);
+ 	blkdev_set_dramk_data_offset(get_part_addr("dramk"));
++	#endif
+ 	mt_mem_init();
+ 	/* change emmc read buffer to DRAM */
+ 	boot_dev_spec->buffer.offset = 0x41000000;
+@@ -454,8 +466,14 @@
+ 
+ int bl2_plat_handle_pre_image_load(unsigned int image_id)
+ {
++	#if defined(SUMMIT_EMMC_NO_GPT)
++	(void)image_id;
++	return 0;
++	#else
+ 	const partition_entry_t *entry;
+ 	const char *name = get_boot_partition_name();
++	if (image_id == FIP_IMAGE_ID)
++		return 0;
+ 
+ 	if (storage_fip_spec.length == 0) {
+ #if defined(PLAT_AB_BOOT_ENABLE)
+@@ -497,6 +515,7 @@
+ 		storage_fip_spec.length = entry->length;
+ 	}
+ 	return 0;
++	#endif
+ }
+ 
+ unsigned int plat_get_syscnt_freq2(void)
+diff --git a/plat/mediatek/mt8188/platform_bl2.mk b/plat/mediatek/mt8188/platform_bl2.mk
+index ed760a8fc..220cafc35 100644
+--- a/plat/mediatek/mt8188/platform_bl2.mk
++++ b/plat/mediatek/mt8188/platform_bl2.mk
+@@ -4,6 +4,13 @@
+ # SPDX-License-Identifier: BSD-3-Clause
+ #
+ 
++ifeq (${SUMMIT_EMMC_NO_GPT},1)
++ifeq (${PLAT_AB_BOOT_ENABLE},1)
++$(error SUMMIT_EMMC_NO_GPT is incompatible with PLAT_AB_BOOT_ENABLE)
++endif
++$(eval $(call add_define,SUMMIT_EMMC_NO_GPT))
++endif
++
+ PLAT_INCLUDES += -I${MTK_PLAT}/common/drivers
+ 
+ BL2_SOURCES += lib/cpus/aarch64/cortex_a55.S \
+@@ -16,8 +23,8 @@ BL2_SOURCES += lib/cpus/aarch64/cortex_a55.S \
+ 	       drivers/io/io_storage.c \
+ 	       drivers/io/io_block.c \
+ 	       drivers/io/io_fip.c \
+-	       drivers/partition/gpt.c \
+-	       drivers/partition/partition.c \
++	       $(if $(filter 1,$(SUMMIT_EMMC_NO_GPT)),,drivers/partition/gpt.c) \
++	       $(if $(filter 1,$(SUMMIT_EMMC_NO_GPT)),,drivers/partition/partition.c) \
+ 	       lib/libc/memset.c \
+ 	       ${MTK_PLAT}/common/mtk_plat_common.c \
+ 	       $(MTK_PLAT_SOC)/plat_mmap.c \

@@ -8,7 +8,7 @@ INITSCRIPT_NAME = "dhcpcd"
 INITSCRIPT_PARAMS = "defaults 41"
 
 do_install:append() {
-    install -D -m 0755 "${UNPACKDIR}/S41dhcpcd" \
+    install -D -m 0755 "${WORKDIR}/S41dhcpcd" \
         "${D}${sysconfdir}/init.d/dhcpcd"
 }
 

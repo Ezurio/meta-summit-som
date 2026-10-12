@@ -11,17 +11,23 @@ SUMMIT_SOM_RADIO_TYPE ?= "none"
 
 PACKAGECONFIG ?= "${SUMMIT_SOM_RADIO_TYPE}"
 
-PACKAGECONFIG[none] = ""
+PACKAGECONFIG[none] = ",,,${RADIO_NO_WIFI_PACKAGES}"
 PACKAGECONFIG[60-sdio-uart] = ",,,60-radio-firmware-sdio-uart ${RADIO_60_PACKAGES}"
 PACKAGECONFIG[60-sdio-sdio] = ",,,60-radio-firmware-sdio-sdio ${RADIO_60_PACKAGES}"
 PACKAGECONFIG[60-som8mp] = ",,,som8mp-radio-firmware ${RADIO_60_PACKAGES}"
 PACKAGECONFIG[if513-div] = ",,,if513-sdio-div-firmware ${RADIO_IFX_PACKAGES}"
 PACKAGECONFIG[if513-sa] = ",,,if513-sdio-sa-firmware ${RADIO_IFX_PACKAGES}"
 PACKAGECONFIG[if573] = ",,,if573-sdio-firmware ${RADIO_IFX_PACKAGES}"
+PACKAGECONFIG[mt320] = ",,,mt320-sdio-firmware ${RADIO_MT320_PACKAGES}"
 PACKAGECONFIG[nx61x-1216] = ",,,nx61x-firmware-1216-serdev ${RADIO_NX_PACKAGES}"
 PACKAGECONFIG[nx61x-1218] = ",,,nx61x-firmware-1218-serdev ${RADIO_NX_PACKAGES}"
 PACKAGECONFIG[ti351] = ",,,ti351-firmware ${RADIO_TI_PACKAGES}"
 PACKAGECONFIG[dvk-combo] = ",,,${RADIO_COMBO_PACKAGES}"
+
+RADIO_NO_WIFI_PACKAGES = " \
+    summit-networkmanager \
+    summit-networkmanager-nmcli \
+    "
 
 RADIO_COMMON_PACKAGES = " \
     summit-supplicant \
@@ -53,6 +59,7 @@ RADIO_COMBO_PACKAGES = " \
     if513-sdio-sa-firmware \
     if573-sdio-firmware \
     ${@bb.utils.contains('MACHINE_FEATURES', 'pci', 'if573-pcie-firmware', '', d)} \
+    mt320-sdio-firmware \
     nx61x-firmware-1216-serdev \
     nx61x-firmware-1218-serdev \
     ti351-firmware \
@@ -63,6 +70,11 @@ RADIO_COMBO_PACKAGES = " \
 
 RADIO_IFX_PACKAGES = " \
     kernel-module-lwb-if-backports \
+    ${RADIO_COMMON_PACKAGES} \
+    "
+
+RADIO_MT320_PACKAGES = " \
+    kernel-module-mt-backports \
     ${RADIO_COMMON_PACKAGES} \
     "
 

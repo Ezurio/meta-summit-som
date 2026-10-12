@@ -1,0 +1,142 @@
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Subject: [PATCH] camsys: camsv: fix busy S_FMT and runtime resume error handling
+
+- Return -EBUSY with the active format from S_FMT on a busy camsv node
+  instead of echoing the caller's format (num_planes may be 0).
+- Propagate sv_reset() timeouts from runtime resume, enable the IRQ only
+  after a successful resume, and handle pm_runtime_resume_and_get()
+  failures in mtk_cam_sv_pipeline_config().
+- Drop the camsys PM reference when rproc_handle is missing in
+  mtk_cam_start_ctx().
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+
+Upstream-Status: Inappropriate [MediaTek out-of-tree driver]
+---
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
+index 69ad453..4fe1436 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.c
+@@ -805,7 +805,7 @@ static int push_msgfifo(struct mtk_camsv_device *dev,
+ 	return 0;
+ }
+ 
+-void sv_reset(struct mtk_camsv_device *dev)
++int sv_reset(struct mtk_camsv_device *dev)
+ {
+ 	int sw_ctl;
+ 	int ret;
+@@ -855,8 +855,10 @@ void sv_reset(struct mtk_camsv_device *dev)
+ 	writel(0, dev->base + REG_CAMSV_SW_CTL);
+ 	wmb(); /* make sure committed */
+ 
++	return 0;
++
+ RESET_FAILURE:
+-	return;
++	return ret;
+ }
+ 
+ int mtk_cam_sv_pipeline_config(
+@@ -882,18 +884,22 @@ int mtk_cam_sv_pipeline_config(
+ 		return ret;
+ 	}
+ 
+-	for (i = 0; i < ARRAY_SIZE(sv->devs); i++)
+-		if (sv_pipe->enabled_sv & 1<<i)
+-			pm_runtime_get_sync(sv->devs[i]);
++	for (i = 0; i < ARRAY_SIZE(sv->devs); i++) {
++		if (!(sv_pipe->enabled_sv & 1<<i))
++			continue;
+ 
+-	if (ret < 0) {
+-		dev_dbg(sv->cam_dev,
+-			"failed at pm_runtime_get_sync: %s\n",
+-			dev_driver_string(sv->devs[i]));
+-		for (i = i-1; i >= 0; i--)
+-			if (sv_pipe->enabled_sv & 1<<i)
+-				pm_runtime_put_sync(sv->devs[i]);
+-		return ret;
++		ret = pm_runtime_resume_and_get(sv->devs[i]);
++		if (ret < 0) {
++			dev_info(sv->cam_dev,
++				 "failed at pm_runtime_resume_and_get: %s: %d\n",
++				 dev_driver_string(sv->devs[i]), ret);
++			/* clear the sticky runtime-PM error so a later retry can resume */
++			pm_runtime_set_suspended(sv->devs[i]);
++			while (i--)
++				if (sv_pipe->enabled_sv & 1<<i)
++					pm_runtime_put_sync(sv->devs[i]);
++			return ret;
++		}
+ 	}
+ 
+ 	ctx->used_sv_dev[idx] = sv_pipe->enabled_sv;
+@@ -3035,8 +3041,6 @@ static int mtk_camsv_runtime_resume(struct device *dev)
+ 	if (ret)
+ 		return ret;
+ 
+-	enable_irq(camsv_dev->irq);
+-
+ 	dev_dbg(dev, "%s:enable clock\n", __func__);
+ 
+ 	for (i = 0; i < camsv_dev->num_clks; i++) {
+@@ -3051,7 +3055,15 @@ static int mtk_camsv_runtime_resume(struct device *dev)
+ 			return ret;
+ 		}
+ 	}
+-	sv_reset(camsv_dev);
++
++	ret = sv_reset(camsv_dev);
++	if (ret) {
++		for (i = 0; i < camsv_dev->num_clks; i++)
++			clk_disable_unprepare(camsv_dev->clks[i]);
++		return ret;
++	}
++
++	enable_irq(camsv_dev->irq);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.h b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.h
+index 578bdf0..5329d2f 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.h
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-sv.h
+@@ -280,7 +280,7 @@ int mtk_camsv_call_pending_set_fmt(struct v4l2_subdev *sd,
+ int mtk_cam_sv_select(
+ 	struct mtk_camsv_pipeline *pipe,
+ 	struct mtkcam_ipi_input_param *cfg_in_param);
+-void sv_reset(struct mtk_camsv_device *dev);
++int sv_reset(struct mtk_camsv_device *dev);
+ int mtk_cam_sv_pipeline_config(
+ 	struct mtk_cam_ctx *ctx, unsigned int idx,
+ 	struct mtkcam_ipi_input_param *cfg_in_param);
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-video.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-video.c
+index d2ec840..743e73f 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-video.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam-video.c
+@@ -1791,6 +1791,12 @@ int mtk_cam_vidioc_s_fmt(struct file *file, void *fh,
+ 		return 0;
+ 	}
+ 
++	/* Don't echo the caller's format back (num_planes may be 0) on a busy camsv node */
++	if (!is_raw_subdev(node->uid.pipe_id)) {
++		f->fmt = node->active_fmt.fmt;
++		return -EBUSY;
++	}
++
+ 	if (raw_pipeline)
+ 		mtk_cam_collect_vfmt(raw_pipeline, node, f);
+ 
+diff --git a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
+index dd91582..ccae65a 100644
+--- a/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
++++ b/drivers/media/platform/mtk-isp/isp_7x/camsys/src/mtk_cam.c
+@@ -6132,6 +6132,7 @@ struct mtk_cam_ctx *mtk_cam_start_ctx(struct mtk_cam_device *cam,
+ 		if (!cam->rproc_handle)  {
+ 			dev_info(cam->dev,
+ 				"fail to get rproc_handle\n");
++			pm_runtime_put_sync(cam->dev);
+ 			return NULL;
+ 		}
+ 
