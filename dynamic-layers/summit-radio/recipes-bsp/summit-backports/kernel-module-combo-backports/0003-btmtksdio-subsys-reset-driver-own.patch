@@ -1,0 +1,107 @@
+diff -ru a/drivers/bluetooth/btmtksdio.c b/drivers/bluetooth/btmtksdio.c
+--- a/drivers/bluetooth/btmtksdio.c
++++ b/drivers/bluetooth/btmtksdio.c
+@@ -143,6 +143,11 @@
+ 	struct gpio_desc *reset;
+ };
+ 
++/* Lets the MT7961 Wi-Fi driver keep this function in driver-own across L0.5. */
++static DEFINE_MUTEX(btmtksdio_subsys_reset_lock);
++static struct btmtksdio_dev *btmtksdio_subsys_reset_bdev;
++static bool btmtksdio_subsys_reset_held;
++
+ static int mtk_hci_wmt_sync(struct hci_dev *hdev,
+ 			    struct btmtk_hci_wmt_params *wmt_params)
+ {
+@@ -1448,6 +1453,12 @@
+ 		bdev->dev->of_node = old_node;
+ 	}
+ 
++	if (!err) {
++		mutex_lock(&btmtksdio_subsys_reset_lock);
++		btmtksdio_subsys_reset_bdev = bdev;
++		mutex_unlock(&btmtksdio_subsys_reset_lock);
++	}
++
+ 	return err;
+ }
+ 
+@@ -1459,6 +1470,15 @@
+ 	if (!bdev)
+ 		return;
+ 
++	mutex_lock(&btmtksdio_subsys_reset_lock);
++	if (btmtksdio_subsys_reset_bdev == bdev) {
++		if (btmtksdio_subsys_reset_held)
++			pm_runtime_put_noidle(bdev->dev);
++		btmtksdio_subsys_reset_held = false;
++		btmtksdio_subsys_reset_bdev = NULL;
++	}
++	mutex_unlock(&btmtksdio_subsys_reset_lock);
++
+ 	hdev = bdev->hdev;
+ 
+ 	/* Make sure to call btmtksdio_close before removing sdio card */
+@@ -1548,6 +1568,62 @@
+ #define BTMTKSDIO_PM_OPS NULL
+ #endif	/* CONFIG_PM */
+ 
++int btmtk_sdio_set_driver_own_for_subsys_reset(int enable);
++
++/* Called by the MT7961 Wi-Fi driver before and after its L0.5 subsystem reset.
++ * Holding a runtime PM reference keeps BT from returning ownership to the
++ * firmware while Wi-Fi resets the shared chip.
++ */
++int btmtk_sdio_set_driver_own_for_subsys_reset(int enable)
++{
++	struct btmtksdio_dev *bdev;
++	bool lost = false;
++	int err = 0;
++
++	mutex_lock(&btmtksdio_subsys_reset_lock);
++	bdev = btmtksdio_subsys_reset_bdev;
++	if (!bdev)
++		goto out;
++
++	if (enable && !btmtksdio_subsys_reset_held) {
++		err = pm_runtime_get_sync(bdev->dev);
++		/* Runtime PM is off during setup/shutdown, when BT is driver-own. */
++		if (err == -EACCES)
++			err = 0;
++		if (err < 0)
++			pm_runtime_put_noidle(bdev->dev);
++		else
++			btmtksdio_subsys_reset_held = true;
++	} else if (!enable && btmtksdio_subsys_reset_held) {
++		btmtksdio_subsys_reset_held = false;
++
++		/* Losing driver-own despite holding it means BT state was lost. */
++		if (test_bit(BTMTKSDIO_FUNC_ENABLED, &bdev->tx_state) &&
++		    !test_bit(BTMTKSDIO_HW_RESET_ACTIVE, &bdev->tx_state)) {
++			int rerr;
++			u32 status;
++
++			sdio_claim_host(bdev->func);
++			status = sdio_readl(bdev->func, MTK_REG_CHLPCR, &rerr);
++			sdio_release_host(bdev->func);
++			lost = rerr || !(status & C_COM_DRV_OWN);
++		}
++
++		pm_runtime_mark_last_busy(bdev->dev);
++		pm_runtime_put_autosuspend(bdev->dev);
++
++		if (lost) {
++			bt_dev_warn(bdev->hdev, "lost state in Wi-Fi reset, reinitializing");
++			hci_reset_dev(bdev->hdev);
++		}
++	}
++out:
++	mutex_unlock(&btmtksdio_subsys_reset_lock);
++
++	return err < 0 ? err : 0;
++}
++EXPORT_SYMBOL_GPL(btmtk_sdio_set_driver_own_for_subsys_reset);
++
+ static struct sdio_driver btmtksdio_driver = {
+ 	.name		= "btmtksdio",
+ 	.probe		= btmtksdio_probe,

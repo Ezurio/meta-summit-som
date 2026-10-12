@@ -1,0 +1,177 @@
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/common/wlan_lib.c b/drivers/net/wireless/summit/mtk_gen4_wlan/common/wlan_lib.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/common/wlan_lib.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/common/wlan_lib.c
+@@ -1848,24 +1848,10 @@
+ 			 * transmission
+ 			 */
+ 			if (rStatus == WLAN_STATUS_RESOURCES) {
+-				/*
+-				 * Because 7961 cmd res is not sufficient,
+-				 * so will dump log here frequently, and
+-				 * will result system busy.
+-				 */
+-				if (prAdapter->CurNoResSeqID !=
+-					prCmdInfo->ucCmdSeqNum) {
+-					DBGLOG(INIT, WARN,
+-				    "NO Res CMD TYPE[%u] ID[0x%02X] SEQ[%u]\n",
+-				    prCmdInfo->eCmdType, prCmdInfo->ucCID,
+-				    prCmdInfo->ucCmdSeqNum);
+-				}
++				/* 7961 cmd res is routinely exhausted; stay silent. */
+ 				prAdapter->CurNoResSeqID =
+ 					prCmdInfo->ucCmdSeqNum;
+ 
+-				prAdapter->u4HifDbgFlag |= DEG_HIF_ALL;
+-				kalSetHifDbgEvent(prAdapter->prGlueInfo);
+-
+ 				QUEUE_INSERT_TAIL(prMergeCmdQue, prQueueEntry);
+ 
+ 				/*
+@@ -7830,7 +7816,7 @@
+ 				       prAdapter, "MacOverride", 0);
+ 	if (wlanCfgGet(prAdapter, "MacAddr", prWifiVar->aucMacAddrStr,
+ 	    "00:0c:e7:66:32:e1", 0))
+-		DBGLOG(INIT, ERROR, "get MacAddr fail, use defaul\n");
++		DBGLOG(INIT, INFO, "get MacAddr fail, use defaul\n");
+ 
+ 	prWifiVar->ucCtiaMode = (uint8_t) wlanCfgGetUint32(
+ 					prAdapter, "CtiaMode", 0);
+@@ -8166,8 +8152,7 @@
+ 	prWifiVar->ucP2pGoACS = (uint32_t) wlanCfgGetUint32(
+ 			prAdapter, "P2pGoACSEnable",
+ 			FEATURE_ENABLED);
+-	DBGLOG(INIT, WARN,
+-		"P2pGoACSEnable Setting:ACS Enable[%d]\n",
++	DBGLOG(INIT, INFO, "P2pGoACSEnable Setting:ACS Enable[%d]\n",
+ 		prAdapter->rWifiVar.ucP2pGoACS);
+ #endif
+ 
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/cnm.c b/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/cnm.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/cnm.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/cnm.c
+@@ -3400,7 +3400,7 @@
+ 	if (DBDC_INFO.fgIsDBDCAAMode == TRUE)
+ 		prCmdBody->ucDBDCAAMode = 1;
+ 
+-	log_dbg(CNM, WARN, "fgDbdcEn=%d, ucDBDCAAMode=%d\n",
++	log_dbg(CNM, INFO, "fgDbdcEn=%d, ucDBDCAAMode=%d\n",
+ 		DBDC_INFO.fgCmdEn, prCmdBody->ucDBDCAAMode);
+ 
+ #if (CFG_WIFI_RAM_COEX_SPDT_SHR_ANT_CTRL == 1)
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/p2p_func.c b/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/p2p_func.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/p2p_func.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/p2p_func.c
+@@ -7562,7 +7562,7 @@
+ 	if (!prAdapter
+ 		|| !cnmSapIsConcurrent(prAdapter)
+ 		|| !fgEnable) {
+-		DBGLOG(P2P, WARN, "Not support concurrent STA + SAP\n");
++		DBGLOG(P2P, INFO, "Not support concurrent STA + SAP\n");
+ 		goto exit;
+ 	}
+ 
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/rlm_domain.c b/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/rlm_domain.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/rlm_domain.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/mgmt/rlm_domain.c
+@@ -2941,7 +2941,7 @@
+ 
+ 	/* Always use the wlan GlueInfo as parameter. */
+ 	if (!prGlueInfo) {
+-		DBGLOG(RLM, ERROR, "prGlueInfo is NULL!\n");
++		/* Not initialized yet: pGlueInfo is published after card ready. */
+ 		return FALSE;
+ 	}
+ 
+@@ -3083,7 +3083,9 @@
+ 
+ 	if (!rlmDomainCountryCodeUpdateSanity(
+ 		prGlueInfo, prBaseWiphy, &prBaseAdapter)) {
+-		DBGLOG(RLM, WARN, "sanity check failed, skip update\n");
++		if (prGlueInfo)
++			DBGLOG(RLM, WARN,
++				"sanity check failed, skip update\n");
+ 		return;
+ 	}
+ 
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_cfg80211.c b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_cfg80211.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_cfg80211.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_cfg80211.c
+@@ -6527,7 +6527,8 @@
+ 
+ 	if (!rlmDomainCountryCodeUpdateSanity(
+ 		prGlueInfo, pBaseWiphy, &prAdapter)) {
+-		DBGLOG(RLM, ERROR, "sanity check failed, skip!\n");
++		if (prGlueInfo)
++			DBGLOG(RLM, ERROR, "sanity check failed, skip!\n");
+ 		return;
+ 	}
+ 
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_init.c b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_init.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_init.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_init.c
+@@ -6238,7 +6238,7 @@
+ #endif
+ #endif
+ 
+-	DBGLOG(INIT, ERROR, "start.\n");
++	DBGLOG(INIT, INFO, "start.\n");
+ 
+ 	if (!bAtResetFlow) {
+ 		/* change net device mtu from feature option */
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_rst.c b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_rst.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_rst.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/gl_rst.c
+@@ -927,8 +927,6 @@
+ 		glSetResettingFlag(prGlueInfo, TRUE);
+ 	}
+ 
+-	dump_stack();
+-
+ 	glResetTriggerCommon(prAdapter, u4RstFlag, pucFile, u4Line);
+ 	glResetTriggerCe(prAdapter, u4RstFlag);
+ }
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/sdio.c b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/sdio.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/sdio.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/sdio.c
+@@ -288,15 +288,13 @@
+ 				disable_irq_nosync(node->wowlan_irq);
+ 			}
+ 		} else {
+-			DBGLOG(INIT, ERROR,
+-				"%s, can't find wifi_ctrl irq\n",
++			DBGLOG(INIT, INFO, "%s, can't find wifi_ctrl irq\n",
+ 				__func__);
+ 		}
+ 
+ 	} else {
+ 		node->wowlan_irq = 0;
+-		DBGLOG(INIT, ERROR,
+-			"%s, can't find wifi_ctrl compatible node\n",
++		DBGLOG(INIT, INFO, "%s, can't find wifi_ctrl compatible node\n",
+ 			__func__);
+ 	}
+ }
+diff -ru a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/hal_api.c b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/hal_api.c
+--- a/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/hal_api.c
++++ b/drivers/net/wireless/summit/mtk_gen4_wlan/os/linux/hif/sdio/hal_api.c
+@@ -2454,15 +2454,15 @@
+ 		prIntLog = &prHifInfo->arIntLog[u4Idx];
+ 		prIntSts = &prIntLog->rIntSts;
+ 
+-		DBGLOG(INTR, ERROR, "INT IDX[%u] STS[0x%08x] FG[0x%08x] Rx Pkt[%u] Sts0/1[%u:%u]\n",
++		DBGLOG(INTR, INFO, "INT IDX[%u] STS[0x%08x] FG[0x%08x] Rx Pkt[%u] Sts0/1[%u:%u]\n",
+ 			prIntLog->u4Idx, prIntSts->u4WHISR, prIntLog->u4Flag, prIntLog->ucRxPktCnt,
+ 			prIntSts->rRxInfo.u.u2NumValidRx0Len, prIntSts->rRxInfo.u.u2NumValidRx1Len);
+-		DBGLOG_MEM32(INTR, ERROR, &prIntLog->au2RxPktLen[0], sizeof(uint16_t) * HIF_RX_CFG_AGG_NUM);
+-		DBGLOG_MEM32(INTR, ERROR, &prIntLog->au4RxPktInfo[0], sizeof(uint32_t) * HIF_RX_CFG_AGG_NUM);
+-		DBGLOG_MEM32(INTR, ERROR, prIntSts, sizeof(struct ENHANCE_MODE_DATA_STRUCT));
++		DBGLOG_MEM32(INTR, INFO, &prIntLog->au2RxPktLen[0], sizeof(uint16_t) * HIF_RX_CFG_AGG_NUM);
++		DBGLOG_MEM32(INTR, INFO, &prIntLog->au4RxPktInfo[0], sizeof(uint32_t) * HIF_RX_CFG_AGG_NUM);
++		DBGLOG_MEM32(INTR, INFO, prIntSts, sizeof(struct ENHANCE_MODE_DATA_STRUCT));
+ 	}
+ 
+-	DBGLOG(INTR, ERROR, "---------------------------------\n");
++	DBGLOG(INTR, INFO, "---------------------------------\n");
+ }
+ 
+ void halTagIntLog(IN struct ADAPTER *prAdapter, IN enum HIF_SDIO_INT_STS eTag)
