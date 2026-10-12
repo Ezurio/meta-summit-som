@@ -29,6 +29,7 @@ RDEPENDS:${PN} = " \
     ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-som', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-alsamixer alsa-utils-aplay', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'less systemd-extra-utils', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'nand', 'mtd-utils mtd-utils-ubifs', '', d)} \
     "
 
 RDEPENDS:${PN}:append:summit-secure = " \
@@ -37,5 +38,21 @@ RDEPENDS:${PN}:append:summit-secure = " \
 
 RDEPENDS:${PN}:append:k3 = " \
     iproute2-devlink \
-    summit-prov \
+    summit-prov-ti \
+    "
+
+RDEPENDS:${PN}:append:mx93-generic-bsp:summit-secure = " \
+    summit-prov-imx \
+    "
+
+RDEPENDS:${PN}:remove:summitsom-mfg = " \
+    tzdata-core \
+    tzdata-posix \
+    chrony \
+    chronyc \
+    gptfdisk \
+    pkcs11-provider \
+    pkcs11-optee-openssl \
+    summit-prov-ti \
+    summit-prov-imx \
     "

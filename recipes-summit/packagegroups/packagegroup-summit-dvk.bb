@@ -16,8 +16,3 @@ RDEPENDS:${PN} = " \
 RDEPENDS:${PN}:append:imx8mp-summitsom = " \
     imx8mp-summitsom-dvk-support \
     "
-
-RDEPENDS:${PN}:append:k3:summitsom = " \
-    kernel-module-tac5x1x \
-    kernel-module-pivariety \
-    "

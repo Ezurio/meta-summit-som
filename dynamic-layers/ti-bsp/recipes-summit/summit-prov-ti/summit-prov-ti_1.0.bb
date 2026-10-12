@@ -1,10 +1,10 @@
-SUMMARY = "Summit Provisioning Service"
+SUMMARY = "Summit Provisioning Service for TI AM6xx processors"
 
 LICENSE = "Ezurio"
 NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
-LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=fd3dd0630b215465b6f50540642d5b93"
+LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=11ef601ae07d69cfcd7387a33b764027"
 
-inherit allarch systemd deploy
+inherit allarch systemd deploy update-rc.d
 inherit ${@oe.utils.ifelse( \
     '${CLOUD_HSM_BACKEND}', \
     bb.utils.contains('MACHINEOVERRIDES', 'k3', 'ti-provisioning-key-provider-sign', '', d), \
@@ -12,8 +12,9 @@ inherit ${@oe.utils.ifelse( \
 
 SRC_URI = " \
     file://LICENSE.ezurio \
-    file://summit-prov.service \
-    file://summit-prov.sh \
+    file://summit-prov-ti.service \
+    file://summit-prov-ti.init \
+    file://summit-prov-ti.sh \
     file://gen_core_x509_cert.sh \
     "
 
@@ -21,12 +22,17 @@ S = "${WORKDIR}"
 
 FILES:${PN} += "\
     ${systemd_system_unitdir} \
+    ${sysconfdir}/init.d \
     ${sbindir} \
     "
+
+INITSCRIPT_NAME = "summit-prov-ti"
+INITSCRIPT_PARAMS = "defaults 90 10"
 
 RDEPENDS:${PN} = "\
     openssl \
     opensc \
+    optee-client \
     optee-os-ta \
     summit-initdata \
     keyutils \
@@ -40,15 +46,17 @@ DEPENDS += " \
     openssl-native \
     "
 
-SYSTEMD_SERVICE:${PN} = "summit-prov.service"
+SYSTEMD_SERVICE:${PN} = "summit-prov-ti.service"
 SYSTEMD_AUTO_ENABLE = "enable"
 
 do_install:append () {
     install -D -m 0755 -t "${D}${sbindir}" \
-        "${S}/summit-prov.sh"
+        "${S}/summit-prov-ti.sh"
+
+    install -D -m 0755 "${S}/summit-prov-ti.init" "${D}${sysconfdir}/init.d/${INITSCRIPT_NAME}"
 
     if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then
-        install -D -m 644 -t "${D}${systemd_system_unitdir}" "${S}/summit-prov.service"
+        install -D -m 644 -t "${D}${systemd_system_unitdir}" "${S}/summit-prov-ti.service"
     fi
 
     # Create a placeholder file for the encrypted provisioning data
@@ -57,10 +65,10 @@ do_install:append () {
 
 do_install:append:summit-secure () {
     sed -i -E -e "s/^(After=.*|Requires=.*)/\1 mount_data.service/" \
-        "${D}${systemd_system_unitdir}/summit-prov.service"
+        "${D}${systemd_system_unitdir}/summit-prov-ti.service"
 }
 
-do_install:append:k3 () {
+do_install:append () {
     # Assume SMEK and SMPK are in the keys directory
     smek_path="${UBOOT_SIGN_KEYDIR}/smek.key"
     [ -f "${smek_path}" ] || \
@@ -78,10 +86,14 @@ do_install:append:k3 () {
     # Create prov_data.tar.gz
     tar -C "${prov_data_path}" -czf "${S}/prov_data.tar.gz" .
 
-    case "${MACHINE}" in
-        am6*-carbon-hs)
-            # Secure target build, sign and encrypt the provisioning data using SMPK and
-            # SMEK
+    # Gate on SECURE_BOOT, not on the machine name. This used to test for an
+    # "am6*-carbon-hs" MACHINE, but those were removed when TI dropped separate
+    # HS machine configs, so that branch became unreachable.
+    case "${SECURE_BOOT}" in
+        1)
+            # HS-SE part: sign and encrypt the provisioning data using SMPK and
+            # SMEK.  The secure world verifies the certificate against the SMPK
+            # hash fused into the device, so no key material ships in the rootfs.
             "${S}/gen_core_x509_cert.sh" \
                 -b "${S}/prov_data.tar.gz" \
                 -k "${smpk_path}" \
@@ -95,9 +107,12 @@ do_install:append:k3 () {
             rm -f "${S}/cert_prov_data.tar.gz.bin" "${S}/prov_data.tar.gz-ENC"
             ;;
         *)
-            # If not a secure target build, encrypt the prov_data.tar.gz using SMEK and
-            # inject the SMEK and IV into the summit-prov.sh script using sed (for
-            # decryption during provisioning)
+            # Development path (SECURE_BOOT unset/0): encrypt the prov_data.tar.gz using
+            # SMEK and inject the SMEK and IV into the summit-prov-ti.sh script using
+            # sed (for decryption during provisioning).
+            #
+            # This embeds the key in cleartext in /usr/sbin/summit-prov-ti.sh on the
+            # rootfs and must not be used for a production device.
             KEY=$(xxd -p -c 0 "${smek_path}")
             IV=$(openssl rand -hex 16)
             openssl enc -aes-256-cbc \
@@ -106,11 +121,11 @@ do_install:append:k3 () {
                 -K "${KEY}" \
                 -iv "${IV}"
 
-            # Update the decryption key and IV variables for summit-prov.sh using sed
+            # Update the decryption key and IV variables for summit-prov-ti.sh using sed
             sed -i -r \
                 -e "s/^(DECRYPT_KEY=).*/\1\"${KEY}\"/" \
                 -e "s/^(DECRYPT_IV=).*/\1\"${IV}\"/" \
-                "${D}${sbindir}/summit-prov.sh"
+                "${D}${sbindir}/summit-prov-ti.sh"
             ;;
     esac
     rm -f "${S}/prov_data.tar.gz"
