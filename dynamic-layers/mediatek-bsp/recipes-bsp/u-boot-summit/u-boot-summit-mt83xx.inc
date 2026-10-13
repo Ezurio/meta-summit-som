@@ -18,11 +18,11 @@ COMPATIBLE_MACHINE = "(summitsom-genio)"
 DEPENDS += " \
     flex-native bison-native python3-setuptools-native \
     python3-pyelftools-native \
-    virtual/optee-os \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'virtual/optee-os', '', d)} \
 "
 
 EXTRA_OEMAKE:append = " BINMAN_INDIRS='${STAGING_DIR_HOST}/firmware ${DEPLOY_DIR_IMAGE} ${UBOOT_SIGN_KEYDIR}'"
 EXTRA_OEMAKE:append = " KEY_PATH=${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.key"
-EXTRA_OEMAKE:append = " TEE=${STAGING_DIR_TARGET}${nonarch_base_libdir}/firmware/tee-pager_v2.bin"
+EXTRA_OEMAKE:append = "${@bb.utils.contains('MACHINE_FEATURES', 'optee', ' TEE=${STAGING_DIR_TARGET}${nonarch_base_libdir}/firmware/tee-pager_v2.bin', '', d)}"
 
 do_compile[depends] += "virtual/bl2:do_deploy"

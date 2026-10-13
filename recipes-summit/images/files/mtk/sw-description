@@ -79,6 +79,19 @@ software =
 					sha256 = "$swupdate_get_sha256(erase_data_emmc.sh)";
 				},
 				{
+					type = "copy";
+					device = "/dev/mmcblk@@EMMC_DEVICE@@boot0";
+					offset = "@@DRAMK_OFFSET@@";
+
+					properties: {
+						type = "postinstall";
+						copyfrom = "/dev/mmcblk@@EMMC_DEVICE@@boot1";
+						offset = "@@DRAMK_OFFSET@@";
+						chain = "raw";
+						size = "@@DRAMK_SIZE@@";
+					};
+				},
+				{
 					type = "emmc_boot";
 					device = "/dev/mmcblk@@EMMC_DEVICE@@boot0";
 				}
@@ -157,6 +170,19 @@ software =
 					type = "postinstall";
 					data = "/dev/mmcblk@@EMMC_DEVICE@@p3 /dev/mmcblk@@EMMC_DEVICE@@p6";
 					sha256 = "$swupdate_get_sha256(erase_data_emmc.sh)";
+				},
+				{
+					type = "copy";
+					device = "/dev/mmcblk@@EMMC_DEVICE@@boot1";
+					offset = "@@DRAMK_OFFSET@@";
+
+					properties: {
+						type = "postinstall";
+						copyfrom = "/dev/mmcblk@@EMMC_DEVICE@@boot0";
+						offset = "@@DRAMK_OFFSET@@";
+						chain = "raw";
+						size = "@@DRAMK_SIZE@@";
+					};
 				},
 				{
 					type = "emmc_boot";

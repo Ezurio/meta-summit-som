@@ -16,16 +16,15 @@ RDEPENDS:${PN} = " \
     chrony \
     chronyc \
     gptfdisk \
-    optee-client \
     libgpiod \
     libgpiod-tools \
     util-linux-hwclock \
     pkcs11-provider \
-    pkcs11-optee-openssl \
     summit-automount \
     summit-initdata \
     summit-update \
     summit-usbgadget \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'optee-client pkcs11-optee-openssl', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-som', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'alsa-utils-alsamixer alsa-utils-aplay', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'less systemd-extra-utils', '', d)} \

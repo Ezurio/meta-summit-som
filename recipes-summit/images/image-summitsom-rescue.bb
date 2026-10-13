@@ -17,10 +17,10 @@ IMAGE_INSTALL += "\
     kernel-modules \
     ca-certificates \
     iproute2 \
-    optee-client \
     dhcpcd \
     summit-update \
     summit-usbgadget \
     busybox-syslog \
     summit-initdata \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'optee-client', '', d)} \
     "

@@ -1,0 +1,514 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+Date: Thu, 8 Oct 2026 00:00:00 +0000
+Subject: [PATCH] mt8188: add the Summit SoM boot flow
+
+Summit boots from eMMC only and reads no GPT. The FIP is read from
+SUMMIT_FIP_OFFSET (SUMMIT_FIP_SIZE bytes) of the active eMMC boot partition and
+the GPT/partition sources are left out of the build. This cannot be combined
+with PLAT_AB_BOOT_ENABLE.
+
+BL2 reads the 16 KiB of Fast-K data at SUMMIT_DRAMK_OFFSET of the boot partition
+into SRAM and serves libdram's blkdev reads, writes and erases from that copy.
+If libdram changed the data, BL2 writes it back once after DRAM init and
+reports it.
+
+BL32 is loaded without a header, and a minimal device tree with a /memory node
+covering the detected DRAM is passed to it in arg3.
+
+The Summit code lives in the new summit_bl2.c; bl2_plat_setup.c only calls its
+hooks.
+
+SUMMIT_RAM_BOOT: BL2 skips storage and the FIP, copies the SPL appended to its
+payload to DRAM and enters it. libdram gets a blkdev without Fast-K
+data, so it runs a full calibration without probing for a boot device.
+The MMC drivers are not built.
+
+BL2 enables the MMU and D-cache once DRAM is up to speed up image copies,
+hashing and RSA verification.
+
+BL2 prints the time spent loading and authenticating the images, or in
+RAM boot initializing DRAM.
+
+The detected DRAM size is always stored in the boot arguments at
+BOOT_ARGUMENT_LOCATION, together with a CRC32, for the next stage.
+
+Also link $(BL_LIBS) before $(LDLIBS) so the prebuilt libdram can resolve its
+libc references against BL2's libc.
+
+Upstream-Status: Inappropriate [Summit SoM specific]
+
+Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
+---
+diff --git a/make_helpers/build_macros.mk b/make_helpers/build_macros.mk
+index 46cd8f8..8bd1828 100644
+--- a/make_helpers/build_macros.mk
++++ b/make_helpers/build_macros.mk
+@@ -507,16 +507,16 @@ ifneq ($(findstring armlink,$(notdir $(LD))),)
+ 		--predefine="-D__LINKER__=$(__LINKER__)" \
+ 		--predefine="-DTF_CFLAGS=$(TF_CFLAGS)" \
+ 		--map --list="$(MAPFILE)" --scatter=${PLAT_DIR}/scat/${1}.scat \
+-		$(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS) \
++		$(LDPATHS) $(LIBWRAPPER) $(BL_LIBS) $(LDLIBS) \
+ 		$(BUILD_DIR)/build_message.o $(OBJS)
+ else ifneq ($(findstring gcc,$(notdir $(LD))),)
+ 	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) -Wl,-Map=$(MAPFILE) \
+ 		-Wl,-dT $(LINKERFILE) $(EXTRA_LINKERFILE) $(BUILD_DIR)/build_message.o \
+-		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
++		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(BL_LIBS) $(LDLIBS)
+ else
+ 	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $(BL_LDFLAGS) -Map=$(MAPFILE) \
+ 		--script $(LINKERFILE) $(BUILD_DIR)/build_message.o \
+-		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
++		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(BL_LIBS) $(LDLIBS)
+ endif
+ ifeq ($(DISABLE_BIN_GENERATION),1)
+ 	@${ECHO_BLANK_LINE}
+diff --git a/plat/mediatek/common/mtk_plat_common.h b/plat/mediatek/common/mtk_plat_common.h
+index 854012b..e8488eb 100644
+--- a/plat/mediatek/common/mtk_plat_common.h
++++ b/plat/mediatek/common/mtk_plat_common.h
+@@ -63,6 +63,7 @@ struct mtk_bl31_params {
+ struct boot_argument {
+ 	unsigned int magic_number;
+ 	uint64_t dram_size;
++	unsigned int crc;		/* CRC32 of dram_size, written last */
+ #if CONFIG_MTK_MBLOCK_SUPPORT
+ 	struct mblock_info_t mblock_info;
+ #endif
+diff --git a/plat/mediatek/mt8188/bl2_plat_setup.c b/plat/mediatek/mt8188/bl2_plat_setup.c
+index cc4219d..c52c0a8 100644
+--- a/plat/mediatek/mt8188/bl2_plat_setup.c
++++ b/plat/mediatek/mt8188/bl2_plat_setup.c
+@@ -41,6 +41,7 @@
+ #include <pll.h>
+ #include <pmic_initial_setting.h>
+ #include <blkdev/blkdev-nor.h>
++#include <summit_bl2.h>
+ 
+ #if !defined(STORAGE_NOR)
+ static struct msdc_compatible mt8188_compat = {
+@@ -90,7 +91,11 @@ static bl_mem_params_node_t bl2_mem_params_descs[] = {
+ 
+ 		SET_STATIC_PARAM_HEAD(image_info, PARAM_EP,
+ 			VERSION_2, image_info_t, 0),
++#if defined(SUMMIT_BL2)
++		.image_info.image_base = BL32_BASE,
++#else
+ 		.image_info.image_base = BL32_BASE - BL32_HEADER_SIZE,
++#endif
+ 		.image_info.image_max_size = BL32_LIMIT,
+ 
+ 		.next_handoff_image_id = BL33_IMAGE_ID,
+@@ -163,7 +168,11 @@ static io_block_dev_spec_t emmc_dev_spec = {
+ 		.length = PLAT_PARTITION_BLOCK_SIZE,
+ 	},
+ 	.ops = {
++#if defined(SUMMIT_BL2)
++		.read = mmc_boot_part_read_blocks,
++#else
+ 		.read = mmc_read_blocks,
++#endif
+ 		.write = mmc_write_blocks,
+ 	},
+ 	.block_size = MMC_BLOCK_SIZE,
+@@ -387,6 +396,9 @@ void bl2_platform_setup(void)
+ 	pmic_init();
+ 	pmic_initial_setting();
+ 
++#if defined(SUMMIT_RAM_BOOT)
++	summit_bl2_ram_boot();
++#endif
+ #if defined(STORAGE_NOR)
+ 	mtk_snfc_plat();
+ 	nor_register_blkdev();
+@@ -395,12 +407,19 @@ void bl2_platform_setup(void)
+ 	mmc_register_blkdev();
+ #endif
+ 	mtk_io_setup();
++#if defined(SUMMIT_BL2)
++	/* BL2 has no GPT: the Fast-K data is at a fixed offset of the boot partition. */
++	blkdev_set_dramk_data_offset(summit_dramk_init());
++#else
+ 	load_partition_table(GPT_IMAGE_ID);
+ 	blkdev_set_dramk_data_offset(get_part_addr("dramk"));
++#endif
+ 	mt_mem_init();
++	summit_bl2_dram_ready();
+ 	/* change emmc read buffer to DRAM */
+ 	boot_dev_spec->buffer.offset = 0x41000000;
+ 	boot_dev_spec->buffer.length = 0x1000000;
++	summit_bl2_load_begin();
+ }
+ 
+ struct bl_load_info *plat_get_bl_image_load_info(void)
+@@ -416,6 +435,7 @@ struct bl_params *plat_get_next_bl_params(void)
+ void plat_flush_next_bl_params(void)
+ {
+ 	flush_bl_params_desc();
++	summit_bl2_load_done();
+ }
+ 
+ int plat_get_image_source(unsigned int image_id,
+@@ -454,6 +474,11 @@ void platform_mem_init(void)
+ 
+ int bl2_plat_handle_pre_image_load(unsigned int image_id)
+ {
++	/* BL2 has no GPT: the FIP is at a fixed offset of the boot partition. */
++	storage_fip_spec.offset = SUMMIT_FIP_OFFSET;
++	storage_fip_spec.length = SUMMIT_FIP_SIZE;
++	return 0;
++
+ 	const partition_entry_t *entry;
+ 	const char *name = get_boot_partition_name();
+ 
+diff --git a/plat/mediatek/mt8188/include/platform_def.h b/plat/mediatek/mt8188/include/platform_def.h
+index 23bc1ad..b2b9a5a 100644
+--- a/plat/mediatek/mt8188/include/platform_def.h
++++ b/plat/mediatek/mt8188/include/platform_def.h
+@@ -302,6 +302,7 @@
+ ******************************************************************************/
+ #define BL2_BASE		(0x201000)
+ #define BL2_LIMIT		(0x400000)
++#define BOOT_ARGUMENT_LOCATION	(0x40000100)
+ 
+ #define MAX_IO_DEVICES			U(3)
+ #define MAX_IO_HANDLES			U(4)
+diff --git a/plat/mediatek/mt8188/include/summit_bl2.h b/plat/mediatek/mt8188/include/summit_bl2.h
+new file mode 100644
+index 0000000..914c459
+--- /dev/null
++++ b/plat/mediatek/mt8188/include/summit_bl2.h
+@@ -0,0 +1,28 @@
++/*
++ * Copyright (c) 2026, Ezurio. All rights reserved.
++ *
++ * SPDX-License-Identifier: BSD-3-Clause
++ */
++
++#ifndef SUMMIT_BL2_H
++#define SUMMIT_BL2_H
++
++#include <stdint.h>
++#include <cdefs.h>
++
++/* RAM boot: initialize DRAM and enter the SPL appended to BL2. Does not return. */
++void __dead2 summit_bl2_ram_boot(void);
++
++/* Serve libdram's Fast-K storage from the boot partition. Returns the data offset for libdram. */
++uint64_t summit_dramk_init(void);
++
++/* DRAM is initialized: hand its size to the next stage and prepare the boot flow. */
++void summit_bl2_dram_ready(void);
++
++/* The image load buffer is in DRAM; the images are about to be loaded. */
++void summit_bl2_load_begin(void);
++
++/* The images are loaded and authenticated; the next stage is about to run. */
++void summit_bl2_load_done(void);
++
++#endif /* SUMMIT_BL2_H */
+diff --git a/plat/mediatek/mt8188/platform_bl2.mk b/plat/mediatek/mt8188/platform_bl2.mk
+index e0078a1..81c77e1 100644
+--- a/plat/mediatek/mt8188/platform_bl2.mk
++++ b/plat/mediatek/mt8188/platform_bl2.mk
+@@ -73,3 +73,48 @@ else
+ BL2_SOURCES += drivers/mmc/mmc.c \
+             ${MTK_PLAT}/common/drivers/mmc/mtk-sd.c
+ endif
++
++ifeq (${PLAT_AB_BOOT_ENABLE},1)
++$(error Summit BL2 reads no GPT and cannot be combined with PLAT_AB_BOOT_ENABLE)
++endif
++$(eval $(call add_define,SUMMIT_BL2))
++# BL2 reads no GPT.
++BL2_SOURCES := $(filter-out drivers/partition/gpt.c drivers/partition/partition.c,$(BL2_SOURCES))
++
++BL2_SOURCES += ${MTK_PLAT_SOC}/summit_bl2.c \
++	       common/tf_crc32.c
++
++# FIP location in the eMMC boot partition: right after BL2.
++SUMMIT_FIP_OFFSET ?= 0x64000
++SUMMIT_FIP_SIZE ?= 0x200000
++$(eval $(call add_define,SUMMIT_FIP_OFFSET))
++$(eval $(call add_define,SUMMIT_FIP_SIZE))
++# libdram Fast-K data: 16 KiB boot-partition region before the U-Boot env, written back by BL2.
++SUMMIT_DRAMK_OFFSET ?= 0x3F0000
++SUMMIT_DRAMK_SIZE ?= 0x4000
++$(eval $(call add_define,SUMMIT_DRAMK_OFFSET))
++$(eval $(call add_define,SUMMIT_DRAMK_SIZE))
++# DT handed to OP-TEE: 8 KiB of DRAM, clear of the Fast-K handoff and the RAM-boot SPL.
++SUMMIT_OPTEE_DT_BASE ?= 0x40008000
++SUMMIT_OPTEE_DT_SIZE ?= 0x1000
++$(eval $(call add_define,SUMMIT_OPTEE_DT_BASE))
++$(eval $(call add_define,SUMMIT_OPTEE_DT_SIZE))
++include lib/libfdt/libfdt.mk
++
++# Download agent: hand off to the U-Boot SPL appended to this image in RAM.
++# Offset and size must match CONFIG_MTK_GENIO_DDR_LOADER_SIZE and CONFIG_SPL_MAX_SIZE in U-Boot,
++# the text base CONFIG_SPL_TEXT_BASE; keep it clear of the boot argument at 0x40000100.
++ifeq (${SUMMIT_RAM_BOOT},1)
++SUMMIT_SPL_TEXT_BASE ?= 0x40010000
++SUMMIT_SPL_OFFSET ?= 0x4b000
++SUMMIT_SPL_SIZE ?= 0x28000
++$(eval $(call add_define,SUMMIT_RAM_BOOT))
++$(eval $(call add_define,SUMMIT_SPL_TEXT_BASE))
++$(eval $(call add_define,SUMMIT_SPL_OFFSET))
++$(eval $(call add_define,SUMMIT_SPL_SIZE))
++# RAM boot uses no storage.
++BL2_SOURCES := $(filter-out drivers/mmc/mmc.c ${MTK_PLAT}/common/drivers/mmc/mtk-sd.c,$(BL2_SOURCES))
++endif
++
++# xlat_tables_v2 calls the CVE-2025-10263 TLBI workaround.
++BL2_SOURCES += lib/cpus/errata_common.c
+diff --git a/plat/mediatek/mt8188/summit_bl2.c b/plat/mediatek/mt8188/summit_bl2.c
+new file mode 100644
+index 0000000..5ab4e71
+--- /dev/null
++++ b/plat/mediatek/mt8188/summit_bl2.c
+@@ -0,0 +1,245 @@
++/*
++ * Copyright (c) 2026, Ezurio. All rights reserved.
++ *
++ * SPDX-License-Identifier: BSD-3-Clause
++ */
++
++#include <stdbool.h>
++#include <stdint.h>
++#include <string.h>
++
++#include <arch_helpers.h>
++#include <common/bl_common.h>
++#include <common/debug.h>
++#include <common/desc_image_load.h>
++#include <common/tf_crc32.h>
++#include <drivers/mmc.h>
++#include <lib/xlat_tables/xlat_tables_v2.h>
++#include <plat/common/platform.h>
++#include <platform_def.h>
++#include <mtk_plat_common.h>
++#include <blkdev/blkdev.h>
++#include <libdram.h>
++#include <libfdt.h>
++#include <summit_bl2.h>
++
++#if defined(NEED_BL32)
++/* OP-TEE takes its non-secure DRAM range from a DT passed in x2. */
++static void summit_optee_dt_setup(uint64_t dram_size)
++{
++	void *fdt = (void *)SUMMIT_OPTEE_DT_BASE;
++	fdt64_t reg[2] = { cpu_to_fdt64(0x40000000ULL), cpu_to_fdt64(dram_size) };
++	bl_mem_params_node_t *bl32 = get_bl_mem_params_node(BL32_IMAGE_ID);
++
++	if (fdt_create(fdt, SUMMIT_OPTEE_DT_SIZE) ||
++	    fdt_finish_reservemap(fdt) ||
++	    fdt_begin_node(fdt, "") ||
++	    fdt_property_u32(fdt, "#address-cells", 2) ||
++	    fdt_property_u32(fdt, "#size-cells", 2) ||
++	    fdt_begin_node(fdt, "memory@40000000") ||
++	    fdt_property_string(fdt, "device_type", "memory") ||
++	    fdt_property(fdt, "reg", reg, sizeof(reg)) ||
++	    fdt_end_node(fdt) ||
++	    fdt_end_node(fdt) ||
++	    fdt_finish(fdt) || bl32 == NULL) {
++		ERROR("BL2: cannot build the OP-TEE device tree\n");
++		return;
++	}
++
++	bl32->ep_info.args.arg3 = (uintptr_t)fdt;
++}
++#endif
++
++unsigned long long platform_memory_size(void);
++
++/* Share the detected DRAM capacity through MediaTek's boot arguments. */
++static void summit_handoff_dram_size(void)
++{
++	BOOT_ARGUMENT->magic_number = 0;
++	BOOT_ARGUMENT->dram_size = platform_memory_size();
++	BOOT_ARGUMENT->crc = tf_crc32(0, (const uint8_t *)&BOOT_ARGUMENT->dram_size,
++		sizeof(BOOT_ARGUMENT->dram_size));
++	BOOT_ARGUMENT->magic_number = BOOT_ARGUMENT_MAGIC;
++}
++
++/* libdram probes DRAM and peripherals with the MMU off, so turn it on only once DRAM is up. */
++static void summit_bl2_mmu_enable(void)
++{
++	/* From the boot argument page up to the top of BL31 covers BL2's buffers and all images. */
++	const uintptr_t dram_base = round_down(BOOT_ARGUMENT_LOCATION, PAGE_SIZE);
++
++	mmap_add_region(BL_CODE_BASE, BL_CODE_BASE,
++			BL_CODE_END - BL_CODE_BASE, MT_CODE | MT_SECURE);
++	mmap_add_region(BL_RO_DATA_BASE, BL_RO_DATA_BASE,
++			BL_END - BL_RO_DATA_BASE, MT_MEMORY | MT_RW | MT_SECURE);
++	mmap_add_region(MTK_DEV_RNG0_BASE, MTK_DEV_RNG0_BASE,
++			MTK_DEV_RNG0_SIZE, MT_DEVICE | MT_RW | MT_SECURE);
++	mmap_add_region(MTK_DEV_RNG1_BASE, MTK_DEV_RNG1_BASE,
++			MTK_DEV_RNG1_SIZE, MT_DEVICE | MT_RW | MT_SECURE);
++	mmap_add_region(dram_base, dram_base, BL31_LIMIT - dram_base,
++			MT_MEMORY | MT_RW | MT_SECURE);
++	init_xlat_tables();
++	enable_mmu_el3(0);
++}
++
++/* libdram works on a RAM copy of the Fast-K data, written back to the boot partition once. */
++static uint8_t dramk_data[SUMMIT_DRAMK_SIZE] __attribute__((aligned(MMC_BLOCK_SIZE)));
++static bool dramk_dirty;
++
++static int dramk_window(uint64_t off, uint64_t len)
++{
++	if (off < SUMMIT_DRAMK_OFFSET || len > SUMMIT_DRAMK_SIZE ||
++	    off - SUMMIT_DRAMK_OFFSET > SUMMIT_DRAMK_SIZE - len)
++		return -1;
++
++	return 0;
++}
++
++static int dramk_bread(struct blkdev *bdev, uint32_t blknr, uint32_t blks, uint8_t *buf,
++		       uint32_t part_id)
++{
++	uint64_t off = (uint64_t)blknr * MMC_BLOCK_SIZE;
++	uint64_t len = (uint64_t)blks * MMC_BLOCK_SIZE;
++
++	if (dramk_window(off, len) != 0)
++		return -1;
++
++	memcpy(buf, &dramk_data[off - SUMMIT_DRAMK_OFFSET], len);
++	return 0;
++}
++
++static int dramk_bwrite(struct blkdev *bdev, uint32_t blknr, uint32_t blks, uint8_t *buf,
++			uint32_t part_id)
++{
++	uint64_t off = (uint64_t)blknr * MMC_BLOCK_SIZE;
++	uint64_t len = (uint64_t)blks * MMC_BLOCK_SIZE;
++
++	if (dramk_window(off, len) != 0)
++		return -1;
++
++	memcpy(&dramk_data[off - SUMMIT_DRAMK_OFFSET], buf, len);
++	dramk_dirty = true;
++	return 0;
++}
++
++/* libdram passes byte offsets and sizes here. */
++static int dramk_erase(struct blkdev *bdev, uint64_t src, uint64_t size, uint32_t part_id)
++{
++	if (dramk_window(src, size) != 0)
++		return -1;
++
++	memset(&dramk_data[src - SUMMIT_DRAMK_OFFSET], 0, size);
++	dramk_dirty = true;
++	return 0;
++}
++
++uint64_t summit_dramk_init(void)
++{
++	struct blkdev *bdev = blkdev_get(BOOTDEV_SDMMC);
++
++	bdev->bread = dramk_bread;
++	bdev->bwrite = dramk_bwrite;
++	bdev->erase = dramk_erase;
++
++	if (mmc_boot_part_read_blocks(SUMMIT_DRAMK_OFFSET / MMC_BLOCK_SIZE,
++				      (uintptr_t)dramk_data,
++				      SUMMIT_DRAMK_SIZE) != SUMMIT_DRAMK_SIZE) {
++		NOTICE("Fast-K data read failed\n");
++		/* Offset 0 is outside the window, so libdram finds no Fast-K data. */
++		return 0;
++	}
++
++	return SUMMIT_DRAMK_OFFSET;
++}
++
++static void dramk_save(void)
++{
++	if (!dramk_dirty)
++		return;
++
++	if (mmc_boot_part_write_blocks(SUMMIT_DRAMK_OFFSET / MMC_BLOCK_SIZE,
++				       (uintptr_t)dramk_data,
++				       SUMMIT_DRAMK_SIZE) != SUMMIT_DRAMK_SIZE) {
++		NOTICE("Fast-K data write failed\n");
++		return;
++	}
++
++	dramk_dirty = false;
++	NOTICE("Fast-K data saved\n");
++}
++
++static unsigned long long summit_us_since(uint64_t t0)
++{
++	return (read_cntpct_el0() - t0) * 1000000ULL / SYS_COUNTER_FREQ_IN_HZ;
++}
++
++#if defined(SUMMIT_RAM_BOOT)
++void bl2_run_next_image(const struct entry_point_info *bl_ep_info);
++void memcpy16(void *dest, const void *src, unsigned int length);
++/*
++ * RAM boot: BootROM loaded this image together with the U-Boot SPL that
++ * follows it. Copy the SPL to DRAM and enter it through the generic BL2 exit
++ * path: AArch64 EL3h, MMU and caches off, interrupts masked, x0..x7 zero.
++ */
++static void __dead2 summit_enter_spl(void)
++{
++	static entry_point_info_t ep;
++
++	/* memcpy16 needs 16-byte aligned addresses. */
++	memcpy16((void *)SUMMIT_SPL_TEXT_BASE,
++		 (const void *)(BL2_BASE + SUMMIT_SPL_OFFSET), SUMMIT_SPL_SIZE);
++	flush_dcache_range(SUMMIT_SPL_TEXT_BASE, SUMMIT_SPL_SIZE);
++
++	SET_PARAM_HEAD(&ep, PARAM_EP, VERSION_1, 0);
++	ep.pc = SUMMIT_SPL_TEXT_BASE;
++	ep.spsr = SPSR_64(MODE_EL3, MODE_SP_ELX, DISABLE_ALL_EXCEPTIONS);
++	bl2_run_next_image(&ep);
++	__builtin_unreachable();
++}
++
++/* libdram finds a blkdev, but with no Fast-K data offset it never accesses it and always calibrates. */
++void __dead2 summit_bl2_ram_boot(void)
++{
++	static struct blkdev bdev = { .type = BOOTDEV_SDMMC };
++	uint64_t t0 = read_cntpct_el0();
++
++	blkdev_register(&bdev);
++	blkdev_set_dramk_data_offset(0);
++	mt_mem_init();
++	NOTICE("BL2: DRAM init took %llu us\n", summit_us_since(t0));
++	summit_handoff_dram_size();
++	summit_enter_spl();
++}
++#endif
++
++void summit_bl2_dram_ready(void)
++{
++	dramk_save();
++	summit_handoff_dram_size();
++#if defined(NEED_BL32)
++	summit_optee_dt_setup(BOOT_ARGUMENT->dram_size);
++#endif
++}
++
++static uint64_t load_t0;
++
++void summit_bl2_load_begin(void)
++{
++	load_t0 = read_cntpct_el0();
++	summit_bl2_mmu_enable();
++}
++
++void summit_bl2_load_done(void)
++{
++#if !defined(SUMMIT_RAM_BOOT)
++	/* Apply the deferred switch back to the user area. */
++	mmc_part_sync();
++#endif
++	/* The next stage starts with the MMU off, so drop the lines left by hashing. */
++	for (bl_params_node_t *node = get_next_bl_params_from_mem_params_desc()->head;
++	     node != NULL; node = node->next_params_info)
++		flush_dcache_range(node->image_info->image_base,
++				   node->image_info->image_size);
++
++	NOTICE("BL2: image load and auth took %llu us\n", summit_us_since(load_t0));
++}

@@ -2,6 +2,8 @@ LICENSE = "MIT"
 
 inherit core-image extrausers summit-kernel-fitimage serial-autologin-root
 
+REQUIRED_MACHINE_FEATURES:append:summit-secure = " optee"
+
 PASSWD = "\$5\$JJ/ksbVr4475qA49\$wzyEBumoH1YyHOG9OgKzjRKjwGVImxFDCu0m90hymoA"
 
 EXTRA_USERS_PARAMS = "usermod -p '${PASSWD}' root;"

@@ -36,7 +36,7 @@ OPTEE_DRAM_SIZE = "0x100000000"
 # LK
 LK_PROJECT = "mt8390-evk"
 
-MACHINE_FEATURES:summitsom = "usbgadget usbhost alsa rtc  screen touchscreen wifi bluetooth camera \
+MACHINE_FEATURES:summitsom = "usbgadget usbhost alsa rtc optee screen touchscreen wifi bluetooth camera \
 	${@bb.utils.contains('NDA_BUILD', '1', 'optee-efuse', '', d)}"
 
 # Mali
@@ -61,8 +61,6 @@ PREFERRED_PROVIDER_u-boot:summitsom-usb-boot = "u-boot-summit-mt83xx-da"
 PREFERRED_PROVIDER_virtual/bootloader:summitsom-usb-boot = "u-boot-summit-mt83xx-da"
 
 include ${@bb.utils.contains('BBFILE_COLLECTIONS', 'summit-radio', 'conf/machine/include/radio-stack.inc', '', d)}
-
-MACHINE_FEATURES = "usbgadget usbhost alsa rtc optee screen touchscreen wifi bluetooth camera"
 
 # libdram
 LIBDRAM_BOARD_NAME = "genio-700-evk"
@@ -110,6 +108,8 @@ FIT_KERNEL_SIGN_KEYDIR = "${UBOOT_SIGN_KEYDIR}"
 
 UBOOT_ENV_OFFSET = "4145152"
 FIP_OFFSET = "409600"
+DRAMK_OFFSET = "4128768"
+DRAMK_SIZE = "16384"
 EMMC_DEVICE = "0"
 SD_DEVICE = "1"
 

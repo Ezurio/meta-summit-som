@@ -14,8 +14,9 @@ DISTRO_FEATURES:append:mtk:summitsom-genio = " ${@' secure-boot' if d.getVar('SE
 # Download agent: no FIP; BL2 and SPL are authenticated by the BootROM and the rest by the FIT signature.
 DISTRO_FEATURES:remove:summitsom-usb-boot = "secure-boot"
 
+EXTRA_OEMAKE:append:summitsom-genio = " FIP_ALIGN=4096 UART_BAUDRATE=115200"
 # Summit boots the headerless pager image, not MTK's default tee.bin.
-EXTRA_OEMAKE:append:summitsom-genio = " BL32=${STAGING_DIR_TARGET}/${nonarch_base_libdir}/firmware/tee-pager_v2.bin FIP_ALIGN=4096 UART_BAUDRATE=115200"
+EXTRA_OEMAKE:append:summitsom-genio = "${@bb.utils.contains('MACHINE_FEATURES', 'optee', ' BL32=${STAGING_DIR_TARGET}/${nonarch_base_libdir}/firmware/tee-pager_v2.bin', '', d)}"
 
 # The BL2 patch reads at most 0x200000 bytes of FIP.
 do_deploy:append:summitsom-genio() {

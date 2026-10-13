@@ -3,7 +3,8 @@ From: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
 Date: Thu, 8 Oct 2026 00:00:00 +0000
 Subject: [PATCH] mt8188: hide the libdram boot trace below LOG_LEVEL_INFO
 
-The prebuilt libdram prints its [MEM]/[EMI]/[PMIC] trace with plain printf.
+The prebuilt libdram prints its [MEM]/[EMI]/[PMIC] trace and its
+"[dramc] can't find ..." storage probe messages with plain printf.
 Override putchar() in BL2 to drop those lines when LOG_LEVEL is below
 LOG_LEVEL_INFO; at INFO or higher everything is passed through unchanged.
 
@@ -12,6 +13,8 @@ Upstream-Status: Inappropriate [Summit SoM specific]
 Signed-off-by: Boris Krasnovskiy <boris.krasnovskiy@ezurio.com>
 ---
 diff --git a/plat/mediatek/mt8188/bl2_console_filter.c b/plat/mediatek/mt8188/bl2_console_filter.c
+new file mode 100644
+index 000000000..8c2397532
 --- /dev/null
 +++ b/plat/mediatek/mt8188/bl2_console_filter.c
 @@ -0,0 +1,85 @@
@@ -28,9 +31,9 @@ diff --git a/plat/mediatek/mt8188/bl2_console_filter.c b/plat/mediatek/mt8188/bl
 +#include <drivers/console.h>
 +
 +/* libdram prints through printf(); below LOG_LEVEL_INFO lines starting with these tags are dropped. */
-+static const char *const quiet_tags[] = { "[MEM]", "[EMI]", "[PMIC]" };
++static const char *const quiet_tags[] = { "[MEM]", "[EMI]", "[PMIC]", "[dramc] can't find" };
 +#define NUM_TAGS	(sizeof(quiet_tags) / sizeof(quiet_tags[0]))
-+#define MAX_TAG_LEN	6U
++#define MAX_TAG_LEN	18U
 +
 +static char held[MAX_TAG_LEN];
 +static unsigned int nheld;
@@ -101,9 +104,10 @@ diff --git a/plat/mediatek/mt8188/bl2_console_filter.c b/plat/mediatek/mt8188/bl
 +	return ch;
 +}
 diff --git a/plat/mediatek/mt8188/platform_bl2.mk b/plat/mediatek/mt8188/platform_bl2.mk
+index ad007855e..132260812 100644
 --- a/plat/mediatek/mt8188/platform_bl2.mk
 +++ b/plat/mediatek/mt8188/platform_bl2.mk
-@@ -71,6 +71,8 @@
+@@ -69,6 +69,8 @@ endif
  BL2_LIBS += ${LIBDRAM} \
  	    ${LIBBASE}
  
