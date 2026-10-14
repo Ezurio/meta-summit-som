@@ -18,13 +18,13 @@ RDEPENDS:${PN}:append:imx8mp-summitsom = " \
     "
 
 RDEPENDS:${PN}:append:imx91-nitrogen-osm-s = " \
-    summit-rcm-rust \
+    summit-rcm \
     "
 
 RDEPENDS:${PN}:append:am62l-carbon = " \
-    summit-rcm-rust \
+    summit-rcm \
     "
 
 RDEPENDS:${PN}:append:am62l-carbon-emmc = " \
-    summit-rcm-rust \
+    summit-rcm \
     "
