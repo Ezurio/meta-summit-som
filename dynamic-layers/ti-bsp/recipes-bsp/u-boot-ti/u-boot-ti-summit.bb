@@ -44,7 +44,7 @@ SRC_URI:append:summitsom-usb-boot:am62lxx = " \
     file://uboot-mfg.cfg \
 "
 
-SRC_URI:append = " \
+SRC_URI:append:summitsom = " \
     ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
 "
 
