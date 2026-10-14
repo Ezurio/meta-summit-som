@@ -37,6 +37,7 @@ SRC_URI:append:summitsom = " \
     file://0078-usb-dwc3-gadget-Fix-use-after-free-in-dwc3_gadget_fr.patch \
     file://0079-usb-dwc3-clear-forceRM-when-issuing-EndTransfer.patch \
     file://dts \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
     "
 
 SRC_URI:append:summitsom-initramfs = " \

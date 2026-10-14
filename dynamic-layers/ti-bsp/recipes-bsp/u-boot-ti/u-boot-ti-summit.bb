@@ -45,6 +45,10 @@ SRC_URI:append:summitsom-usb-boot:am62lxx = " \
     file://uboot-mfg.cfg \
 "
 
+SRC_URI:append = " \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
+"
+
 do_deploy:append:k3r5() {
     if [ "${SECURE_BOOT}" = "1" ]; then
         ln -sf tiboot3-*-hs-carbon.bin "${DEPLOYDIR}/tiboot3.bin"

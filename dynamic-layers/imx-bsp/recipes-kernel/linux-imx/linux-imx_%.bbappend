@@ -49,6 +49,7 @@ SRC_URI:append:summitsom = " \
     file://0086-ASoC-fsl_sai-constrain-rates-to-MCLK-sources.patch \
     file://0098-of-net-add-nvmem-mac-offset.patch \
     file://dts \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
     ${KERNEL_CONFIG_SUMMIT} \
     "
 
