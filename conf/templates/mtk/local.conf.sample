@@ -1,4 +1,4 @@
-MACHINE ??= 'genio510-tungsten-smarc'
+MACHINE ??= 'mt8370-tungsten-smarc'
 DISTRO ?= 'summitsom-wayland'
 
 # The selected machine provides both exact U-Boot defconfig names.
