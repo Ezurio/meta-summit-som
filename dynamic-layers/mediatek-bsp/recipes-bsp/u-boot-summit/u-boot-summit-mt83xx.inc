@@ -8,7 +8,9 @@ require recipes-bsp/u-boot/u-boot.inc
 SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/u-boot-som.git;${SUMMIT_EXTERNAL_GIT_SUFFIX}"
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-u-boot-som60.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"
 # The defconfigs disable OP-TEE; the optee machine feature enables it.
-SRC_URI:append = "${@bb.utils.contains('MACHINE_FEATURES', 'optee', ' file://optee.cfg', '', d)}"
+SRC_URI:append = " \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)}
+    "
 
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"

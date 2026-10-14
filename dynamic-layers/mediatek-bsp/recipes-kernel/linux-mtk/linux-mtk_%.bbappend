@@ -24,6 +24,7 @@ SRC_URI:append:summitsom = " \
     file://0093-media-i2c-ov5645-Remove-software-reset-entry-from-ov.patch \
     file://0094-media-i2c-ov5645-report-frame-interval.patch \
     file://0095-drm-mediatek-use-dev_err_probe-for-RDMA.patch \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
     ${KERNEL_CONFIG_SUMMIT} \
     "
 
