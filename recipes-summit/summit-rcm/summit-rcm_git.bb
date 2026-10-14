@@ -4,8 +4,6 @@ require summit-rcm.inc
 
 inherit systemd
 
-S = "${UNPACKDIR}/git"
-
 SRC_URI:append = "\
     file://ca.crt \
     file://server.crt \

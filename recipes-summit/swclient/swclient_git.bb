@@ -12,6 +12,6 @@ DEPENDS += "swupdate"
 SRC_URI = "${SUMMIT_EXTERNAL_GIT_URI}/lrd-userspace-examples.git;${SUMMIT_EXTERNAL_GIT_SUFFIX}"
 SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-lrd-userspace-examples.git;${SUMMIT_INTERNAL_GIT_SUFFIX}"
 
-S = "${UNPACKDIR}/git/swclient"
+S = "${UNPACKDIR}/${BP}/swclient"
 
 RDEPENDS:${PN} = "python3 swupdate"

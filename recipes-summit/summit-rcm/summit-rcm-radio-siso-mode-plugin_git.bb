@@ -3,7 +3,7 @@ DESCRIPTION = "Enable support for temporarily changing the radio's SISO mode (fo
 
 require summit-rcm.inc
 
-S = "${UNPACKDIR}/git/summit_rcm/plugins/radio-siso-mode"
+S = "${UNPACKDIR}/${BP}/summit_rcm/plugins/radio-siso-mode"
 
 RDEPENDS:${PN} += "summit-rcm"
 

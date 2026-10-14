@@ -3,7 +3,7 @@ DESCRIPTION = "Enable certificate provisioning support for Summit-RCM"
 
 require summit-rcm.inc
 
-S = "${UNPACKDIR}/git/summit_rcm/plugins/provisioning"
+S = "${UNPACKDIR}/${BP}/summit_rcm/plugins/provisioning"
 
 SRC_URI:append = "\
     file://ca.crt \

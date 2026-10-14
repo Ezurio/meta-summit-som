@@ -3,7 +3,7 @@ DESCRIPTION = "Enable log forwarding support for Summit-RCM"
 
 require summit-rcm.inc
 
-S = "${UNPACKDIR}/git/summit_rcm/plugins/log-forwarding"
+S = "${UNPACKDIR}/${BP}/summit_rcm/plugins/log-forwarding"
 
 RDEPENDS:${PN} += "\
     summit-rcm \

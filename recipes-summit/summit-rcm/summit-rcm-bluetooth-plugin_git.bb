@@ -5,7 +5,7 @@ require summit-rcm.inc
 
 RDEPENDS:${PN} += "summit-rcm"
 
-S = "${UNPACKDIR}/git/summit_rcm/plugins/bluetooth"
+S = "${UNPACKDIR}/${BP}/summit_rcm/plugins/bluetooth"
 
 PACKAGECONFIG ?= "${SUMMIT_RCM_PROTOCOLS}"
 

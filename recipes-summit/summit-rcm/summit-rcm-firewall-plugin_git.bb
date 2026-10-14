@@ -3,7 +3,7 @@ DESCRIPTION = "Enable iptables firewall wrapper"
 
 require summit-rcm.inc
 
-S = "${UNPACKDIR}/git/summit_rcm/plugins/firewall"
+S = "${UNPACKDIR}/${BP}/summit_rcm/plugins/firewall"
 
 RDEPENDS:${PN} += "\
     summit-rcm \
