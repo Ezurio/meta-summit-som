@@ -1,3 +1,7 @@
+Subject: [PATCH] Implement asgiref TLS extension
+
+Upstream-Status: Inappropriate [Summit-specific; upstream PR #1119 closed in favour of #3133]
+
 --- a/uvicorn/config.py
 +++ b/uvicorn/config.py
 @@ -280,6 +280,7 @@ class Config:
