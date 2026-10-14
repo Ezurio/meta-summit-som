@@ -10,6 +10,7 @@ BBLAYERS = " \
   ${BSPDIR}/sources/poky/meta \
   ${BSPDIR}/sources/poky/meta-poky \
   ${BSPDIR}/sources/meta-lts-mixins \
+  ${BSPDIR}/sources/meta-clang \
   \
   ${BSPDIR}/sources/meta-openembedded/meta-oe \
   ${BSPDIR}/sources/meta-openembedded/meta-multimedia \
