@@ -2,6 +2,7 @@ FILESEXTRAPATHS:prepend:summitsom := "${THISDIR}/${PN}:"
 
 SRC_URI:append:summitsom = " \
     file://0001-carbon-am62l-uboot.patch \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
     "
 
 SRC_URI:append:k3:summitsom-usb-boot = " \
