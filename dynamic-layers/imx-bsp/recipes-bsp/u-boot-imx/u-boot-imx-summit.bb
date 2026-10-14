@@ -13,6 +13,7 @@ SRC_URI:summit-internal = "${SUMMIT_INTERNAL_GIT_URI}/cp_linux-u-boot-som60.git;
 SRC_URI:append:summitsom-usb-boot = " \
     file://uboot-usb.cfg \
     file://uboot-mfg.cfg \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
 "
 
 S = "${WORKDIR}/git"

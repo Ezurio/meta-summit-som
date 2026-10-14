@@ -52,6 +52,7 @@ SRC_URI:append:summitsom = " \
     file://0095-staging-neutron-use-dma-barriers-for-coherent-buffers.patch \
     file://0096-media-mxc-csi-select-input-endpoint.patch \
     file://0097-media-mxc-csi-ov5645-uyvy-format.patch \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
     ${KERNEL_CONFIG_SUMMIT} \
     "
 

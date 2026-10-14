@@ -38,6 +38,7 @@ SRC_URI:append:summitsom = " \
     file://0067-can-m_can-m_can_get_berr_counter-dont-wake-up.patch \
     file://0068-pinctrl-mcp23s08-add-wakeup-support.patch \
     file://0079-fs_crypt-accept-trusted-keys-via-key_id.patch \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'optee', '', 'file://no-optee.cfg', d)} \
     "
 
 SRC_URI:append:summitsom-rescue-initramfs = " \
