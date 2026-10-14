@@ -1,0 +1,167 @@
+#!/bin/bash
+# -*- mode: shell-script; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+#
+# Copyright (C) 2012, 2013, 2016 O.S. Systems Software LTDA.
+# Authored-by:  Otavio Salvador <otavio@ossystems.com.br>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# Add options for the script
+# Copyright (C) 2013 Freescale Semiconductor, Inc.
+
+CWD=${PWD}
+PROGNAME="setup-environment"
+
+usage()
+{
+    cat << EOF
+Usage: [MACHINE=<machine>] [DISTRO=<distro>] . ${PROGNAME} [-i] [-v] [-a] [-h] <build-dir>
+    <machine>    machine name
+    <distro>     distro name
+    <build-dir>  build directory
+
+    Optional parameters:
+    * [-i]: Internal build
+    * [-a]: Development desktop setup (enable all)
+    * [-v]: Add Vigiles check to setup
+    * [-h]: help
+
+The first usage is for creating a new build directory. In this case, the
+script creates the build directory <build-dir>, configures it for the
+specified <machine> and <distro>, and prepares the calling shell for running
+bitbake on the build directory.
+
+The second usage is for using an existing build directory. In this case,
+the script prepares the calling shell for running bitbake on the build
+directory <build-dir>. The build directory configuration is unchanged.
+
+Supported machines:
+$(basename -as .conf sources/meta-summit-som/conf/machine/am*.conf | sed '/^\*/d; s/^/\t/g')
+
+Supported distros:
+$(basename -as .conf sources/meta-summit-som/conf/distro/*.conf | sed '/^\*/d; s/^/\t/g')
+
+Examples:
+
+- To create a new Yocto build directory:
+  $ MACHINE=mt8370-tungsten-smarc DISTRO=summitsom-wayland . ${PROGNAME} build
+
+- To use an existing Yocto build directory:
+  $ . ${PROGNAME} build
+EOF
+}
+
+clean_up()
+{
+   unset CWD ARGS PROGNAME
+   unset MACHINE DISTRO OEROOT
+   unset build_dir_setup_enabled setup_summit setup_vigiles
+}
+
+setup_summit=false
+setup_vigiles=false
+
+ARGS=$(getopt -o "hirva" -l "help," --name ${PROGNAME} -- "$@" )
+# Print the usage menu if invalid options are specified
+if [ $? != 0 ] || [ $# -lt 1 ]; then
+   usage && clean_up
+   return 1
+fi
+
+eval set -- "${ARGS}"
+while true;
+do
+    case ${1} in
+        -h|--help)
+           usage
+           clean_up
+           return 0
+           ;;
+        -a)
+           setup_summit=true
+           setup_vigiles=true
+           ;;
+        -i)
+           setup_summit=true
+           ;;
+        -v)
+           setup_vigiles=true
+           ;;
+        --)
+           shift
+           break
+           ;;
+    esac
+    shift
+done
+
+if [ "$(id -u)" -eq 0 ]; then
+    echo "ERROR: do not use the BSP as root. Exiting..."
+    clean_up
+    return 1
+fi
+
+[ -e "${1}/conf/local.conf" ] && build_dir_setup_enabled=false ||
+    build_dir_setup_enabled=true
+
+if [ -e "${PWD}/sources/oe-core" ]; then
+    OEROOT=${PWD}/sources/oe-core
+else
+    OEROOT=${PWD}/sources/poky
+fi
+
+if [ -n "${RFPROS_FILESHARE_USER}" ] && [ -n "${RFPROS_FILESHARE_PASS}" ]; then
+    export RFPROS_FILESHARE_AUTH="${RFPROS_FILESHARE_USER}:${RFPROS_FILESHARE_PASS}@"
+    BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} RFPROS_FILESHARE_AUTH"
+fi
+
+[ -n "${BR2_DL_DIR}" ] && DL_DIR="${BR2_DL_DIR}" || DL_DIR="${HOME}/.br2_dl_dir"
+export DL_DIR
+BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} DL_DIR SSTATE_DIR CCACHE_DIR VIGILES_KEY_FILE VIGILES_DASHBOARD_CONFIG"
+
+BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} SIG_DATA_PATH SECURE_BOOT"
+
+if [ -n "${BB_HASHSERVE}" ]; then
+    export BB_SIGNATURE_HANDLER="OEEquivHash"
+    BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} BB_HASHSERVE"
+else
+    export BB_SIGNATURE_HANDLER="OEBasicHash"
+fi
+BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} BB_SIGNATURE_HANDLER"
+
+if [ -n "${VERSION}" ]; then
+    export IMAGE_VERSION_SUFFIX="-${VERSION}"
+    export SUMMIT_VERSION="${VERSION}"
+    BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} IMAGE_VERSION_SUFFIX SUMMIT_VERSION SUMMIT_RELEASE_STRING"
+fi
+
+# shellcheck source=/dev/null
+TEMPLATECONF=${TEMPLATECONF:-${CWD}/sources/meta-summit-som/conf/templates/mtk} \
+    . "${OEROOT}/oe-init-build-env" "${CWD}/${1}"
+
+if ${build_dir_setup_enabled}; then
+    # Change settings according environment
+    [ -n "${MACHINE}" ] && sed -e "s,MACHINE ??=.*,MACHINE ??= '${MACHINE}',g" -i conf/local.conf
+    [ -n "${DISTRO}"  ] && sed -e "s,DISTRO ?=.*,DISTRO ?= '${DISTRO}',g" -i conf/local.conf
+
+    {
+        ${setup_summit} || printf '# '
+        echo 'OVERRIDES .= ":summit-internal"'
+
+        ${setup_vigiles} || printf '# '
+        echo 'INHERIT += "vigiles"'
+    } >> conf/local.conf
+fi
+
+clean_up

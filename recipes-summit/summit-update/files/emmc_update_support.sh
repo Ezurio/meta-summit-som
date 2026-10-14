@@ -26,6 +26,13 @@ flash_format() {
 			[ $((RST_N_FUNCTION)) = 1 ] ||
 				mmc hwreset enable "${dev}"
 			;;
+		jep106:0426:83*)
+			echo "Provisioning ${dev}"
+			eval $(mmc extcsd read "${dev}" | sed -rn 's/.*(RST_N_FUNCTION)\]?: ([0-9a-fx]+).*/\1=\2/p')
+			# JEDEC: 0 is the only value that can still be changed; 1 and 2 are permanent
+			[ $((RST_N_FUNCTION)) != 0 ] ||
+				mmc hwreset enable "${dev}"
+			;;
 		esac
 
 		echo "Erasing ${dev}"

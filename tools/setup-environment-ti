@@ -55,7 +55,7 @@ $(basename -as .conf sources/meta-summit-som/conf/distro/*.conf | sed '/^\*/d; s
 Examples:
 
 - To create a new Yocto build directory:
-  $ MACHINE=am62xx-carbon DISTRO=summitsom-wayland . ${PROGNAME} build
+  $ MACHINE=am62-carbon DISTRO=summitsom-wayland . ${PROGNAME} build
 
 - To use an existing Yocto build directory:
   $ . ${PROGNAME} build

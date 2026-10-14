@@ -450,6 +450,7 @@
 	max-frequency = <200000000>;
 	mmc-hs200-1_8v;
 	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
 	non-removable;
 	no-sd;
 	no-sdio;
