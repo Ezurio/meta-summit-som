@@ -268,14 +268,6 @@
 	cpu-supply = <&mt6359_vcore_buck_reg>;
 };
 
-&cpu4 {
-	cpu-supply = <&mt6359_vcore_buck_reg>;
-};
-
-&cpu5 {
-	cpu-supply = <&mt6359_vcore_buck_reg>;
-};
-
 &cpu6 {
 	cpu-supply = <&mt6315_6_vbuck1>;
 };
@@ -383,7 +375,6 @@
 	};
 };
 
-&keypad { status = "disabled"; };
 &dsi0 { status = "disabled"; };
 &mipi_tx0 { status = "disabled"; };
 &disp_dpi1 { status = "disabled"; };
