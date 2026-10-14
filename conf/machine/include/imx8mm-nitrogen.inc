@@ -26,10 +26,10 @@ IMX_DEFAULT_BOOTLOADER:mx8m-generic-bsp = "u-boot-imx-summit"
 IMX_DEFAULT_UBOOTTOOLS:imx-generic-bsp = "u-boot-summit-tools"
 
 DDR_FIRMWARE_NAME = " \
-    lpddr4_pmu_train_1d_dmem.bin \
-    lpddr4_pmu_train_1d_imem.bin \
-    lpddr4_pmu_train_2d_dmem.bin \
-    lpddr4_pmu_train_2d_imem.bin \
+    lpddr4_pmu_train_1d_dmem_202006.bin \
+    lpddr4_pmu_train_1d_imem_202006.bin \
+    lpddr4_pmu_train_2d_dmem_202006.bin \
+    lpddr4_pmu_train_2d_imem_202006.bin \
 "
 
 SPL_BINARY = "spl/u-boot-spl.bin"
