@@ -46,8 +46,10 @@ MALI_SOC = "mt8188"
 MACHINE_EXTRA_RRECOMMENDS:append = " \
 	linux-firmware-mt8188-scp \
 	linux-firmware-mt8188-sof \
-	kernel-module-mtk-vcu-driver-mt8365 \
-	kernel-module-mtk-vcodec-driver-mt8365 \
+	mtk-apusys-firmware \
+	kernel-module-mtk-apusys-driver-np6 \
+	kernel-module-mtk-vcu-driver-mt8395 \
+	kernel-module-mtk-vcodec-driver-mt8395 \
 	${@bb.utils.contains("MACHINE_FEATURES", "optee-efuse", "optee-ewriter", "", d)} \
 "
 

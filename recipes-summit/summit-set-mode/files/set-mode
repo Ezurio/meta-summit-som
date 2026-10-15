@@ -64,6 +64,8 @@ print_regdomain() {
 }
 
 overlay_append() {
+    ! printf '%s\n' "${overlay_names}" | grep -qFx -- "${1}" || \
+        die "Overlay already set: ${1}"
     overlay_names="${overlay_names}${overlay_names:+
 }${1}"
 }
