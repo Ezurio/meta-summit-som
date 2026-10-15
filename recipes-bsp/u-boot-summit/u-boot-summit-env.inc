@@ -16,6 +16,11 @@ do_compile:append() {
     echo "/dev/mmcblk${EMMC_DEVICE}boot0 ${ENV_OFFSET} ${ENV_SIZE}" > "${B}/fw_env_emmc-a.config"
     echo "/dev/mmcblk${EMMC_DEVICE}boot1 ${ENV_OFFSET} ${ENV_SIZE}" > "${B}/fw_env_emmc-b.config"
     echo "/boot/uboot.env 0 ${ENV_SIZE}" > "${B}/fw_env_sd.config"
+    if [ -n "${MKENVIMAGE_REDUND_OPT}" ]; then
+        echo "/dev/mmcblk${EMMC_DEVICE}boot0 ${ENV_OFFSET} ${ENV_SIZE}" >> "${B}/fw_env_emmc-a.config"
+        echo "/dev/mmcblk${EMMC_DEVICE}boot1 ${ENV_OFFSET} ${ENV_SIZE}" >> "${B}/fw_env_emmc-b.config"
+        echo "/boot/uboot.env 0 ${ENV_SIZE}" >> "${B}/fw_env_sd.config"
+    fi
     for i in a b; do
         echo "/dev/mtd:u-boot-env-$i 0x00000 ${ENV_SIZE} 0 1 1"
     done > "${B}/fw_env_flash.config"
