@@ -26,7 +26,6 @@ summit_key_provider_setup_env() {
     export AWS_KMS_PKCS11_CONFIG="${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
     export SPSDK_PKCS11_CONFIG_ENV="${CLOUD_HSM_SPSDK_PKCS11_CONFIG_ENV}"
     export SPSDK_PKCS11_CONFIG_PATH="${CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH}"
-    export LD_LIBRARY_PATH="${STAGING_LIBDIR_NATIVE}:${LD_LIBRARY_PATH}"
     export OPENSSL_CONF="${STAGING_DIR_NATIVE}${sysconfdir}/ssl/openssl.cnf"
 }
 
