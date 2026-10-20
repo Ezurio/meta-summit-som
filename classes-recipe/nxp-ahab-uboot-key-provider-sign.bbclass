@@ -25,7 +25,7 @@ DEPENDS:append = "${@oe.utils.ifelse( \
 # Redirect UBOOT_SIGN_KEYDIR to staging copy for FIT key wrappers.
 KEY_PROVIDER_SIG_DATA_ORIG := "${SIG_DATA_PATH}"
 UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
-    d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') + (d.getVar('HSM_FIT_KEY_ID') or ''), \
+    d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') and d.getVar('HSM_FIT_KEY_ID'), \
     d.getVar('KEY_PROVIDER_SIG_STAGING') + '/keys', \
     d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG'))}"
 
