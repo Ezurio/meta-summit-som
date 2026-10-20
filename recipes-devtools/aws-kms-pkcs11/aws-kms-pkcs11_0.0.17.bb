@@ -12,7 +12,8 @@ SRC_URI = "\
     file://0003-fix-attempt-using-atexit.patch \
     file://0004-aws_kms_pkcs11-on-delete-session-if-non-null.patch \
     file://0005-aws_kms_pkcs11-support-kms_key_arn-in-config.patch \
-    file://0006-Makefile-honor-CXXFLAGS-and-LDFLAGS.patch \
+    file://0006-Makefile-honor-CC-and-CXX-from-environment.patch \
+    file://0007-Makefile-honor-CXXFLAGS-and-LDFLAGS.patch \
     file://aws-kms-pkcs11-openssl.cnf \
     "
 

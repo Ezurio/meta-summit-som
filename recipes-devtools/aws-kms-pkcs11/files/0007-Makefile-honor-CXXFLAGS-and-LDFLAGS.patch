@@ -16,15 +16,17 @@ separately because the build system already folds it into CXXFLAGS.
 
 Upstream-Status: Pending
 
+Signed-off-by: Chris Trowbridge <chris.trowbridge@ezurio.com>
+
 --- a/Makefile
 +++ b/Makefile
-@@ -184,8 +184,8 @@
+@@ -187,8 +187,8 @@
          aws_kms_pkcs11_test.c -o aws_kms_pkcs11_test -ldl
  
  aws_kms_pkcs11.so: aws_kms_pkcs11.cpp unsupported.cpp aws_kms_slot.cpp debug.cpp util.cpp attributes.cpp certificates.cpp
--	g++ -shared -fPIC -Wall -I$(AWS_SDK_PATH)/include $(PKCS11_INC) $(JSON_C_INC) $(PROXY_CFLAGS) -fno-exceptions -std=c++17 $(SRC) \
+-	$(CXX) -shared -fPIC -Wall -I$(AWS_SDK_PATH)/include $(PKCS11_INC) $(JSON_C_INC) $(PROXY_CFLAGS) -fno-exceptions -std=c++17 $(SRC) \
 -	    -o aws_kms_pkcs11.so $(STATIC_LIBS) $(LIBS) -lcrypto -ljson-c -lcurl -lz
-+	g++ -shared -fPIC -Wall -I$(AWS_SDK_PATH)/include $(PKCS11_INC) $(JSON_C_INC) $(PROXY_CFLAGS) -fno-exceptions -std=c++17 $(CXXFLAGS) $(SRC) \
++	$(CXX) -shared -fPIC -Wall -I$(AWS_SDK_PATH)/include $(PKCS11_INC) $(JSON_C_INC) $(PROXY_CFLAGS) -fno-exceptions -std=c++17 $(CXXFLAGS) $(SRC) \
 +	    -o aws_kms_pkcs11.so $(LDFLAGS) $(STATIC_LIBS) $(LIBS) -lcrypto -ljson-c -lcurl -lz
  
  install: aws_kms_pkcs11.so
