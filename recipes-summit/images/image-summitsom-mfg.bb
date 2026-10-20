@@ -19,4 +19,5 @@ IMAGE_INSTALL += "\
     busybox-syslog \
     ${@bb.utils.contains('COMBINED_FEATURES', 'wifi', 'packagegroup-summit-radio-stack-mfg', '', d)} \
     ${@bb.utils.contains('COMBINED_FEATURES', 'alsa', 'kernel-module-tac5x1x', '', d)} \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'opengl', 'fbida', '', d)} \
     "
