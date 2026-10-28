@@ -4,74 +4,24 @@
 # SPSDK discovers the spsdk-pkcs11 plugin via entry points and delegates
 # signing through python-pkcs11 to the backend's PKCS#11 library.
 #
-# For FIT signing, the standard PKCS#11 PEM wrapper mechanism (via OpenSSL
-# pkcs11-provider) is used for mkimage.
+# mkimage signs the FIT with the PKCS#11 wrapper in SIG_KEY_PATH.
 
 inherit uboot-key-provider-common
 
-UBOOT_KEY_PROVIDER_KEY_IDS:append = " ${HSM_FIT_KEY_ID}"
+DEPENDS:append = " python3-spsdk-pkcs11-native"
 
-# Provider packages are needed for either remote role; the SPSDK PKCS#11
-# plugin is needed only for AHAB container signing.
-DEPENDS:append = "${@oe.utils.ifelse( \
-    d.getVar('HSM_FIT_KEY_ID') or d.getVar('HSM_AHAB_KEY_ID'), \
-    ' ${SUMMIT_KEY_PROVIDER_DEPENDS}', \
-    '')}"
-DEPENDS:append = "${@oe.utils.ifelse( \
-    d.getVar('HSM_AHAB_KEY_ID'), \
-    ' python3-spsdk-pkcs11-native', \
-    '')}"
-
-# Redirect UBOOT_SIGN_KEYDIR to staging copy for FIT key wrappers.
-KEY_PROVIDER_SIG_DATA_ORIG := "${SIG_DATA_PATH}"
-UBOOT_SIGN_KEYDIR = "${@oe.utils.ifelse( \
-    d.getVar('KEY_PROVIDER_SIG_DATA_ORIG') and d.getVar('HSM_FIT_KEY_ID'), \
-    d.getVar('KEY_PROVIDER_SIG_STAGING') + '/keys', \
-    d.getVar('KEY_PROVIDER_SIGN_KEYDIR_ORIG'))}"
-
-# Allow network access only for tasks whose signing role uses the provider.
-python () {
-    fit_enabled = bool(d.getVar('HSM_FIT_KEY_ID'))
-    d.setVarFlag('do_compile', 'network', '1' if fit_enabled else '0')
-    d.setVarFlag('do_uboot_assemble_fitimage', 'network',
-                 '1' if fit_enabled else '0')
-    d.setVarFlag('do_deploy', 'network',
-                 '1' if d.getVar('HSM_AHAB_KEY_ID') else '0')
-}
-
+do_compile[network] = "1"
+do_deploy[network] = "1"
 do_compile:prepend() {
-    # Stage FIT signing key (dev.key -> PKCS#11 wrapper) if configured.
-    KEY_PROVIDER_SIG_STAGE="${KEY_PROVIDER_SIG_STAGING}"
-    if [ -n "${HSM_FIT_KEY_ID}" ] && \
-       [ -d "${KEY_PROVIDER_SIG_DATA_ORIG}" ]; then
-        summit_key_provider_setup_env
-        rm -rf "$KEY_PROVIDER_SIG_STAGE"
-        mkdir -p "$KEY_PROVIDER_SIG_STAGE/keys"
-
-        # FIT signing key -- generate a wrapper when the backend supplies one;
-        # otherwise copy the original dev.key/dev.crt from SIG_DATA_PATH.
-        if [ -n "${UBOOT_SIGN_KEYNAME}" ]; then
-            FIT_TOKEN="${@summit_key_provider_token_label(d.getVar('HSM_FIT_KEY_ID'))}"
-            if [ -n "$FIT_TOKEN" ]; then
-                if ! summit_key_provider_materialize_key "$FIT_TOKEN" \
-                    "$KEY_PROVIDER_SIG_STAGE/keys/${UBOOT_SIGN_KEYNAME}.key"; then
-                    bbfatal "${CLOUD_HSM_BACKEND} key materialization failed for the FIT key"
-                fi
-                summit_key_provider_materialize_cert \
-                      "$KEY_PROVIDER_SIG_STAGE/keys/${UBOOT_SIGN_KEYNAME}.key" \
-                      "$KEY_PROVIDER_SIG_STAGE/keys/${UBOOT_SIGN_KEYNAME}.crt" \
-                    "${UBOOT_SIGN_KEYNAME}"
-            fi
-        fi
-    fi
+    summit_key_provider_setup_env
 }
 
 # Sign with a PKCS#11 signature provider config string when dispatched by the
 # AHAB recipe include.
 do_sign_boot_image_key_provider() {
-    if [ ! -e "${KEY_PROVIDER_SIG_DATA_ORIG}/spsdk_ahab.yaml" ]; then
-        bbfatal "SPSDK config not found at '${KEY_PROVIDER_SIG_DATA_ORIG}/spsdk_ahab.yaml'. " \
-                "Ensure SIG_DATA_PATH is set and points at a PKI tree containing spsdk_ahab.yaml."
+    if [ ! -e "${SIG_SUPPORT_PATH}/spsdk_ahab.yaml" ]; then
+        bbfatal "SPSDK config not found at '${SIG_SUPPORT_PATH}/spsdk_ahab.yaml'. " \
+                "Ensure SIG_SUPPORT_PATH points at a PKI tree containing spsdk_ahab.yaml."
     fi
 
     if [ ! -e "${B}/flash.bin" ]; then
@@ -100,8 +50,8 @@ do_sign_boot_image_key_provider() {
     AHAB_SIGN_YAML="${B}/spsdk_ahab_key_provider.yaml"
     sed -e "s|^ *family:.*|family: ${SPSDK_FAMILY}|" \
         -e "s|^ *signer:.*|signer: ${SIGNER_CFG}|" \
-        -e "/srk_array/,/^[^ #]/{s|- \([^/][^ ]*\.pem\)|- ${KEY_PROVIDER_SIG_DATA_ORIG}/crts/\1|}" \
-        "${KEY_PROVIDER_SIG_DATA_ORIG}/spsdk_ahab.yaml" > "${AHAB_SIGN_YAML}"
+        -e "/srk_array/,/^[^ #]/{s|- \([^/][^ ]*\.pem\)|- ${SIG_SUPPORT_PATH}/crts/\1|}" \
+        "${SIG_SUPPORT_PATH}/spsdk_ahab.yaml" > "${AHAB_SIGN_YAML}"
 
     bbnote "AHAB signing flash.bin for ${SPSDK_FAMILY} via SPSDK PKCS#11 provider"
 

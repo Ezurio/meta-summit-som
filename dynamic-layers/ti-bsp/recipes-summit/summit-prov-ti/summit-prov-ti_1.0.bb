@@ -5,9 +5,11 @@ NO_GENERIC_LICENSE[Ezurio] = "LICENSE.ezurio"
 LIC_FILES_CHKSUM = "file://LICENSE.ezurio;md5=11ef601ae07d69cfcd7387a33b764027"
 
 inherit allarch systemd deploy update-rc.d
+KEY_PROVIDER_PROV_CLASS = ""
+KEY_PROVIDER_PROV_CLASS:k3 = "ti-provisioning-key-provider-sign"
 inherit ${@oe.utils.ifelse( \
     '${CLOUD_HSM_BACKEND}', \
-    bb.utils.contains('MACHINEOVERRIDES', 'k3', 'ti-provisioning-key-provider-sign', '', d), \
+    '${KEY_PROVIDER_PROV_CLASS}', \
     '')}
 
 SRC_URI = " \
@@ -69,16 +71,15 @@ do_install:append:summit-secure () {
 }
 
 do_install:append () {
-    # Assume SMEK and SMPK are in the keys directory
-    smek_path="${UBOOT_SIGN_KEYDIR}/smek.key"
+    smek_path="${SIG_SUPPORT_PATH}/smek.key"
     [ -f "${smek_path}" ] || \
-        bbfatal "No SMEK key found in the keys directory"
-    smpk_path="${UBOOT_SIGN_KEYDIR}/smpk.key"
+        bbfatal "No SMEK key found in SIG_SUPPORT_PATH (${SIG_SUPPORT_PATH})"
+    smpk_path="${SIG_KEY_PATH}/smpk.key"
     [ -f "${smpk_path}" ] || \
-        bbfatal "No SMPK key found in the keys directory"
-    prov_data_path="${UBOOT_SIGN_KEYDIR}/prov_data"
+        bbfatal "No SMPK key found in SIG_KEY_PATH (${SIG_KEY_PATH})"
+    prov_data_path="${SIG_SUPPORT_PATH}/prov_data"
     [ -d "${prov_data_path}" ] || \
-        bbfatal "No provisioning data directory found in the keys directory"
+        bbfatal "No provisioning data directory found in SIG_SUPPORT_PATH (${SIG_SUPPORT_PATH})"
     keystore_source_path="${prov_data_path}/keystore"
     [ -d "${keystore_source_path}" ] || \
         bbfatal "No keystore directory found in the prov_data directory"

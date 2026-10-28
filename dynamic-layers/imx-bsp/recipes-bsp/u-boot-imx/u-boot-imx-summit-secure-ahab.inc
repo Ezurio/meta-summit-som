@@ -38,9 +38,9 @@ do_configure:append() {
 # key through SPSDK's plugin system. The key-provider class calls this helper
 # when its backend does not supply the AHAB role.
 do_sign_boot_image_local() {
-    if [ ! -e "${SIG_DATA_PATH}/spsdk_ahab.yaml" ]; then
-        bbfatal "SPSDK config not found at '${SIG_DATA_PATH}/spsdk_ahab.yaml'. " \
-                "Ensure SIG_DATA_PATH is set and points at a PKI tree containing spsdk_ahab.yaml."
+    if [ ! -e "${SIG_SUPPORT_PATH}/spsdk_ahab.yaml" ]; then
+        bbfatal "SPSDK config not found at '${SIG_SUPPORT_PATH}/spsdk_ahab.yaml'. " \
+                "Ensure SIG_SUPPORT_PATH points at a PKI tree containing spsdk_ahab.yaml."
     fi
 
     if [ ! -e "${B}/flash.bin" ]; then
@@ -48,11 +48,11 @@ do_sign_boot_image_local() {
     fi
 
     # Build the signer config string for the file-based signature provider.
-    KEY_PASS_TXT="${SIG_DATA_PATH}/keys/key_pass.txt"
+    KEY_PASS_TXT="${SIG_KEY_PATH}/key_pass.txt"
     if [ -f "${KEY_PASS_TXT}" ]; then
-        SIGNER_SED="s|^ *signer: *\(.*\)|signer: type=file;file_path=${SIG_DATA_PATH}/keys/\1;password=${KEY_PASS_TXT}|"
+        SIGNER_SED="s|^ *signer: *\(.*\)|signer: type=file;file_path=${SIG_KEY_PATH}/\1;password=${KEY_PASS_TXT}|"
     else
-        SIGNER_SED="s|^ *signer: *\(.*\)|signer: type=file;file_path=${SIG_DATA_PATH}/keys/\1|"
+        SIGNER_SED="s|^ *signer: *\(.*\)|signer: type=file;file_path=${SIG_KEY_PATH}/\1|"
     fi
 
     # Prepare the signing YAML: set family, rewrite signer to config string,
@@ -60,8 +60,8 @@ do_sign_boot_image_local() {
     AHAB_SIGN_YAML="${B}/spsdk_ahab_sign.yaml"
     sed -e "s|^ *\(family:\).*|\1 ${SPSDK_FAMILY}|" \
         -e "${SIGNER_SED}" \
-        -e "/srk_array/,/^[^ #]/{s|- \([^/][^ ]*\.pem\)|- ${SIG_DATA_PATH}/crts/\1|}" \
-        "${SIG_DATA_PATH}/spsdk_ahab.yaml" > "${AHAB_SIGN_YAML}"
+        -e "/srk_array/,/^[^ #]/{s|- \([^/][^ ]*\.pem\)|- ${SIG_SUPPORT_PATH}/crts/\1|}" \
+        "${SIG_SUPPORT_PATH}/spsdk_ahab.yaml" > "${AHAB_SIGN_YAML}"
 
     bbnote "AHAB signing flash.bin for ${SPSDK_FAMILY} via nxpimage"
 

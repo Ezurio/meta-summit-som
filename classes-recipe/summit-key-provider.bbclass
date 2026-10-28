@@ -12,6 +12,9 @@ CLOUD_HSM_FIT_SIGN_ALG ?= ""
 
 CLOUD_HSM_SPSDK_PKCS11_OPTIONS ?= ""
 
+# PKCS#11 wrappers from summit-signing-keys-native, in this recipe's sysroot.
+SIG_KEY_PATH ?= "${STAGING_DATADIR_NATIVE}/summit-signing-keys"
+
 def summit_key_provider_backend_class(d):
     backend = d.getVar('CLOUD_HSM_BACKEND') or ''
     supported = (d.getVar('CLOUD_HSM_BACKENDS') or '').split()
@@ -37,6 +40,14 @@ def summit_key_provider_spsdk_signer(d, key_id):
     return ';'.join(parts)
 
 inherit ${@summit_key_provider_backend_class(d)}
+
+# Python tasks do not inherit shell exports, so copy the provider environment
+# into the task process.
+python summit_key_provider_export_env() {
+    for kv in (d.getVar('SUMMIT_KEY_PROVIDER_ENV') or '').split():
+        name, value = kv.split('=', 1)
+        os.environ[name] = value
+}
 
 python () {
     if not d.getVar('CLOUD_HSM_BACKEND'):

@@ -1,14 +1,12 @@
-# Common Cloud-HSM signing infrastructure shared between NXP, TI, and
-# fitimage bbclasses. Backend-specific key materialization is supplied by
-# summit-key-provider.
+# Common Cloud-HSM signing setup shared between the NXP, TI, and FIT signing
+# classes. The keys in SIG_KEY_PATH are PKCS#11 wrappers from
+# summit-signing-keys-native, so signing needs the provider environment.
 
 inherit summit-key-provider
 
-KEY_PROVIDER_SIG_STAGING = "${UNPACKDIR}/key-provider-sig-data"
-KEY_PROVIDER_SIGN_KEYDIR_ORIG := "${UBOOT_SIGN_KEYDIR}"
+DEPENDS:append = " ${SUMMIT_KEY_PROVIDER_DEPENDS}"
 
+do_uboot_assemble_fitimage[network] = "1"
 do_uboot_assemble_fitimage:prepend() {
-    if [ -n "${@'1' if (d.getVar('UBOOT_KEY_PROVIDER_KEY_IDS') or '').split() else ''}" ]; then
-        summit_key_provider_setup_env
-    fi
+    summit_key_provider_setup_env
 }

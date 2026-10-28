@@ -23,9 +23,14 @@ FIT_PAD_ALG = "pss"
 FIT_HASH_ALG = "sha512"
 FIT_SIGN_ALG = "rsa4096"
 
+# Must match the A53 machine: binman signs tiboot3.bin with ${SIG_KEY_PATH}/smpk.key.
+SIG_SUPPORT_PATH ?= "${SUMMIT_SOM_KEYS_DIR}/carbon"
+SIG_KEY_PATH_LOCAL = "${SIG_SUPPORT_PATH}"
+CLOUD_HSM_REQUIRED_ROLES = "KEY FIT UPDATE"
+
 UBOOT_SIGN_ENABLE = "0"
 UBOOT_SIGN_KEYNAME = "dev"
-UBOOT_SIGN_KEYDIR = "${SUMMIT_SOM_KEYS_DIR}/carbon"
+UBOOT_SIGN_KEYDIR = "${SIG_KEY_PATH}"
 
 # It's needed to equalize hash for tclib-baremetal with tclib-glibc
 # and as such have sstate cache reuse for native recipies

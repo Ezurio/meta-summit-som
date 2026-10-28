@@ -18,8 +18,9 @@
 # below) needs the real file and runs before do_image_complete would ever
 # publish it.
 inherit linux-kernel-base kernel-arch kernel-artifact-names uboot-config
+# HSM_FIT_KEY_ID is defined by the backend this class loads, so gate on the backend.
 inherit ${@oe.utils.ifelse( \
-    d.getVar('HSM_FIT_KEY_ID'), \
+    '${CLOUD_HSM_BACKEND}', \
     'fitimage-key-provider-sign', \
     '')}
 

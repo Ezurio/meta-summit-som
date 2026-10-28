@@ -68,9 +68,10 @@ flow described below.
 ## Input layout
 
 The `prov_data` and `summit-prov-imx` input directories must be direct
-subdirectories of `SIG_DATA_PATH`. The recipe also uses the existing secured
-AHAB build configuration, signer, and SRK certificates under that path. For
-example, when `SIG_DATA_PATH` is `/path/to/keys/nitrogen/ahab`, it reads:
+subdirectories of `SIG_SUPPORT_PATH`. The recipe also uses the existing secured
+AHAB build configuration and SRK certificates under that path, and the AHAB
+signer from `SIG_KEY_PATH` (by default `${SIG_SUPPORT_PATH}/keys`). For
+example, when `SIG_SUPPORT_PATH` is `/path/to/keys/nitrogen/ahab`, it reads:
 
     /path/to/keys/nitrogen/ahab/
     ├── spsdk_ahab.yaml
@@ -87,7 +88,7 @@ example, when `SIG_DATA_PATH` is `/path/to/keys/nitrogen/ahab`, it reads:
   The source tree provides development inputs in `keys/nitrogen/ahab`. Those
   credentials and provisioning files are exposed because they are committed to
   the repository and must not protect production data. Production builds must
-  set `SIG_DATA_PATH` to a customer-controlled directory containing independently
+  set `SIG_SUPPORT_PATH` to a customer-controlled directory containing independently
   generated source keys, credentials, and provisioning content in the same
   layout.
 
@@ -113,7 +114,7 @@ object label.
 
 Configure only the common parent path:
 
-    SIG_DATA_PATH = "/secure/build-inputs/product/nitrogen/ahab"
+    SIG_SUPPORT_PATH = "/secure/build-inputs/product/nitrogen/ahab"
 
 Non-secure builds only read `prov_data/`; the other inputs are not required.
 
@@ -212,7 +213,7 @@ key-import TLV together, ensuring that both use the supplied fleet key.
 ### Secured AHAB signing inputs
 
 The recipe reuses `spsdk_ahab.yaml`, its selected OEM signer, and its SRK
-certificate table from `SIG_DATA_PATH`. These are the same trust inputs used to
+certificate table from `SIG_SUPPORT_PATH` and `SIG_KEY_PATH`. These are the same trust inputs used to
 sign the secured AHAB boot image. The selected signer and SRK table must match
 the SRK table hash provisioned on the target; otherwise ELE rejects the signed
 key-exchange message.

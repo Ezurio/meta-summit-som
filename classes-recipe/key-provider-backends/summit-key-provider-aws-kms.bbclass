@@ -14,26 +14,34 @@ HSM_FIT_KEY_ID = "${AWS_KMS_FIT_KEY_ARN}"
 HSM_AHAB_KEY_ID = "${AWS_KMS_AHAB_KEY_ARN}"
 HSM_UPDATE_KEY_ID = "${AWS_KMS_UPDATE_KEY_ARN}"
 
-SUMMIT_KEY_PROVIDER_DEPENDS = "\
+SUMMIT_KEY_PROVIDER_TOOL_DEPENDS = "\
     aws-kms-pkcs11-native \
     aws-kms-pkcs11-config-native \
     pkcs11-provider-native \
     "
+SUMMIT_KEY_PROVIDER_DEPENDS = "${SUMMIT_KEY_PROVIDER_TOOL_DEPENDS} summit-signing-keys-native"
 SUMMIT_KEY_PROVIDER_TASK_DEPS = "\
     aws-kms-pkcs11-native:do_populate_sysroot \
     aws-kms-pkcs11-config-native:do_populate_sysroot \
     pkcs11-provider-native:do_populate_sysroot \
+    summit-signing-keys-native:do_populate_sysroot \
     "
 HSM_PKCS11_LIBRARY = "${STAGING_LIBDIR_NATIVE}/pkcs11/aws_kms_pkcs11.so"
 CLOUD_HSM_SPSDK_PKCS11_OPTIONS = "rsa_pkcs_mechanism=true"
 CLOUD_HSM_SPSDK_PKCS11_CONFIG_ENV = "AWS_KMS_PKCS11_CONFIG"
 CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH = "${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
 
+# Space-separated NAME=value pairs; values must not contain spaces.
+SUMMIT_KEY_PROVIDER_ENV = "\
+    AWS_KMS_PKCS11_CONFIG=${CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH} \
+    SPSDK_PKCS11_CONFIG_ENV=${CLOUD_HSM_SPSDK_PKCS11_CONFIG_ENV} \
+    SPSDK_PKCS11_CONFIG_PATH=${CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH} \
+    OPENSSL_CONF=${STAGING_ETCDIR_NATIVE}/ssl/openssl.cnf \
+    "
+
 summit_key_provider_setup_env() {
-    export AWS_KMS_PKCS11_CONFIG="${STAGING_DATADIR_NATIVE}/aws-kms-pkcs11/aws-kms-pkcs11-config.json"
-    export SPSDK_PKCS11_CONFIG_ENV="${CLOUD_HSM_SPSDK_PKCS11_CONFIG_ENV}"
-    export SPSDK_PKCS11_CONFIG_PATH="${CLOUD_HSM_SPSDK_PKCS11_CONFIG_PATH}"
-    export OPENSSL_CONF="${STAGING_DIR_NATIVE}${sysconfdir}/ssl/openssl.cnf"
+    # shellcheck disable=SC2086,SC2163 # BitBake expands this to separate NAME=value words.
+    export ${SUMMIT_KEY_PROVIDER_ENV}
 }
 
 # CK_TOKEN_INFO.label is exactly 32 bytes. aws-kms-pkcs11 uses the key UUID as
@@ -58,4 +66,23 @@ summit_key_provider_materialize_cert() {
         -out "$2" \
         -days "${CLOUD_HSM_CERT_DAYS}" -nodes \
         -subj "/CN=$3"
+}
+
+# Cloud HSM signing is all-or-nothing: every role in CLOUD_HSM_REQUIRED_ROLES
+# needs its ARN.
+summit_key_provider_check_roles() {
+    missing=""
+    for role in ${CLOUD_HSM_REQUIRED_ROLES}; do
+        case "$role" in
+        KEY) [ -n "${AWS_KMS_KEY_ARN}" ] || missing="$missing AWS_KMS_KEY_ARN" ;;
+        CSF) [ -n "${AWS_KMS_CSF_KEY_ARN}" ] || missing="$missing AWS_KMS_CSF_KEY_ARN" ;;
+        IMG) [ -n "${AWS_KMS_IMG_KEY_ARN}" ] || missing="$missing AWS_KMS_IMG_KEY_ARN" ;;
+        AHAB) [ -n "${AWS_KMS_AHAB_KEY_ARN}" ] || missing="$missing AWS_KMS_AHAB_KEY_ARN" ;;
+        FIT) [ -n "${AWS_KMS_FIT_KEY_ARN}" ] || missing="$missing AWS_KMS_FIT_KEY_ARN" ;;
+        UPDATE) [ -n "${AWS_KMS_UPDATE_KEY_ARN}" ] || missing="$missing AWS_KMS_UPDATE_KEY_ARN" ;;
+        *) bbfatal "Unknown Cloud HSM role in CLOUD_HSM_REQUIRED_ROLES: $role" ;;
+        esac
+    done
+    [ -z "$missing" ] || \
+        bbfatal "AWS KMS signing needs a key for every role; set:$missing"
 }

@@ -6,39 +6,23 @@
 
 inherit summit-key-provider
 
-DEPENDS:append = "${@oe.utils.ifelse( \
-    '${HSM_AHAB_KEY_ID}', \
-    ' ${SUMMIT_KEY_PROVIDER_DEPENDS} python3-spsdk-pkcs11-native', \
-    '')}"
+DEPENDS:append = " ${SUMMIT_KEY_PROVIDER_DEPENDS} python3-spsdk-pkcs11-native"
 
 SUMMIT_PROV_IMX_SIGNER = "${@';'.join(( \
     'type=pkcs11', \
     'so_path=' + d.getVar('HSM_PKCS11_LIBRARY'), \
-    'token_label=' + d.getVar('HSM_AHAB_KEY_ID').rsplit('/', 1)[-1][:32], \
-    'key_label=' + d.getVar('HSM_AHAB_KEY_ID').rsplit('/', 1)[-1], \
-    'user_pin=unused')) if d.getVar('HSM_AHAB_KEY_ID') else ''}"
+    'token_label=' + summit_key_provider_token_label(d.getVar('HSM_AHAB_KEY_ID')), \
+    'key_label=' + summit_key_provider_key_label(d.getVar('HSM_AHAB_KEY_ID')), \
+    'user_pin=unused'))}"
 
-python () {
-    enabled = bool(d.getVar('HSM_AHAB_KEY_ID'))
-    d.setVarFlag('do_install', 'network', '1' if enabled else '0')
-}
-
+do_install[network] = "1"
 do_install:prepend() {
-    if [ -n "${HSM_AHAB_KEY_ID}" ]; then
+    if [ "${SECURE_BOOT}" = "1" ]; then
         summit_key_provider_setup_env
 
         if [ -z "${HSM_PKCS11_LIBRARY}" ] || \
            [ ! -e "${HSM_PKCS11_LIBRARY}" ]; then
             bbfatal "The ${CLOUD_HSM_BACKEND} backend did not provide a usable PKCS#11 library"
         fi
-
-        if [ -z "${SUMMIT_PROV_IMX_SIGNER}" ]; then
-            bbfatal "The ${CLOUD_HSM_BACKEND} backend did not provide an AHAB signer"
-        fi
     fi
 }
-
-do_install[depends] += "${@oe.utils.ifelse( \
-    '${HSM_AHAB_KEY_ID}', \
-    '${SUMMIT_KEY_PROVIDER_TASK_DEPS}', \
-    '')}"

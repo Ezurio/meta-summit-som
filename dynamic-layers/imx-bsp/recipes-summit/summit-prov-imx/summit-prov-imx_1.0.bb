@@ -62,13 +62,13 @@ SUMMIT_PROV_IMX_CRYPTO_INPUTS = " \
 python __anonymous () {
     # Only secure builds use ELE and need the crypto and AHAB signing inputs.
     if d.getVar("SECURE_BOOT") == "1":
-        crypto_dir = d.expand("${SIG_DATA_PATH}/summit-prov-imx")
+        crypto_dir = d.expand("${SIG_SUPPORT_PATH}/summit-prov-imx")
         checksums = ["%s/%s:True" % (crypto_dir, name)
                      for name in d.getVar("SUMMIT_PROV_IMX_CRYPTO_INPUTS").split()]
-        checksums.append(d.expand("${SIG_DATA_PATH}/spsdk_ahab.yaml:True"))
+        checksums.append(d.expand("${SIG_SUPPORT_PATH}/spsdk_ahab.yaml:True"))
         d.appendVarFlag("do_install", "file-checksums", " " + " ".join(checksums))
 
-    prov_data_dir = d.expand("${SIG_DATA_PATH}/prov_data")
+    prov_data_dir = d.expand("${SIG_SUPPORT_PATH}/prov_data")
     checksums = []
     if os.path.isdir(prov_data_dir):
         for root, _, files in os.walk(prov_data_dir):
@@ -89,8 +89,8 @@ do_compile () {
 }
 
 do_install () {
-    prov_data_dir="${SIG_DATA_PATH}/prov_data"
-    crypto_dir="${SIG_DATA_PATH}/summit-prov-imx"
+    prov_data_dir="${SIG_SUPPORT_PATH}/prov_data"
+    crypto_dir="${SIG_SUPPORT_PATH}/summit-prov-imx"
     [ -d "$prov_data_dir" ] || \
         bbfatal "i.MX provisioning data directory not found: $prov_data_dir"
     [ -d "$prov_data_dir/keystore" ] || \
@@ -129,8 +129,8 @@ do_install () {
 summit_prov_imx_install_secure () {
     [ -d "$crypto_dir" ] || \
         bbfatal "i.MX provisioning crypto directory not found: $crypto_dir"
-    [ -f "${SIG_DATA_PATH}/spsdk_ahab.yaml" ] || \
-        bbfatal "SPSDK AHAB configuration not found: ${SIG_DATA_PATH}/spsdk_ahab.yaml"
+    [ -f "${SIG_SUPPORT_PATH}/spsdk_ahab.yaml" ] || \
+        bbfatal "SPSDK AHAB configuration not found: ${SIG_SUPPORT_PATH}/spsdk_ahab.yaml"
 
     for artifact in ${SUMMIT_PROV_IMX_CRYPTO_INPUTS}; do
         [ -f "$crypto_dir/$artifact" ] || \
@@ -154,7 +154,8 @@ summit_prov_imx_install_secure () {
         SIGNER_ARGS="--signer ${SUMMIT_PROV_IMX_SIGNER}"
     fi
     ${PYTHON} "${S}/generate_ele_artifacts.py" \
-        --sig-data-path "${SIG_DATA_PATH}" \
+        --sig-support-path "${SIG_SUPPORT_PATH}" \
+        --sig-key-path "${SIG_KEY_PATH}" \
         --crypto-dir "$crypto_dir" \
         --nxp-prod-ka-public "$crypto_dir/nxp-prod-ka-public.bin" \
         --output-dir "${B}/generated-ele" \

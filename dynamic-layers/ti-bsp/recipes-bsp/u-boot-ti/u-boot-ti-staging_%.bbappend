@@ -24,6 +24,12 @@ SRC_URI:append:summitsom-usb-boot:am62lxx = " \
     file://uboot-mfg.cfg \
 "
 
-export KEY_PATH = "${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.key"
+# Binman signs tiboot3, tispl and u-boot.img (custMpk) with the SMPK.
+export KEY_PATH = "${SIG_KEY_PATH}/smpk.key"
+
+inherit ${@oe.utils.ifelse( \
+    '${CLOUD_HSM_BACKEND}', \
+    'ti-uboot-key-provider-sign', \
+    '')}
 
 require recipes-bsp/u-boot-summit/u-boot-summit-env.inc

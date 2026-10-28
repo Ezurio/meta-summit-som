@@ -12,7 +12,8 @@ UBOOT_GIT_PROTOCOL:summit-internal = "${SUMMIT_INTERNAL_GIT_PROTOCOL}"
 
 UBOOT_GIT_BRANCH = "${SUMMIT_PLATFORM_BRANCH}"
 
-export KEY_PATH = "${UBOOT_SIGN_KEYDIR}/${UBOOT_SIGN_KEYNAME}.key"
+# Binman signs tiboot3, tispl and u-boot.img (custMpk) with the SMPK.
+export KEY_PATH = "${SIG_KEY_PATH}/smpk.key"
 
 ENV_INCLUDE = ""
 ENV_INCLUDE:k3 = "recipes-bsp/u-boot-summit/u-boot-summit-env.inc"
