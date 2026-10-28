@@ -48,6 +48,8 @@ do_install() {
         summit_signing_keys_wrap \
             "${@summit_key_provider_token_label(d.getVar('HSM_KEY_ID'))}" \
             "$keydir/smpk.key" SMPK
+        summit_key_provider_materialize_cert \
+            "$keydir/smpk.key" "$keydir/smpk.crt" smpk
         ;;
     esac
 
