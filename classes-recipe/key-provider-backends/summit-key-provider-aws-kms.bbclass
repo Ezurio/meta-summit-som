@@ -1,10 +1,10 @@
 # AWS KMS implementation of the summit-key-provider interface.
 
 AWS_KMS_KEY_ARN ??= ""
-AWS_KMS_CSF_KEY_ARN ??= "${AWS_KMS_KEY_ARN}"
-AWS_KMS_IMG_KEY_ARN ??= "${AWS_KMS_KEY_ARN}"
+AWS_KMS_CSF_KEY_ARN ??= ""
+AWS_KMS_IMG_KEY_ARN ??= ""
 AWS_KMS_FIT_KEY_ARN ??= ""
-AWS_KMS_AHAB_KEY_ARN ??= "${AWS_KMS_KEY_ARN}"
+AWS_KMS_AHAB_KEY_ARN ??= ""
 AWS_KMS_UPDATE_KEY_ARN ??= ""
 
 HSM_KEY_ID = "${AWS_KMS_KEY_ARN}"
