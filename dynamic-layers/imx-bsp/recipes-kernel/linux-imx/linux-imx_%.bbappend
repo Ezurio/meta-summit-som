@@ -47,7 +47,6 @@ SRC_URI:append:summitsom = " \
     file://0082-drm-imx-dw_mipi_dsi-defer-component_add-to-host-a.patch \
     file://0085-drm-imx-sec_mipi_dsim-defer-component_add-to-host-a.patch \
     file://0086-ASoC-fsl_sai-constrain-rates-to-MCLK-sources.patch \
-    file://0087-ASoC-simple-amplifier-add-enable-delay-ms.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
