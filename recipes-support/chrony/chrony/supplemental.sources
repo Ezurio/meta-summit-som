@@ -1,1 +1,3 @@
-server time.nist.gov
+server time.nist.gov iburst
+server ptbtime3.ptb.de iburst
+server time.google.com iburst
