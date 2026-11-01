@@ -47,6 +47,7 @@ SRC_URI:append:summitsom = " \
     file://0082-drm-imx-dw_mipi_dsi-defer-component_add-to-host-a.patch \
     file://0085-drm-imx-sec_mipi_dsim-defer-component_add-to-host-a.patch \
     file://0086-ASoC-fsl_sai-constrain-rates-to-MCLK-sources.patch \
+    file://0098-of-net-add-nvmem-mac-offset.patch \
     file://dts \
     ${KERNEL_CONFIG_SUMMIT} \
     "
