@@ -417,6 +417,15 @@ do_deploy_fit() {
 }
 addtask deploy_fit after do_compile_fit before do_image_complete
 
+# kernel.itb is a shared "last deploy wins" symlink (see above), and
+# do_deploy_fit is stamp-cached, so after another image (e.g. the rescue
+# initramfs) repoints it, rebuilding this image would skip do_deploy_fit and
+# everything downstream (wic, swu) would consume the other image's FIT.
+# Hashing what the link currently resolves to invalidates do_deploy_fit (and its
+# dependents) whenever it is not this image's own FIT. A missing link (first
+# build) is skipped by bitbake with a warning.
+do_deploy_fit[file-checksums] += "${DEPLOY_DIR_IMAGE}/kernel.itb:True"
+
 python __anonymous() {
     fstype = d.getVar("IMAGE_ROOTFS_VERITY_TYPE")
     if not fstype:
